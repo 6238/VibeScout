@@ -1,0 +1,32 @@
+package templates
+
+templ Home(events map[string]string) {
+    @Layout("Vibe Scout | Home") {
+        <main class="flex flex-col items-center justify-center min-h-screen px-4">
+            <div class="max-w-md w-full bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-8 shadow-2xl text-center">
+                <h1 class="text-4xl font-black text-[#5D4037] mb-2 tracking-tight uppercase">Vibe Scout</h1>
+                
+                <form action="/scout" method="GET" class="space-y-4">
+                    <div class="text-left">
+                        <label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Event</label>
+                        <select name="event_key" class="w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
+                            for key, name := range events {
+                                <option value={ key }>{ name }</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="text-left">
+                        <label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Start at Match #</label>
+                        <input type="number" name="match_num" value="1" min="1"
+                               class="w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold" />
+                    </div>
+
+                    <button type="submit" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-5 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
+                        Join Scouting Rotation
+                    </button>
+                </form>
+            </div>
+        </main>
+    }
+}

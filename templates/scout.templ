@@ -1,0 +1,229 @@
+package templates
+
+templ ScoutPage(event, match, scouterID, alliance string, teams, categories []string) {
+    @Layout("Vibe Scout | Match " + match) {
+        <style>
+            .page-transition { animation: slideIn 0.4s ease-out; }
+            @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            
+            .tier-item { 
+                cursor: grab;
+                transition: transform 0.1s;
+            }
+            .tier-item:active { cursor: grabbing; }
+            
+            /* Visual cue for drop zones */
+            .drag-over { background-color: rgba(210, 180, 140, 0.3) !important; border-style: solid !important; }
+
+            .vibe-chip {
+                background-color: #D2B48C;
+                color: #4E342E;
+                font-weight: 900;
+                border-radius: 1rem; /* rounded-2xl */
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                border-bottom: 4px solid #B99976;
+                transition: transform 0.1s ease, box-shadow 0.1s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: grab;
+                /* Match the tray size exactly */
+                padding: 1rem 2rem; 
+                font-size: 1rem;
+                line-height: 1.5rem;
+            }
+
+            .vibe-chip:active {
+                cursor: grabbing;
+                transform: translateY(2px);
+                border-bottom-width: 2px;
+            }
+
+            .tier-item {
+                animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+
+            @keyframes popIn {
+                from { transform: scale(0.8); opacity: 0; }
+                to { transform: scale(1); opacity: 1; }
+            }
+        </style>
+
+        <main id="scout-container" class="p-4 pb-32 page-transition" ondragover="allowDrop(event)" ondrop="trash(event)">
+            <div class="max-w-4xl mx-auto flex justify-between items-center mb-5 bg-[#F2E8D5] p-5 rounded-3xl border-2 border-[#D2B48C] shadow-lg">
+                <div class="text-left">
+                    <p class="text-[10px] font-bold text-[#A1887F] uppercase tracking-widest">Scouter { scouterID } • Match { match }</p>
+                    <h1 class="text-xl font-black text-[#5D4037] uppercase">{ event }</h1>
+                </div>
+                <div class={ "px-6 py-2 rounded-2xl font-black uppercase tracking-widest border-2", 
+                    templ.KV("bg-red-100 border-red-400 text-red-700", alliance == "Red"),
+                    templ.KV("bg-blue-100 border-blue-400 text-blue-700", alliance == "Blue") }>
+                    { alliance }
+                </div>
+            </div>
+
+            <div class="max-w-4xl mx-auto mb-5 text-center">
+                <div class="flex justify-center gap-4 bg-[#E5D3B3]/40 p-8 rounded-3xl border-2 border-dashed border-[#D2B48C]">
+                    for _, team := range teams {
+                        <div draggable="true" 
+                            ondragstart="dragFromTray(event)" 
+                            data-team={ team }
+                            class="vibe-chip">
+                            { team }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="max-w-4xl mx-auto space-y-5">
+                for _, cat := range categories {
+                    <div class="category-group bg-white/30 p-4 rounded-3xl border border-[#D2B48C]/40">
+                        <h3 class="text-center font-black text-[#5D4037] mb-3 uppercase text-m tracking-widest">{ cat }</h3>
+                        <div class="grid grid-cols-3 gap-3">
+                            @TierBucket("Top")
+                            @TierBucket("Mid")
+                            @TierBucket("Low")
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="fixed bottom-0 left-0 right-0 p-6 bg-[#F2E8D5]/90 backdrop-blur-md flex justify-center z-50">
+                <button onclick="nextMatch()" class="bg-[#5D4037] text-white font-black py-4 px-16 rounded-2xl shadow-xl uppercase tracking-widest">
+                    Next Match →
+                </button>
+            </div>
+        </main>
+
+        <script>
+            // DRAG LOGIC
+            function dragFromTray(ev) {
+                ev.dataTransfer.setData("team", ev.target.getAttribute("data-team"));
+                ev.dataTransfer.setData("type", "new");
+            }
+
+            function dragFromBucket(ev) {
+                ev.dataTransfer.setData("team", ev.target.getAttribute("data-team"));
+                ev.dataTransfer.setData("type", "move");
+                // Store the ID of the element being moved
+                ev.dataTransfer.setData("sourceId", ev.target.id);
+            }
+
+            // DROP LOGIC
+            function allowDrop(ev) {
+                ev.preventDefault();
+                if (ev.currentTarget.classList.contains('bucket')) {
+                    ev.currentTarget.classList.add('drag-over');
+                }
+            }
+
+            function dragLeave(ev) {
+                ev.currentTarget.classList.remove('drag-over');
+            }
+
+            function drop(ev) {
+                ev.preventDefault();
+                ev.currentTarget.classList.remove('drag-over');
+                
+                const team = ev.dataTransfer.getData("team");
+                const bucket = ev.currentTarget;
+                const categoryGroup = bucket.closest('.category-group');
+
+                // 1. Uniqueness check within the category
+                const existingInCat = categoryGroup.querySelector(`[data-team="${team}"][data-is-clone="true"]`);
+                if (existingInCat) {
+                    existingInCat.remove();
+                }
+
+                // 2. Create the Clone (Identical to the tray items)
+                const clone = document.createElement('div');
+                const uniqueId = "clone-" + Date.now() + "-" + team;
+                
+                clone.id = uniqueId;
+                clone.setAttribute("data-team", team);
+                clone.setAttribute("data-is-clone", "true");
+                clone.setAttribute("draggable", "true");
+                
+                // Attach the movement handler
+                clone.ondragstart = dragFromBucket;
+                
+                // Use the exact same vibe-chip class
+                clone.className = "vibe-chip tier-item m-1";
+                clone.innerText = team;
+
+                bucket.appendChild(clone);
+                ev.stopPropagation(); // Prevents the 'trash' event on the body
+            }
+
+            // TRASH LOGIC (Drop on body)
+            function trash(ev) {
+                ev.preventDefault();
+                const type = ev.dataTransfer.getData("type");
+                const sourceId = ev.dataTransfer.getData("sourceId");
+                
+                if (type === "move" && sourceId) {
+                    const el = document.getElementById(sourceId);
+                    if (el) el.remove();
+                }
+            }
+
+			async function nextMatch() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const eventKey = urlParams.get('event_key');
+                const matchNum = parseInt(urlParams.get('match_num') || "1");
+                const scouterId = parseInt(urlParams.get('scouter_id') || "1");
+
+                // 1. Scrape the UI for data
+                const submission = {
+                    event_key: eventKey,
+                    match_num: matchNum,
+                    scouter_id: scouterId,
+                    data: []
+                };
+
+                document.querySelectorAll('.category-group').forEach(group => {
+                    const category = group.querySelector('h3').innerText;
+                    group.querySelectorAll('.bucket').forEach(bucket => {
+                        const tier = bucket.querySelector('span').innerText.trim();
+                        const teams = Array.from(bucket.querySelectorAll('.vibe-chip'))
+                                        .map(chip => chip.getAttribute('data-team'));
+                        
+                        if (teams.length > 0) {
+                            submission.data.push({ category, tier, teams });
+                        }
+                    });
+                });
+
+                // 2. POST to SQLite backend
+                try {
+                    const resp = await fetch('/api/save-scout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(submission)
+                    });
+
+                    if (resp.ok) {
+                        // 3. Trigger Animation & Redirect
+                        document.getElementById('scout-container').classList.add('exit-anim');
+                        setTimeout(() => {
+                            window.location.href = `/scout?event_key=${eventKey}&match_num=${matchNum + 1}&scouter_id=${scouterId}`;
+                        }, 300);
+                    }
+                } catch (err) {
+                    alert("Failed to save data! Check connection.");
+                }
+            }
+		</script>
+	}
+}
+
+templ TierBucket(label string) {
+    <div ondrop="drop(event)" 
+         ondragover="allowDrop(event)" 
+         ondragleave="dragLeave(event)"
+         class="bucket min-h-[100px] rounded-2xl border-2 border-dashed border-[#D2B48C] flex flex-wrap content-start justify-center p-2 bg-[#FAF7F2]/50 transition-colors">
+        <span class="w-full text-[16px] font-bold uppercase text-[#A1887F] text-center mb-2 pointer-events-none">
+            { label }
+        </span>
+    </div>
+}
