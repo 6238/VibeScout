@@ -158,41 +158,138 @@ func ScoutPage(event, match, scouterID, alliance string, teams, categories []str
 				return templ_7745c5c3_Err
 			}
 			for _, cat := range categories {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"category-group bg-white/30 p-4 rounded-3xl border border-[#D2B48C]/40\"><h3 class=\"text-center font-black text-[#5D4037] mb-3 uppercase text-m tracking-widest\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"category-group bg-white/30 p-4 rounded-3xl border border-[#D2B48C]/40\"><div class=\"flex justify-center items-center gap-2 mb-3\"><h3 class=\"font-black text-[#5D4037] uppercase text-m tracking-widest\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(cat)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 81, Col: 117}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 82, Col: 104}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</h3><div class=\"grid grid-cols-3 gap-3\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</h3>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = TierBucket("Top").Render(ctx, templ_7745c5c3_Buffer)
+				if cat != "DEFENSE" {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<details class=\"relative inline-block\"><summary class=\"cursor-pointer text-[#A1887F] hover:text-[#5D4037] font-bold text-xs\">ⓘ</summary><div class=\"absolute left-0 mt-1 w-56 p-3 bg-[#FFFBF5] border border-[#D2B48C] rounded-lg shadow-lg text-xs z-20\"><p class=\"font-bold text-[#5D4037]\">TOP:</p><ul class=\"list-disc pl-4 text-[#A1887F] mb-2\"><li>Consistent performer</li><li>High point potential</li><li>Reliable automation</li></ul><p class=\"font-bold text-[#5D4037]\">MID:</p><ul class=\"list-disc pl-4 text-[#A1887F] mb-2\"><li>Decent backup</li><li>Moderate scoring</li><li>May be inconsistent</li></ul><p class=\"font-bold text-[#5D4037]\">LOW:</p><ul class=\"list-disc pl-4 text-[#A1887F]\"><li>Low scoring</li><li>Often disabled</li><li>Poor reliability</li></ul></div></details>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = TierBucket("Mid").Render(ctx, templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
+				if cat == "DEFENSE" {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<div class=\"defense-scoring\"><p class=\"text-sm text-[#A1887F] mb-2 text-center\">Rate each team's defense contribution (0-10)</p><div class=\"flex flex-wrap justify-center gap-2\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					for _, team := range teams {
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<div class=\"flex items-center bg-[#FFFBF5] px-3 py-2 rounded-lg\"><span class=\"font-bold text-[#5D4037] mr-2\">")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						var templ_7745c5c3_Var12 string
+						templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(team)
+						if templ_7745c5c3_Err != nil {
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 115, Col: 94}
+						}
+						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</span> <input type=\"number\" name=\"")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						var templ_7745c5c3_Var13 string
+						templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs("defense_" + team)
+						if templ_7745c5c3_Err != nil {
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 116, Col: 89}
+						}
+						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" min=\"0\" max=\"10\" value=\"0\" class=\"w-14 p-1 text-center border border-[#D2B48C] rounded\"></div>")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</div></div>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				} else {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<div class=\"grid grid-cols-3 gap-3\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = TierBucket("Top").Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = TierBucket("Mid").Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = TierBucket("Low").Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
 				}
-				templ_7745c5c3_Err = TierBucket("Low").Render(ctx, templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div><div class=\"fixed bottom-0 left-0 right-0 p-6 bg-[#F2E8D5]/90 backdrop-blur-md flex justify-center z-50\"><button onclick=\"nextMatch()\" class=\"bg-[#5D4037] text-white font-black py-4 px-16 rounded-2xl shadow-xl uppercase tracking-widest\">Next Match →</button></div></main><script>\r\n            // DRAG LOGIC\r\n            function dragFromTray(ev) {\r\n                ev.dataTransfer.setData(\"team\", ev.target.getAttribute(\"data-team\"));\r\n                ev.dataTransfer.setData(\"type\", \"new\");\r\n            }\r\n\r\n            function dragFromBucket(ev) {\r\n                ev.dataTransfer.setData(\"team\", ev.target.getAttribute(\"data-team\"));\r\n                ev.dataTransfer.setData(\"type\", \"move\");\r\n                // Store the ID of the element being moved\r\n                ev.dataTransfer.setData(\"sourceId\", ev.target.id);\r\n            }\r\n\r\n            // DROP LOGIC\r\n            function allowDrop(ev) {\r\n                ev.preventDefault();\r\n                if (ev.currentTarget.classList.contains('bucket')) {\r\n                    ev.currentTarget.classList.add('drag-over');\r\n                }\r\n            }\r\n\r\n            function dragLeave(ev) {\r\n                ev.currentTarget.classList.remove('drag-over');\r\n            }\r\n\r\n            function drop(ev) {\r\n                ev.preventDefault();\r\n                ev.currentTarget.classList.remove('drag-over');\r\n                \r\n                const team = ev.dataTransfer.getData(\"team\");\r\n                const bucket = ev.currentTarget;\r\n                const categoryGroup = bucket.closest('.category-group');\r\n\r\n                // 1. Uniqueness check within the category\r\n                const existingInCat = categoryGroup.querySelector(`[data-team=\"${team}\"][data-is-clone=\"true\"]`);\r\n                if (existingInCat) {\r\n                    existingInCat.remove();\r\n                }\r\n\r\n                // 2. Create the Clone (Identical to the tray items)\r\n                const clone = document.createElement('div');\r\n                const uniqueId = \"clone-\" + Date.now() + \"-\" + team;\r\n                \r\n                clone.id = uniqueId;\r\n                clone.setAttribute(\"data-team\", team);\r\n                clone.setAttribute(\"data-is-clone\", \"true\");\r\n                clone.setAttribute(\"draggable\", \"true\");\r\n                \r\n                // Attach the movement handler\r\n                clone.ondragstart = dragFromBucket;\r\n                \r\n                // Use the exact same vibe-chip class\r\n                clone.className = \"vibe-chip tier-item m-1\";\r\n                clone.innerText = team;\r\n\r\n                bucket.appendChild(clone);\r\n                ev.stopPropagation(); // Prevents the 'trash' event on the body\r\n            }\r\n\r\n            // TRASH LOGIC (Drop on body)\r\n            function trash(ev) {\r\n                ev.preventDefault();\r\n                const type = ev.dataTransfer.getData(\"type\");\r\n                const sourceId = ev.dataTransfer.getData(\"sourceId\");\r\n                \r\n                if (type === \"move\" && sourceId) {\r\n                    const el = document.getElementById(sourceId);\r\n                    if (el) el.remove();\r\n                }\r\n            }\r\n\r\n\t\t\tasync function nextMatch() {\r\n                const urlParams = new URLSearchParams(window.location.search);\r\n                const eventKey = urlParams.get('event_key');\r\n                const matchNum = parseInt(urlParams.get('match_num') || \"1\");\r\n                const scouterId = parseInt(urlParams.get('scouter_id') || \"1\");\r\n\r\n                // 1. Scrape the UI for data\r\n                const submission = {\r\n                    event_key: eventKey,\r\n                    match_num: matchNum,\r\n                    scouter_id: scouterId,\r\n                    data: []\r\n                };\r\n\r\n                document.querySelectorAll('.category-group').forEach(group => {\r\n                    const category = group.querySelector('h3').innerText;\r\n                    group.querySelectorAll('.bucket').forEach(bucket => {\r\n                        const tier = bucket.querySelector('span').innerText.trim();\r\n                        const teams = Array.from(bucket.querySelectorAll('.vibe-chip'))\r\n                                        .map(chip => chip.getAttribute('data-team'));\r\n                        \r\n                        if (teams.length > 0) {\r\n                            submission.data.push({ category, tier, teams });\r\n                        }\r\n                    });\r\n                });\r\n\r\n                // 2. POST to SQLite backend\r\n                try {\r\n                    const resp = await fetch('/api/save-scout', {\r\n                        method: 'POST',\r\n                        headers: { 'Content-Type': 'application/json' },\r\n                        body: JSON.stringify(submission)\r\n                    });\r\n\r\n                    if (resp.ok) {\r\n                        // 3. Trigger Animation & Redirect\r\n                        document.getElementById('scout-container').classList.add('exit-anim');\r\n                        setTimeout(() => {\r\n                            window.location.href = `/scout?event_key=${eventKey}&match_num=${matchNum + 1}&scouter_id=${scouterId}`;\r\n                        }, 300);\r\n                    }\r\n                } catch (err) {\r\n                    alert(\"Failed to save data! Check connection.\");\r\n                }\r\n            }\r\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</div><div class=\"max-w-4xl mx-auto mt-5\"><h3 class=\"text-center font-black text-[#5D4037] mb-3 uppercase text-lg\">Team Notes</h3><div class=\"space-y-3\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			for _, team := range teams {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<div class=\"bg-[#FFFBF5] p-3 rounded-xl border border-[#D2B48C]\"><label class=\"block text-xs font-bold uppercase text-[#A1887F] mb-1\">Team ")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var14 string
+				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(team)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 137, Col: 108}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "</label> <textarea name=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var15 string
+				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs("notes_" + team)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 138, Col: 60}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\" rows=\"2\" class=\"w-full p-2 text-sm border border-[#D2B48C] rounded-lg resize-none\" placeholder=\"Notes about this team...\"></textarea></div>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</div></div><div class=\"fixed bottom-0 left-0 right-0 p-6 bg-[#F2E8D5]/90 backdrop-blur-md flex justify-center z-50\"><button onclick=\"nextMatch()\" class=\"bg-[#5D4037] text-white font-black py-4 px-16 rounded-2xl shadow-xl uppercase tracking-widest\">Next Match →</button></div></main><script>\r\n            // DRAG LOGIC\r\n            function dragFromTray(ev) {\r\n                ev.dataTransfer.setData(\"team\", ev.target.getAttribute(\"data-team\"));\r\n                ev.dataTransfer.setData(\"type\", \"new\");\r\n            }\r\n\r\n            function dragFromBucket(ev) {\r\n                ev.dataTransfer.setData(\"team\", ev.target.getAttribute(\"data-team\"));\r\n                ev.dataTransfer.setData(\"type\", \"move\");\r\n                // Store the ID of the element being moved\r\n                ev.dataTransfer.setData(\"sourceId\", ev.target.id);\r\n            }\r\n\r\n            // DROP LOGIC\r\n            function allowDrop(ev) {\r\n                ev.preventDefault();\r\n                if (ev.currentTarget.classList.contains('bucket')) {\r\n                    ev.currentTarget.classList.add('drag-over');\r\n                }\r\n            }\r\n\r\n            function dragLeave(ev) {\r\n                ev.currentTarget.classList.remove('drag-over');\r\n            }\r\n\r\n            function drop(ev) {\r\n                ev.preventDefault();\r\n                ev.currentTarget.classList.remove('drag-over');\r\n                \r\n                const team = ev.dataTransfer.getData(\"team\");\r\n                const bucket = ev.currentTarget;\r\n                const categoryGroup = bucket.closest('.category-group');\r\n\r\n                // 1. Uniqueness check within the category\r\n                const existingInCat = categoryGroup.querySelector(`[data-team=\"${team}\"][data-is-clone=\"true\"]`);\r\n                if (existingInCat) {\r\n                    existingInCat.remove();\r\n                }\r\n\r\n                // 2. Create the Clone (Identical to the tray items)\r\n                const clone = document.createElement('div');\r\n                const uniqueId = \"clone-\" + Date.now() + \"-\" + team;\r\n                \r\n                clone.id = uniqueId;\r\n                clone.setAttribute(\"data-team\", team);\r\n                clone.setAttribute(\"data-is-clone\", \"true\");\r\n                clone.setAttribute(\"draggable\", \"true\");\r\n                \r\n                // Attach the movement handler\r\n                clone.ondragstart = dragFromBucket;\r\n                \r\n                // Use the exact same vibe-chip class\r\n                clone.className = \"vibe-chip tier-item m-1\";\r\n                clone.innerText = team;\r\n\r\n                bucket.appendChild(clone);\r\n                ev.stopPropagation(); // Prevents the 'trash' event on the body\r\n            }\r\n\r\n            // TRASH LOGIC (Drop on body)\r\n            function trash(ev) {\r\n                ev.preventDefault();\r\n                const type = ev.dataTransfer.getData(\"type\");\r\n                const sourceId = ev.dataTransfer.getData(\"sourceId\");\r\n                \r\n                if (type === \"move\" && sourceId) {\r\n                    const el = document.getElementById(sourceId);\r\n                    if (el) el.remove();\r\n                }\r\n            }\r\n\r\n\t\t\tasync function nextMatch() {\n                const urlParams = new URLSearchParams(window.location.search);\n                const eventKey = urlParams.get('event_key');\n                const matchNum = parseInt(urlParams.get('match_num') || \"1\");\n                const scouterId = parseInt(urlParams.get('scouter_id') || \"1\");\n\n                // 1. Scrape the UI for data\n                const submission = {\n                    event_key: eventKey,\n                    match_num: matchNum,\n                    scouter_id: scouterId,\n                    data: [],\n                    notes: {}\n                };\n\n                // Collect notes\n                document.querySelectorAll('textarea[name^=\"notes_\"]').forEach(textarea => {\n                    const team = textarea.name.replace('notes_', '');\n                    const note = textarea.value.trim();\n                    if (note) {\n                        submission.notes[team] = note;\n                    }\n                });\n\n                document.querySelectorAll('.category-group').forEach(group => {\n                    const category = group.querySelector('h3').innerText;\n                    \n                    // Check if this is a defense category\n                    const defenseScoring = group.querySelector('.defense-scoring');\n                    if (defenseScoring) {\n                        // Handle defense scoring - each team has a score\n                        const teamScores = [];\n                        defenseScoring.querySelectorAll('input[type=\"number\"]').forEach(input => {\n                            const team = input.name.replace('defense_', '');\n                            const score = parseInt(input.value) || 0;\n                            if (score > 0) {\n                                teamScores.push({ team, score });\n                            }\n                        });\n                        if (teamScores.length > 0) {\n                            submission.data.push({ category, tier: 'DEFENSE', teams: teamScores });\n                        }\n                    } else {\n                        // Handle regular tier buckets\n                        group.querySelectorAll('.bucket').forEach(bucket => {\n                            const tier = bucket.querySelector('span').innerText.trim();\n                            const teams = Array.from(bucket.querySelectorAll('.vibe-chip'))\n                                            .map(chip => chip.getAttribute('data-team'));\n                                    \n                            if (teams.length > 0) {\n                                submission.data.push({ category, tier, teams });\n                            }\n                        });\n                    }\n                });\n\r\n                // 2. POST to SQLite backend\r\n                try {\r\n                    const resp = await fetch('/api/save-scout', {\r\n                        method: 'POST',\r\n                        headers: { 'Content-Type': 'application/json' },\r\n                        body: JSON.stringify(submission)\r\n                    });\r\n\r\n                    if (resp.ok) {\r\n                        // 3. Trigger Animation & Redirect\r\n                        document.getElementById('scout-container').classList.add('exit-anim');\r\n                        setTimeout(() => {\r\n                            window.location.href = `/scout?event_key=${eventKey}&match_num=${matchNum + 1}&scouter_id=${scouterId}`;\r\n                        }, 300);\r\n                    }\r\n                } catch (err) {\r\n                    alert(\"Failed to save data! Check connection.\");\r\n                }\r\n            }\r\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -222,25 +319,25 @@ func TierBucket(label string) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var12 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var12 == nil {
-			templ_7745c5c3_Var12 = templ.NopComponent
+		templ_7745c5c3_Var16 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var16 == nil {
+			templ_7745c5c3_Var16 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<div ondrop=\"drop(event)\" ondragover=\"allowDrop(event)\" ondragleave=\"dragLeave(event)\" class=\"bucket min-h-[100px] rounded-2xl border-2 border-dashed border-[#D2B48C] flex flex-wrap content-start justify-center p-2 bg-[#FAF7F2]/50 transition-colors\"><span class=\"w-full text-[16px] font-bold uppercase text-[#A1887F] text-center mb-2 pointer-events-none\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<div ondrop=\"drop(event)\" ondragover=\"allowDrop(event)\" ondragleave=\"dragLeave(event)\" class=\"bucket min-h-[100px] rounded-2xl border-2 border-dashed border-[#D2B48C] flex flex-wrap content-start justify-center p-2 bg-[#FAF7F2]/50 transition-colors\"><span class=\"w-full text-[16px] font-bold uppercase text-[#A1887F] text-center mb-2 pointer-events-none\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var13 string
-		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(label)
+		var templ_7745c5c3_Var17 string
+		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 226, Col: 19}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 308, Col: 19}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

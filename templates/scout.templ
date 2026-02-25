@@ -78,14 +78,67 @@ templ ScoutPage(event, match, scouterID, alliance string, teams, categories []st
             <div class="max-w-4xl mx-auto space-y-5">
                 for _, cat := range categories {
                     <div class="category-group bg-white/30 p-4 rounded-3xl border border-[#D2B48C]/40">
-                        <h3 class="text-center font-black text-[#5D4037] mb-3 uppercase text-m tracking-widest">{ cat }</h3>
-                        <div class="grid grid-cols-3 gap-3">
-                            @TierBucket("Top")
-                            @TierBucket("Mid")
-                            @TierBucket("Low")
+                        <div class="flex justify-center items-center gap-2 mb-3">
+                            <h3 class="font-black text-[#5D4037] uppercase text-m tracking-widest">{ cat }</h3>
+                            if cat != "DEFENSE" {
+                                <details class="relative inline-block">
+                                    <summary class="cursor-pointer text-[#A1887F] hover:text-[#5D4037] font-bold text-xs">ⓘ</summary>
+                                    <div class="absolute left-0 mt-1 w-56 p-3 bg-[#FFFBF5] border border-[#D2B48C] rounded-lg shadow-lg text-xs z-20">
+                                        <p class="font-bold text-[#5D4037]">TOP:</p>
+                                        <ul class="list-disc pl-4 text-[#A1887F] mb-2">
+                                            <li>Consistent performer</li>
+                                            <li>High point potential</li>
+                                            <li>Reliable automation</li>
+                                        </ul>
+                                        <p class="font-bold text-[#5D4037]">MID:</p>
+                                        <ul class="list-disc pl-4 text-[#A1887F] mb-2">
+                                            <li>Decent backup</li>
+                                            <li>Moderate scoring</li>
+                                            <li>May be inconsistent</li>
+                                        </ul>
+                                        <p class="font-bold text-[#5D4037]">LOW:</p>
+                                        <ul class="list-disc pl-4 text-[#A1887F]">
+                                            <li>Low scoring</li>
+                                            <li>Often disabled</li>
+                                            <li>Poor reliability</li>
+                                        </ul>
+                                    </div>
+                                </details>
+                            }
                         </div>
+                        if cat == "DEFENSE" {
+                            <div class="defense-scoring">
+                                <p class="text-sm text-[#A1887F] mb-2 text-center">Rate each team's defense contribution (0-10)</p>
+                                <div class="flex flex-wrap justify-center gap-2">
+                                    for _, team := range teams {
+                                        <div class="flex items-center bg-[#FFFBF5] px-3 py-2 rounded-lg">
+                                            <span class="font-bold text-[#5D4037] mr-2">{ team }</span>
+                                            <input type="number" name={ "defense_" + team } min="0" max="10" value="0" class="w-14 p-1 text-center border border-[#D2B48C] rounded" />
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        } else {
+                            <div class="grid grid-cols-3 gap-3">
+                                @TierBucket("Top")
+                                @TierBucket("Mid")
+                                @TierBucket("Low")
+                            </div>
+                        }
                     </div>
                 }
+            </div>
+
+            <div class="max-w-4xl mx-auto mt-5">
+                <h3 class="text-center font-black text-[#5D4037] mb-3 uppercase text-lg">Team Notes</h3>
+                <div class="space-y-3">
+                    for _, team := range teams {
+                        <div class="bg-[#FFFBF5] p-3 rounded-xl border border-[#D2B48C]">
+                            <label class="block text-xs font-bold uppercase text-[#A1887F] mb-1">Team { team }</label>
+                            <textarea name={ "notes_" + team } rows="2" class="w-full p-2 text-sm border border-[#D2B48C] rounded-lg resize-none" placeholder="Notes about this team..."></textarea>
+                        </div>
+                    }
+                </div>
             </div>
 
             <div class="fixed bottom-0 left-0 right-0 p-6 bg-[#F2E8D5]/90 backdrop-blur-md flex justify-center z-50">
@@ -178,20 +231,49 @@ templ ScoutPage(event, match, scouterID, alliance string, teams, categories []st
                     event_key: eventKey,
                     match_num: matchNum,
                     scouter_id: scouterId,
-                    data: []
+                    data: [],
+                    notes: {}
                 };
+
+                // Collect notes
+                document.querySelectorAll('textarea[name^="notes_"]').forEach(textarea => {
+                    const team = textarea.name.replace('notes_', '');
+                    const note = textarea.value.trim();
+                    if (note) {
+                        submission.notes[team] = note;
+                    }
+                });
 
                 document.querySelectorAll('.category-group').forEach(group => {
                     const category = group.querySelector('h3').innerText;
-                    group.querySelectorAll('.bucket').forEach(bucket => {
-                        const tier = bucket.querySelector('span').innerText.trim();
-                        const teams = Array.from(bucket.querySelectorAll('.vibe-chip'))
-                                        .map(chip => chip.getAttribute('data-team'));
-                        
-                        if (teams.length > 0) {
-                            submission.data.push({ category, tier, teams });
+                    
+                    // Check if this is a defense category
+                    const defenseScoring = group.querySelector('.defense-scoring');
+                    if (defenseScoring) {
+                        // Handle defense scoring - each team has a score
+                        const teamScores = [];
+                        defenseScoring.querySelectorAll('input[type="number"]').forEach(input => {
+                            const team = input.name.replace('defense_', '');
+                            const score = parseInt(input.value) || 0;
+                            if (score > 0) {
+                                teamScores.push({ team, score });
+                            }
+                        });
+                        if (teamScores.length > 0) {
+                            submission.data.push({ category, tier: 'DEFENSE', teams: teamScores });
                         }
-                    });
+                    } else {
+                        // Handle regular tier buckets
+                        group.querySelectorAll('.bucket').forEach(bucket => {
+                            const tier = bucket.querySelector('span').innerText.trim();
+                            const teams = Array.from(bucket.querySelectorAll('.vibe-chip'))
+                                            .map(chip => chip.getAttribute('data-team'));
+                                    
+                            if (teams.length > 0) {
+                                submission.data.push({ category, tier, teams });
+                            }
+                        });
+                    }
                 });
 
                 // 2. POST to SQLite backend

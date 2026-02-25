@@ -108,6 +108,17 @@ func saveScoutDataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Printf("✅ Successfully saved %d pairwise records for Match %d (Scouter %d)\n", count, sub.MatchNum, sub.ScouterID)
+	// Persist full scout payload for audit / analysis
+	payloadBytes, err := json.Marshal(sub)
+	if err != nil {
+		fmt.Printf("❌ Scout payload marshal error: %v\n", err)
+	} else {
+		_, err = db.Exec(`INSERT INTO scout_submissions (event_key, match_num, scouter_id, payload) VALUES (?, ?, ?, ?)`,
+			sub.EventKey, sub.MatchNum, sub.ScouterID, string(payloadBytes))
+		if err != nil {
+			fmt.Printf("❌ Scout payload DB insert error: %v\n", err)
+		}
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
