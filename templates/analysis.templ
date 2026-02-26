@@ -1,6 +1,5 @@
 package templates
 
-// Analysis page
 import (
 	"encoding/json"
 	"fmt"
@@ -22,158 +21,50 @@ templ AnalysisPage(data AnalysisPageData) {
 							}
 						</select>
 					</div>
-					<button type="submit" class="bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-3 px-6 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
+					<button type="submit" class="bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-3 px-4 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
 						Run Analysis
+					</button>
+					<button type="button" onclick="runEPA()" class="bg-[#8D6E63] hover:bg-[#6D4C41] text-white font-extrabold py-3 px-4 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#6D4C41]">
+						Run EPA
 					</button>
 				</form>
 				
-				<div id="analysis-results">
-					if data.SelectedEvent != "" && len(data.CategoryAnalyses) > 0 {
-						<div class="mb-6 p-4 bg-[#FFFBF5] rounded-xl border-2 border-[#D2B48C]">
-							<h2 class="text-xl font-bold text-[#5D4037] mb-2">Stability Score</h2>
-							if data.StabilityScore > 20 {
-								<p class="text-4xl font-black text-green-600">{ fmt.Sprintf("%.2f", data.StabilityScore) }</p>
-							} else if data.StabilityScore > 10 {
-								<p class="text-4xl font-black text-yellow-600">{ fmt.Sprintf("%.2f", data.StabilityScore) }</p>
-							} else {
-								<p class="text-4xl font-black text-red-600">{ fmt.Sprintf("%.2f", data.StabilityScore) }</p>
-							}
-						</div>
-						
-						for _, cat := range data.CategoryAnalyses {
-							<div class="mb-8 p-4 bg-[#FFFBF5] rounded-xl border-2 border-[#D2B48C]">
-								<h3 class="text-lg font-bold text-[#5D4037] mb-4">{ cat.Category } - Rank vs Score</h3>
-								<canvas id={ "chart-" + cat.Category } class="w-full"></canvas>
-							</div>
-						}
-						
-						<div class="mb-8 p-4 bg-[#FFFBF5] rounded-xl border-2 border-[#D2B48C]">
-							<h3 class="text-lg font-bold text-[#5D4037] mb-4">Team Comparison</h3>
-							<div class="flex gap-4 mb-4">
-								<div>
-									<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">X Axis</label>
-									<select id="x-axis" class="p-2 bg-white border-2 border-[#D2B48C] rounded-xl text-stone-700">
-										<option value="rank" selected={ data.XAxis == "rank" || data.XAxis == "" }>Rank</option>
-										<option value="score" selected={ data.XAxis == "score" }>Score</option>
-										<option value="variability" selected={ data.XAxis == "variability" }>Variability</option>
-									</select>
-								</div>
-								<div>
-									<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Y Axis</label>
-									<select id="y-axis" class="p-2 bg-white border-2 border-[#D2B48C] rounded-xl text-stone-700">
-										<option value="rank" selected={ data.YAxis == "rank" }>Rank</option>
-										<option value="score" selected={ data.YAxis == "score" || data.YAxis == "" }>Score</option>
-										<option value="variability" selected={ data.YAxis == "variability" }>Variability</option>
-									</select>
-								</div>
-								<button id="update-chart" class="bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-bold py-2 px-4 rounded-lg border-b-2 border-[#B99976] self-end">Update</button>
-							</div>
-							<canvas id="chart-comparison" class="w-full"></canvas>
-						</div>
-						
-						<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-						<script>
-							const analysisData = { jsonData(data.CategoryAnalyses) };
-							const categoryColors = {'Field Awareness': 'rgba(255, 99, 132, 1)', 'Defense': 'rgba(54, 162, 235, 1)'};
-							function getCategoryColor(category) { return categoryColors[category] || 'rgba(75, 192, 192, 1)'; }
-							
-							analysisData.forEach(cat => {
-								const ctx = document.getElementById('chart-' + cat.category).getContext('2d');
-								new Chart(ctx, {
-									type: 'scatter',
-									data: {
-										datasets: [{
-											label: cat.category,
-											data: cat.variabilities.map(v => ({x: v.rank, y: v.ranking_score, team: v.team})),
-											backgroundColor: getCategoryColor(cat.category),
-											pointRadius: 6
-										}]
-									},
-									options: {
-										responsive: true,
-										plugins: {
-											tooltip: {
-												callbacks: {
-													label: ctx => `Team ${ctx.raw.team}: Rank ${ctx.raw.x}, Score ${ctx.raw.y.toFixed(2)}`
-												}
-											}
-										},
-										scales: {
-											x: { title: { display: true, text: 'Rank' }, min: 0 },
-											y: { title: { display: true, text: 'Score' } }
-										}
-									}
-								});
-							});
-							
-							let comparisonChart = null;
-							
-							function updateComparisonChart() {
-								const xAxis = document.getElementById('x-axis').value;
-								const yAxis = document.getElementById('y-axis').value;
-								
-								const colors = ['rgba(255, 99, 132, 0.5)', 'rgba(54, 162, 235, 0.5)', 'rgba(255, 206, 86, 0.5)', 'rgba(75, 192, 192, 0.5)'];
-								const datasets = [];
-								let colorIdx = 0;
-								
-								analysisData.forEach(cat => {
-									const data = cat.variabilities.map(v => {
-										let xVal, yVal;
-										switch(xAxis) {
-											case 'rank': xVal = v.rank; break;
-											case 'score': xVal = v.ranking_score; break;
-											case 'variability': xVal = v.normalized; break;
-										}
-										switch(yAxis) {
-											case 'rank': yVal = v.rank; break;
-											case 'score': yVal = v.ranking_score; break;
-											case 'variability': yVal = v.normalized; break;
-										}
-										return {x: xVal, y: yVal, team: v.team};
-									});
-									datasets.push({
-										label: cat.category,
-										data: data,
-										backgroundColor: colors[colorIdx % colors.length],
-										borderColor: colors[colorIdx % colors.length].replace('0.5', '1'),
-										pointRadius: 8,
-										pointHoverRadius: 10
-									});
-									colorIdx++;
-								});
-								
-								if (comparisonChart) comparisonChart.destroy();
-								const ctx = document.getElementById('chart-comparison').getContext('2d');
-								comparisonChart = new Chart(ctx, {
-									type: 'scatter',
-									data: { datasets: datasets },
-									options: {
-										responsive: true,
-										plugins: {
-											tooltip: {
-												callbacks: {
-													label: ctx => `Team ${ctx.raw.team}: ${xAxis} ${ctx.raw.x}, ${yAxis} ${ctx.raw.y.toFixed ? ctx.raw.y.toFixed(2) : ctx.raw.y}`
-												}
-											}
-										},
-										scales: {
-											x: { title: { display: true, text: xAxis }, min: 0 },
-											y: { title: { display: true, text: yAxis }, min: 0 }
-										}
-									}
-								});
-							}
-							
-							document.getElementById('update-chart').addEventListener('click', updateComparisonChart);
-							updateComparisonChart();
-						</script>
-					}
-				</div>
+				<div id="analysis-results"></div>
+				<div id="epa-results"></div>
+			</div>
+			<div class="text-center mt-4">
+				<a href="/" class="text-[#5D4037] hover:text-[#8D6E63] font-bold">← Back to Home</a>
 			</div>
 		</main>
-		<div class="text-center mt-4">
-			<a href="/" class="text-[#5D4037] hover:text-[#8D6E63] font-bold">← Back to Home</a>
-		</div>
+		
+		<script>
+			async function runEPA() {
+				const select = document.querySelector('select[name="event_key"]');
+				const eventKey = select.value;
+				if (!eventKey || eventKey === "none") {
+					alert("Please select an event");
+					return;
+				}
+				
+				const formData = new FormData();
+				formData.append("event_key", eventKey);
+				
+				try {
+					const resp = await fetch('/api/run-epa', {
+						method: 'POST',
+						body: formData
+					});
+					if (resp.ok) {
+						const html = await resp.text();
+						document.getElementById('epa-results').innerHTML = html;
+					} else {
+						alert("EPA calculation failed");
+					}
+				} catch (err) {
+					alert("Error: " + err.message);
+				}
+			}
+		</script>
 	}
 }
 
@@ -200,222 +91,143 @@ templ AnalysisResults(categoryAnalyses []CategoryAnalysis, stabilityScore float6
 			</div>
 		}
 		
+		// Category Comparison Chart
 		<div class="mb-8 p-4 bg-[#FFFBF5] rounded-xl border-2 border-[#D2B48C]">
-			<h3 class="text-lg font-bold text-[#5D4037] mb-4">Team Comparison</h3>
+			<h3 class="text-lg font-bold text-[#5D4037] mb-4">Category Comparison</h3>
 			<div class="flex gap-4 mb-4">
-				<div>
-					<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">X Comparison</label>
-					<select id="x-compare" class="p-2 bg-white border-2 border-[#D2B48C] rounded-xl text-stone-700">
-						<option value="0">Field Awareness</option>
-						<option value="1">Intake Efficiency</option>
-						<option value="2">Shooting Effectiveness</option>
-						<option value="3">Defense</option>
+				<div class="flex-1">
+					<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">X Category</label>
+					<select id="x-cat" class="w-full p-2 bg-white border-2 border-[#D2B48C] rounded-xl text-stone-700">
+						for i, cat := range categoryAnalyses {
+							<option value={ fmt.Sprintf("%d", i) } selected={ i == 0 }>{ cat.Category }</option>
+						}
 					</select>
 				</div>
-				<div>
-					<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Y Comparison</label>
-					<select id="y-compare" class="p-2 bg-white border-2 border-[#D2B48C] rounded-xl text-stone-700">
-						<option value="0">Field Awareness</option>
-						<option value="1">Intake Efficiency</option>
-						<option value="2">Shooting Effectiveness</option>
-						<option value="3" selected>Defense</option>
+				<div class="flex-1">
+					<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Y Category</label>
+					<select id="y-cat" class="w-full p-2 bg-white border-2 border-[#D2B48C] rounded-xl text-stone-700">
+						for i, cat := range categoryAnalyses {
+							<option value={ fmt.Sprintf("%d", i) } selected={ i == 1 }>{ cat.Category }</option>
+						}
 					</select>
 				</div>
-				<button id="update-chart" class="bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-bold py-2 px-4 rounded-lg border-b-2 border-[#B99976] self-end">Update</button>
 			</div>
 			<canvas id="chart-comparison" class="w-full"></canvas>
 		</div>
 		
+		<span id="analysis-data" style="display:none">{jsonData(categoryAnalyses)}</span>
+		
 		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 		<script>
-			// Wait for Chart.js to load, then initialize
 			function initCharts() {
 				if (typeof Chart === 'undefined') {
 					setTimeout(initCharts, 100);
 					return;
 				}
-			
-				// Parse JSON data - HTMX escapes braces so we need to unescape
-				var jsonStr = document.getElementById('analysis-data').textContent;
+				
+				const analysisDataEl = document.getElementById('analysis-data');
+				if (!analysisDataEl || !analysisDataEl.textContent.trim()) return;
+				
+				var jsonStr = analysisDataEl.textContent;
 				jsonStr = jsonStr.replace(/&#123;/g, '{').replace(/&#125;/g, '}');
 				const analysisData = JSON.parse(jsonStr);
+				if (!analysisData || analysisData.length === 0) return;
+				
 				const categoryColors = {'FIELD AWARENESS': 'rgba(255, 99, 132, 1)', 'INTAKE EFFICIENCY': 'rgba(54, 162, 235, 1)', 'SHOOTING EFFECTIVENESS': 'rgba(255, 206, 86, 1)', 'DEFENSE': 'rgba(75, 192, 192, 1)'};
 				function getCategoryColor(category) { return categoryColors[category] || 'rgba(75, 192, 192, 1)'; }
 			
-			analysisData.forEach(cat => {
-				const ctx = document.getElementById('chart-' + cat.category).getContext('2d');
-				new Chart(ctx, {
-					type: 'scatter',
-					data: {
-						datasets: [{
-							label: cat.category,
-							data: cat.variabilities.map(v => ({x: v.rank, y: v.ranking_score, team: v.team})),
-							backgroundColor: getCategoryColor(cat.category),
-							pointRadius: 6
-						}]
-					},
-					options: {
-						responsive: true,
-						plugins: {
-							tooltip: {
-								callbacks: {
-									label: ctx => 'Team ' + ctx.raw.team + ': Rank ' + ctx.raw.x + ', Score ' + ctx.raw.y.toFixed(2)
-								}
-							}
+				analysisData.forEach(cat => {
+					const ctx = document.getElementById('chart-' + cat.category);
+					if (!ctx) return;
+					new Chart(ctx.getContext('2d'), {
+						type: 'scatter',
+						data: {
+							datasets: [{
+								label: cat.category,
+								data: cat.variabilities.map(v => ({x: v.rank, y: v.ranking_score, team: v.team})),
+								backgroundColor: getCategoryColor(cat.category),
+								pointRadius: 6
+							}]
 						},
-						scales: {
-							x: { title: { display: true, text: 'Rank' }, min: 0 },
-							y: { title: { display: true, text: 'Score' } }
-						}
-					}
-				});
-			});
-			
-			let comparisonChart = null;
-			
-			function updateComparisonChart() {
-				const xSelect = document.getElementById('x-compare');
-				const ySelect = document.getElementById('y-compare');
-				
-				if (!xSelect || !ySelect) {
-					return;
-				}
-				
-				const xIdx = parseInt(xSelect.value);
-				const yIdx = parseInt(ySelect.value);
-				
-				const xCat = analysisData[xIdx];
-				const yCat = analysisData[yIdx];
-				
-				if (!xCat || !yCat) {
-					return;
-				}
-				
-				// Create a map of team -> {x: score, y: score, variability}
-				const teamData = {};
-				xCat.variabilities.forEach(v => {
-					teamData[String(v.team)] = { x: v.ranking_score, xVar: v.normalized, team: v.team };
-				});
-				yCat.variabilities.forEach(v => {
-					const key = String(v.team);
-					if (teamData[key]) {
-						teamData[key].y = v.ranking_score;
-						teamData[key].yVar = v.normalized;
-					}
-				});
-				
-				// Get unique teams that exist in both categories
-				const teams = Object.keys(teamData).filter(t => teamData[t].y !== undefined);
-				
-				// Create datasets with fixed point size
-				const datasets = [];
-				
-				// Dataset 1: X comparison
-				const xData = teams.map(t => ({
-					x: teamData[t].x,
-					y: teamData[t].y,
-					team: teamData[t].team,
-					variability: teamData[t].xVar
-				}));
-				datasets.push({
-					label: xCat.category,
-					data: xData,
-					backgroundColor: 'rgba(255, 99, 132, 0.6)',
-					borderColor: 'rgba(255, 99, 132, 1)',
-					pointRadius: 8,
-					pointHoverRadius: 12
-				});
-				
-				// Dataset 2: Y comparison
-				const yData = teams.map(t => ({
-					x: teamData[t].x,
-					y: teamData[t].y,
-					team: teamData[t].team,
-					variability: teamData[t].yVar
-				}));
-				datasets.push({
-					label: yCat.category,
-					data: yData,
-					backgroundColor: 'rgba(54, 162, 235, 0.6)',
-					borderColor: 'rgba(54, 162, 235, 1)',
-					pointRadius: 8,
-					pointHoverRadius: 12
-				});
-				
-				if (comparisonChart) comparisonChart.destroy();
-				const ctx = document.getElementById('chart-comparison').getContext('2d');
-				
-				comparisonChart = new Chart(ctx, {
-					type: 'scatter',
-					data: { datasets: datasets },
-					options: {
-						responsive: true,
-						plugins: {
-							tooltip: {
-								callbacks: {
-									label: ctx => 'Team ' + ctx.raw.team + ': ' + ctx.dataset.label + ' Score ' + ctx.raw.x.toFixed(2)
+						options: {
+							responsive: true,
+							plugins: {
+								tooltip: {
+									callbacks: {
+										label: ctx => 'Team ' + ctx.raw.team + ': Rank ' + ctx.raw.x + ', Score ' + ctx.raw.y.toFixed(2)
+									}
 								}
 							},
-							legend: {
-								position: 'top'
+							scales: {
+								x: { title: { display: true, text: 'Rank' } },
+								y: { title: { display: true, text: 'Score' } }
 							}
-						},
-						scales: {
-							x: { title: { display: true, text: xCat.category + ' Score' } },
-							y: { title: { display: true, text: yCat.category + ' Score' } }
 						}
-					}
+					});
 				});
-			}
-			
-			document.getElementById('update-chart').addEventListener('click', updateComparisonChart);
-			updateComparisonChart();
+				
+				// Comparison chart
+				let comparisonChart = null;
+				const colors = ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)', 'rgba(255, 159, 64, 1)'];
+				
+				function updateComparison() {
+					const xIdx = parseInt(document.getElementById('x-cat').value);
+					const yIdx = parseInt(document.getElementById('y-cat').value);
+					const xCat = analysisData[xIdx];
+					const yCat = analysisData[yIdx];
+					
+					// Build team lookup
+					const teamData = {};
+					xCat.variabilities.forEach(v => {
+						teamData[v.team] = { x: v.ranking_score, team: v.team };
+					});
+					yCat.variabilities.forEach(v => {
+						if (teamData[v.team]) {
+							teamData[v.team].y = v.ranking_score;
+						}
+					});
+					
+					const teams = Object.values(teamData).filter(t => t.y !== undefined);
+					
+					if (comparisonChart) comparisonChart.destroy();
+					const ctx = document.getElementById('chart-comparison').getContext('2d');
+					comparisonChart = new Chart(ctx, {
+						type: 'scatter',
+						data: {
+							datasets: [{
+								label: xCat.category + ' vs ' + yCat.category,
+								data: teams,
+								backgroundColor: colors[0],
+								pointRadius: 8
+							}]
+						},
+						options: {
+							responsive: true,
+							plugins: {
+								tooltip: {
+									callbacks: {
+										label: ctx => 'Team ' + ctx.raw.team + ': ' + xCat.category + ' ' + ctx.raw.x.toFixed(2) + ', ' + yCat.category + ' ' + ctx.raw.y.toFixed(2)
+									}
+								}
+							},
+							scales: {
+								x: { title: { display: true, text: xCat.category + ' Score' } },
+								y: { title: { display: true, text: yCat.category + ' Score' } }
+							}
+						}
+					});
+				}
+				
+				document.getElementById('x-cat').addEventListener('change', updateComparison);
+				document.getElementById('y-cat').addEventListener('change', updateComparison);
+				updateComparison();
 			}
 			
 			initCharts();
 		</script>
-		<!-- HTMX-safe JSON data -->
-		<span id="analysis-data" style="display:none">{jsonData(categoryAnalyses)}</span>
-    } else {
-        <p class="text-center text-[#A1887F]">No analysis data available</p>
-    }
-    if len(data.EPATeams) > 0 {
-        <div class="mb-8 p-4 bg-[#FFFBF5] rounded-xl border-2 border-[#D2B48C]">
-            <h3 class="text-lg font-bold text-[#5D4037] mb-4">EPA Leaderboard</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="bg-[#D2B48C] text-[#4E342E]">
-                            <th class="p-3 text-left font-bold">Rank</th>
-                            <th class="p-3 text-left font-bold">Team</th>
-                            <th class="p-3 text-right font-bold">EPA</th>
-                            <th class="p-3 text-right font-bold">Defense EPA</th>
-                            <th class="p-3 text-right font-bold">Foul EPA</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        for i, t := range data.EPATeams {
-                            <tr class="border-b border-[#D2B48C]/30 bg-[#FFFBF5]">
-                                <td class="p-3 font-bold text-[#5D4037]">{ fmt.Sprintf("%d", i+1) }</td>
-                                <td class="p-3 font-bold text-[#5D4037]">{ t.Team }</td>
-                                <td class="p-3 text-right font-bold text-[#5D4037]">{ fmt.Sprintf("%.2f", t.EPA) }</td>
-                                <td class="p-3 text-right text-[#A1887F]">{ fmt.Sprintf("%.2f", t.DefenseEPA) }</td>
-                                <td class="p-3 text-right text-[#A1887F]">{ fmt.Sprintf("%.2f", t.FoulEPA) }</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
+	} else {
+		<p class="text-center text-[#A1887F] py-8">No analysis data. Run analysis first.</p>
 	}
-}
-
-func jsonData(v interface{}) string {
-	b, _ := json.Marshal(v)
-	s := string(b)
-	s = strings.ReplaceAll(s, "{", "&#123;")
-	s = strings.ReplaceAll(s, "}", "&#125;")
-	return s
 }
 
 templ EPAPage(data EPAPageData) {
@@ -440,37 +252,77 @@ templ EPAPage(data EPAPageData) {
 				
 				<div id="epa-results">
 					if len(data.Teams) > 0 {
-					<div class="overflow-x-auto">
-						<table class="w-full text-sm">
-							<thead>
-								<tr class="bg-[#D2B48C] text-[#4E342E]">
-									<th class="p-3 text-left font-bold">Rank</th>
-									<th class="p-3 text-left font-bold">Team</th>
-									<th class="p-3 text-right font-bold">EPA</th>
-									<th class="p-3 text-right font-bold">Defense EPA</th>
-									<th class="p-3 text-right font-bold">Foul EPA</th>
-								</tr>
-							</thead>
-							<tbody>
-								for i, team := range data.Teams {
-									<tr class="border-b border-[#D2B48C]/30 bg-[#FFFBF5]">
-										<td class="p-3 font-bold text-[#5D4037]">{ fmt.Sprintf("%d", i+1) }</td>
-										<td class="p-3 font-bold text-[#5D4037]">{ team.Team }</td>
-										<td class="p-3 text-right font-bold text-[#5D4037]">{ fmt.Sprintf("%.2f", team.EPA) }</td>
-										<td class="p-3 text-right text-[#A1887F]">{ fmt.Sprintf("%.2f", team.DefenseEPA) }</td>
-										<td class="p-3 text-right text-[#A1887F]">{ fmt.Sprintf("%.2f", team.FoulEPA) }</td>
+						<div class="overflow-x-auto">
+							<table class="w-full text-sm">
+								<thead>
+									<tr class="bg-[#D2B48C] text-[#4E342E]">
+										<th class="p-3 text-left font-bold">Rank</th>
+										<th class="p-3 text-left font-bold">Team</th>
+										<th class="p-3 text-right font-bold">EPA</th>
+										<th class="p-3 text-right font-bold">Defense EPA</th>
+										<th class="p-3 text-right font-bold">Foul EPA</th>
 									</tr>
-								}
-							</tbody>
-						</table>
-					</div>
-	} else {
-		<p class="text-center text-[#A1887F] py-8">No EPA data yet. Run analysis first.</p>
-	}
+								</thead>
+								<tbody>
+									for i, team := range data.Teams {
+										<tr class="border-b border-[#D2B48C]/30 bg-[#FFFBF5]">
+											<td class="p-3 font-bold text-[#5D4037]">{ fmt.Sprintf("%d", i+1) }</td>
+											<td class="p-3 font-bold text-[#5D4037]">{ team.Team }</td>
+											<td class="p-3 text-right font-bold text-[#5D4037]">{ fmt.Sprintf("%.2f", team.EPA) }</td>
+											<td class="p-3 text-right text-[#A1887F]">{ fmt.Sprintf("%.2f", team.DefenseEPA) }</td>
+											<td class="p-3 text-right text-[#A1887F]">{ fmt.Sprintf("%.2f", team.FoulEPA) }</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						</div>
+					} else {
+						<p class="text-center text-[#A1887F] py-8">No EPA data yet. Run analysis first.</p>
+					}
+				</div>
 			</div>
 			<div class="text-center mt-4">
 				<a href="/" class="text-[#5D4037] hover:text-[#8D6E63] font-bold">← Back to Home</a>
 			</div>
 		</main>
 	}
+}
+
+templ EPAResults(teams []TeamEPA) {
+	if len(teams) > 0 {
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm" id="epa-table">
+				<thead>
+					<tr class="bg-[#D2B48C] text-[#4E342E]">
+						<th class="p-3 text-left font-bold">Rank</th>
+						<th class="p-3 text-left font-bold">Team</th>
+						<th class="p-3 text-right font-bold cursor-pointer hover:bg-[#B99976]" onclick="(function(){const t=document.querySelector('#epa-table tbody');const r=Array.from(t.querySelectorAll('tr'));const d=t.dataset.sd!='asc';t.dataset.sd=d?'asc':'desc';r.sort((a,b)=>d?parseFloat(a.children[2].textContent)-parseFloat(b.children[2].textContent):parseFloat(b.children[2].textContent)-parseFloat(a.children[2].textContent));r.forEach((x,i)=>{x.children[0].textContent=i+1;t.appendChild(x)})})()">EPA ⬍</th>
+						<th class="p-3 text-right font-bold cursor-pointer hover:bg-[#B99976]" onclick="(function(){const t=document.querySelector('#epa-table tbody');const r=Array.from(t.querySelectorAll('tr'));const d=t.dataset.sd!='asc';t.dataset.sd=d?'asc':'desc';r.sort((a,b)=>d?parseFloat(a.children[3].textContent)-parseFloat(b.children[3].textContent):parseFloat(b.children[3].textContent)-parseFloat(a.children[3].textContent));r.forEach((x,i)=>{x.children[0].textContent=i+1;t.appendChild(x)})})()">Defense EPA ⬍</th>
+						<th class="p-3 text-right font-bold cursor-pointer hover:bg-[#B99976]" onclick="(function(){const t=document.querySelector('#epa-table tbody');const r=Array.from(t.querySelectorAll('tr'));const d=t.dataset.sd!='asc';t.dataset.sd=d?'asc':'desc';r.sort((a,b)=>d?parseFloat(a.children[4].textContent)-parseFloat(b.children[4].textContent):parseFloat(b.children[4].textContent)-parseFloat(a.children[4].textContent));r.forEach((x,i)=>{x.children[0].textContent=i+1;t.appendChild(x)})})()">Foul EPA ⬍</th>
+					</tr>
+				</thead>
+				<tbody>
+					for i, team := range teams {
+						<tr class="border-b border-[#D2B48C]/30 bg-[#FFFBF5]">
+							<td class="p-3 font-bold text-[#5D4037]">{ fmt.Sprintf("%d", i+1) }</td>
+							<td class="p-3 font-bold text-[#5D4037]">{ team.Team }</td>
+							<td class="p-3 text-right font-bold text-[#5D4037]">{ fmt.Sprintf("%.2f", team.EPA) }</td>
+							<td class="p-3 text-right text-[#A1887F]">{ fmt.Sprintf("%.2f", team.DefenseEPA) }</td>
+							<td class="p-3 text-right text-[#A1887F]">{ fmt.Sprintf("%.2f", team.FoulEPA) }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	} else {
+		<p class="text-center text-[#A1887F] py-8">No EPA data yet. Run analysis first.</p>
+	}
+}
+
+func jsonData(v interface{}) string {
+	b, _ := json.Marshal(v)
+	s := string(b)
+	s = strings.ReplaceAll(s, "{", "&#123;")
+	s = strings.ReplaceAll(s, "}", "&#125;")
+	return s
 }

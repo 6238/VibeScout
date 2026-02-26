@@ -122,9 +122,9 @@ func computeStabilityMetric(singularValues []float64, matrixRank int) float64 {
 	return singularValues[0] / singularValues[matrixRank-1]
 }
 
-// Retrieve all pairwise comparisons for a given event from the DB
-func getComparisonsForEvent(eventKey string) ([]Comparison, error) {
-	rows, err := db.Query("SELECT team_a, team_b, difference FROM pairwise_scouting WHERE event_key = ?", eventKey)
+// Retrieve all pairwise comparisons for a given event and category from the DB
+func getComparisonsForEvent(eventKey, category string) ([]Comparison, error) {
+	rows, err := db.Query("SELECT team_a, team_b, difference FROM pairwise_scouting WHERE event_key = ? AND category = ?", eventKey, category)
 	if err != nil {
 		return nil, err
 	}
@@ -150,21 +150,22 @@ func getComparisonsForEvent(eventKey string) ([]Comparison, error) {
 	return comps, nil
 }
 
-// Analyze an event end-to-end, with caching
-func analyzeEvent(eventKey string) (*AnalysisSummary, error) {
-	// Check cache first
+// Analyze an event for a specific category end-to-end, with caching
+func analyzeEventCategory(eventKey, category string) (*AnalysisSummary, error) {
+	cacheKey := eventKey + "-" + category
+
 	analysisCache.mu.Lock()
-	if ent, ok := analysisCache.data[eventKey]; ok {
+	if ent, ok := analysisCache.data[cacheKey]; ok {
 		if time.Since(ent.Time) < time.Hour {
 			summary := ent.Summary
 			analysisCache.mu.Unlock()
 			return &summary, nil
 		}
-		delete(analysisCache.data, eventKey)
+		delete(analysisCache.data, cacheKey)
 	}
 	analysisCache.mu.Unlock()
 
-	comps, err := getComparisonsForEvent(eventKey)
+	comps, err := getComparisonsForEvent(eventKey, category)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +175,7 @@ func analyzeEvent(eventKey string) (*AnalysisSummary, error) {
 	}
 	summary := buildAnalysisSummary(resp)
 	analysisCache.mu.Lock()
-	analysisCache.data[eventKey] = analysisCacheEntry{Summary: summary, Time: time.Now()}
+	analysisCache.data[cacheKey] = analysisCacheEntry{Summary: summary, Time: time.Now()}
 	analysisCache.mu.Unlock()
 	return &summary, nil
 }

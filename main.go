@@ -16,16 +16,22 @@ import (
 )
 
 type ScoutSubmission struct {
-	EventKey  string       `json:"event_key"`
-	MatchNum  int          `json:"match_num"`
-	ScouterID int          `json:"scouter_id"`
-	Data      []TierResult `json:"data"`
+	EventKey  string                         `json:"event_key"`
+	MatchNum  int                            `json:"match_num"`
+	ScouterID int                            `json:"scouter_id"`
+	Teams     []TeamScoutData                `json:"teams"`
+	Rankings  map[string]map[string][]string `json:"rankings"`
 }
 
-type TierResult struct {
-	Category string   `json:"category"`
-	Tier     string   `json:"tier"`
-	Teams    []string `json:"teams"`
+type TeamScoutData struct {
+	TeamNumber         string `json:"team_number"`
+	AutoPath           string `json:"auto_path"`
+	AutoStartPos       string `json:"auto_start_pos"`
+	AutoClimb          string `json:"auto_climb"`
+	TeleopClimb        string `json:"teleop_climb"`
+	DefensePct         int    `json:"defense_pct"`
+	DefendedAgainstPct int    `json:"defended_against_pct"`
+	Notes              string `json:"notes"`
 }
 
 func saveScoutDataHandler(w http.ResponseWriter, r *http.Request) {
@@ -41,84 +47,45 @@ func saveScoutDataHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Define the numerical weight for each tier
-	tierWeights := map[string]int{
-		"TOP": 3,
-		"MID": 2,
-		"LOW": 1,
+	tierWeights := map[string]int{"HIGH": 3, "MID": 2, "LOW": 1}
+
+	fmt.Printf("📝 Received scout data - Teams: %d, Rankings: %v\n", len(sub.Teams), sub.Rankings)
+
+	// Save each team's scout data
+	for _, teamData := range sub.Teams {
+		db.Exec(`
+			INSERT INTO scout_submissions (event_key, match_num, scouter_id, team_number, auto_path, auto_start_pos, auto_climb, teleop_climb, defense_pct, defended_against_pct, notes)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			sub.EventKey, sub.MatchNum, sub.ScouterID, teamData.TeamNumber, teamData.AutoPath, teamData.AutoStartPos, teamData.AutoClimb, teamData.TeleopClimb, teamData.DefensePct, teamData.DefendedAgainstPct, teamData.Notes)
 	}
 
-	// 2. Group teams by category
-	// This maps Category Name -> List of {TeamNumber, Weight}
-	type teamRating struct {
-		number string
-		weight int
-	}
-	categoryGroups := make(map[string][]teamRating)
+	// Generate pairwise comparisons from shared rankings
+	if sub.Rankings != nil {
+		for category, tiers := range sub.Rankings {
+			highTeams := tiers["HIGH"]
+			midTeams := tiers["MID"]
+			lowTeams := tiers["LOW"]
 
-	for _, res := range sub.Data {
-		weight := tierWeights[res.Tier]
-		for _, teamNum := range res.Teams {
-			categoryGroups[res.Category] = append(categoryGroups[res.Category], teamRating{
-				number: teamNum,
-				weight: weight,
-			})
-		}
-	}
-
-	// 3. Perform Pairwise Comparisons within each category
-	count := 0
-	for category, teams := range categoryGroups {
-		// Compare every team against every other team in the same category
-		for i := 0; i < len(teams); i++ {
-			for j := i + 1; j < len(teams); j++ {
-				teamA := teams[i]
-				teamB := teams[j]
-
-				// Calculate the difference: (Rank of A) - (Rank of B)
-				// If A is Top (3) and B is Low (1), diff is 2.
-				// If both are Top, diff is 0.
-				diff := teamA.weight - teamB.weight
-
-				_, err := db.Exec(`
-                    INSERT INTO pairwise_scouting (
-                        event_key, 
-                        match_num, 
-                        scouter_id, 
-                        category, 
-                        team_a, 
-                        team_b, 
-                        difference
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-					sub.EventKey,
-					sub.MatchNum,
-					sub.ScouterID,
-					category,
-					teamA.number,
-					teamB.number,
-					diff,
-				)
-
-				if err != nil {
-					fmt.Printf("❌ DB Insert Error: %v\n", err)
+			for _, teamA := range highTeams {
+				for _, teamB := range midTeams {
+					db.Exec(`INSERT INTO pairwise_scouting (event_key, match_num, scouter_id, category, team_a, team_b, difference) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+						sub.EventKey, sub.MatchNum, sub.ScouterID, category, teamA, teamB, tierWeights["HIGH"]-tierWeights["MID"])
 				}
-				count++
+				for _, teamB := range lowTeams {
+					db.Exec(`INSERT INTO pairwise_scouting (event_key, match_num, scouter_id, category, team_a, team_b, difference) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+						sub.EventKey, sub.MatchNum, sub.ScouterID, category, teamA, teamB, tierWeights["HIGH"]-tierWeights["LOW"])
+				}
+			}
+			for _, teamA := range midTeams {
+				for _, teamB := range lowTeams {
+					db.Exec(`INSERT INTO pairwise_scouting (event_key, match_num, scouter_id, category, team_a, team_b, difference) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+						sub.EventKey, sub.MatchNum, sub.ScouterID, category, teamA, teamB, tierWeights["MID"]-tierWeights["LOW"])
+				}
 			}
 		}
 	}
 
-	fmt.Printf("✅ Successfully saved %d pairwise records for Match %d (Scouter %d)\n", count, sub.MatchNum, sub.ScouterID)
-	// Persist full scout payload for audit / analysis
-	payloadBytes, err := json.Marshal(sub)
-	if err != nil {
-		fmt.Printf("❌ Scout payload marshal error: %v\n", err)
-	} else {
-		_, err = db.Exec(`INSERT INTO scout_submissions (event_key, match_num, scouter_id, payload) VALUES (?, ?, ?, ?)`,
-			sub.EventKey, sub.MatchNum, sub.ScouterID, string(payloadBytes))
-		if err != nil {
-			fmt.Printf("❌ Scout payload DB insert error: %v\n", err)
-		}
-	}
+	fmt.Printf("✅ Saved scout data for Match %d, Scouter %d, %d teams\n", sub.MatchNum, sub.ScouterID, len(sub.Teams))
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -193,7 +160,7 @@ type ComparisonConfig struct {
 
 // Current setup for the app
 var Config = ComparisonConfig{
-	Categories: []string{"Field Awareness", "Defense"},
+	Categories: []string{"Match Efficency", "Intake Efficency"},
 }
 
 func main() {
@@ -206,6 +173,12 @@ func main() {
 	http.HandleFunc("/scout", http.HandlerFunc(scoutHandler))
 
 	http.HandleFunc("/api/save-scout", saveScoutDataHandler)
+
+	// Analysis routes
+	http.HandleFunc("/analysis", analysisPageHandler)
+	http.HandleFunc("/api/run-analysis", runAnalysisHandler)
+	http.HandleFunc("/epa", epaPageHandler)
+	http.HandleFunc("/api/run-epa", runEPAHandler)
 
 	fmt.Println("🎨 Vibe Scout is running on http://localhost:8080")
 	http.ListenAndServe(":8080", nil)
@@ -305,4 +278,335 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 
 	component := templates.Home(eventMap)
 	templ.Handler(component).ServeHTTP(w, r)
+}
+
+func analysisPageHandler(w http.ResponseWriter, r *http.Request) {
+	events, err := getEventsCached("2026")
+	if err != nil {
+		http.Error(w, "Could not load events", 500)
+		return
+	}
+
+	eventMap := make(map[string]string)
+	for _, e := range events {
+		eventMap[e.Key] = e.Name
+	}
+
+	if len(eventMap) == 0 {
+		eventMap["none"] = "No events found"
+	}
+
+	data := templates.AnalysisPageData{
+		Events:     eventMap,
+		Categories: Config.Categories,
+	}
+	component := templates.AnalysisPage(data)
+	templ.Handler(component).ServeHTTP(w, r)
+}
+
+func runAnalysisHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	eventKey := r.FormValue("event_key")
+	if eventKey == "" || eventKey == "none" {
+		http.Error(w, "Event required", http.StatusBadRequest)
+		return
+	}
+
+	var categoryAnalyses []templates.CategoryAnalysis
+	var totalStability float64
+
+	for _, category := range Config.Categories {
+		// Debug: check what's in the database
+		rows2, _ := db.Query("SELECT COUNT(*), category FROM pairwise_scouting WHERE event_key = ? GROUP BY category", eventKey)
+		fmt.Printf("🔍 Database check for event %s:\n", eventKey)
+		for rows2.Next() {
+			var count int
+			var cat string
+			rows2.Scan(&count, &cat)
+			fmt.Printf("   Category: %s, Count: %d\n", cat, count)
+		}
+		rows2.Close()
+
+		comps, err := getComparisonsForEvent(eventKey, category)
+		if err != nil {
+			continue
+		}
+		fmt.Printf("📊 Analysis for %s - Event: %s, Category: %s, Comparisons found: %d\n", time.Now().Format("15:04:05"), eventKey, category, len(comps))
+
+		summary, err := analyzeEventCategory(eventKey, category)
+		if err != nil {
+			continue
+		}
+
+		// Normalize scores to -100 to +100 scale (centered at 0)
+		var minScore, maxScore float64
+		if len(summary.Variabilities) > 0 {
+			minScore = summary.Variabilities[0].RankingScore
+			maxScore = summary.Variabilities[0].RankingScore
+			for _, v := range summary.Variabilities {
+				if v.RankingScore < minScore {
+					minScore = v.RankingScore
+				}
+				if v.RankingScore > maxScore {
+					maxScore = v.RankingScore
+				}
+			}
+		}
+		scoreRange := maxScore - minScore
+		if scoreRange == 0 {
+			scoreRange = 1
+		}
+
+		variabilities := make([]templates.TeamVariability, len(summary.Variabilities))
+		for i, v := range summary.Variabilities {
+			// Normalize to -100 to +100 scale (centered at 0)
+			normalizedScore := (((v.RankingScore - minScore) / scoreRange) * 200) - 100
+			variabilities[i] = templates.TeamVariability{
+				Team:         v.Team,
+				RawVariation: v.RawVariation,
+				Normalized:   v.Normalized,
+				Rank:         v.Rank,
+				RankingScore: normalizedScore,
+			}
+		}
+
+		categoryAnalyses = append(categoryAnalyses, templates.CategoryAnalysis{
+			Category:      category,
+			Variabilities: variabilities,
+			Stability:     summary.Stability,
+		})
+		totalStability += summary.Stability
+	}
+
+	var stabilityScore float64
+	if len(categoryAnalyses) > 0 {
+		stabilityScore = totalStability / float64(len(categoryAnalyses))
+	}
+
+	component := templates.AnalysisResults(categoryAnalyses, stabilityScore)
+	component.Render(r.Context(), w)
+}
+
+func epaPageHandler(w http.ResponseWriter, r *http.Request) {
+	events, err := getEventsCached("2026")
+	if err != nil {
+		http.Error(w, "Could not load events", 500)
+		return
+	}
+
+	eventMap := make(map[string]string)
+	for _, e := range events {
+		eventMap[e.Key] = e.Name
+	}
+
+	if len(eventMap) == 0 {
+		eventMap["none"] = "No events found"
+	}
+
+	data := templates.EPAPageData{
+		Events: eventMap,
+	}
+	component := templates.EPAPage(data)
+	templ.Handler(component).ServeHTTP(w, r)
+}
+
+func runEPAHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	eventKey := r.FormValue("event_key")
+	if eventKey == "" || eventKey == "none" {
+		http.Error(w, "Event required", http.StatusBadRequest)
+		return
+	}
+
+	teams, err := calculateEPA(eventKey)
+	if err != nil {
+		http.Error(w, "EPA calculation failed", 500)
+		return
+	}
+
+	component := templates.EPAResults(teams)
+	component.Render(r.Context(), w)
+}
+
+func calculateEPA(eventKey string) ([]templates.TeamEPA, error) {
+	fmt.Printf("🔍 Starting EPA calculation for event: %s\n", eventKey)
+
+	// Get matches with score breakdown from TBA
+	matches, err := getMatchesWithBreakdown(eventKey)
+	if err != nil {
+		fmt.Printf("❌ Error getting matches: %v\n", err)
+		return nil, err
+	}
+	fmt.Printf("📊 Found %d matches\n", len(matches))
+
+	// Get teams that have scouting data
+	scoutRows, err := db.Query(`
+		SELECT DISTINCT team_number FROM scout_submissions WHERE event_key = ?`, eventKey)
+	if err != nil {
+		return nil, err
+	}
+
+	scoutedTeams := make(map[string]bool)
+	for scoutRows.Next() {
+		var teamNum string
+		scoutRows.Scan(&teamNum)
+		scoutedTeams[teamNum] = true
+	}
+	scoutRows.Close()
+
+	// Initialize EPA store with default values for scouted teams
+	type teamEPA struct {
+		offenseEPA float64
+		defenseEPA float64
+		foulEPA    float64
+	}
+
+	// Start with base EPA for all scouted teams
+	epaStore := make(map[string]*teamEPA)
+	for team := range scoutedTeams {
+		epaStore[team] = &teamEPA{offenseEPA: 20.0, defenseEPA: 0.0, foulEPA: 0.0}
+	}
+
+	// Constants (matching Python code)
+	const K float64 = 0.2
+	const DEF_K float64 = 0.2
+	const FOUL_K float64 = 0.1
+
+	// Process each match
+	for _, match := range matches {
+		if match.CompLevel != "qm" {
+			continue
+		}
+
+		// Get score breakdown
+		blueScore := getHubScore(match.ScoreBreakdown.Blue, "blue")
+		redScore := getHubScore(match.ScoreBreakdown.Red, "red")
+		if blueScore == 0 && redScore == 0 {
+			continue // No score breakdown available
+		}
+
+		// Get team numbers (remove "frc" prefix)
+		blueTeams := make([]string, 0)
+		for _, tk := range match.Alliances.Blue.TeamKeys {
+			if len(tk) > 3 {
+				blueTeams = append(blueTeams, tk[3:])
+			}
+		}
+		redTeams := make([]string, 0)
+		for _, tk := range match.Alliances.Red.TeamKeys {
+			if len(tk) > 3 {
+				redTeams = append(redTeams, tk[3:])
+			}
+		}
+
+		// Get scores
+		blueActual := getHubScore(match.ScoreBreakdown.Blue, "blue")
+		redActual := getHubScore(match.ScoreBreakdown.Red, "red")
+		blueFoulPoints := getFoulPoints(match.ScoreBreakdown.Blue)
+		redFoulPoints := getFoulPoints(match.ScoreBreakdown.Red)
+
+		// 1. Calculate Raw Potentials
+		blueRawOffense := 0.0
+		redRawOffense := 0.0
+		blueDefStrength := 0.0
+		redDefStrength := 0.0
+
+		for _, r := range blueTeams {
+			if e, ok := epaStore[r]; ok {
+				blueRawOffense += e.offenseEPA
+				blueDefStrength += e.defenseEPA
+			} else {
+				blueRawOffense += 100.0 // Default for unknown teams
+			}
+		}
+		for _, r := range redTeams {
+			if e, ok := epaStore[r]; ok {
+				redRawOffense += e.offenseEPA
+				redDefStrength += e.defenseEPA
+			} else {
+				redRawOffense += 100.0
+			}
+		}
+
+		// 2. Calculate Context-Aware Expectations
+		blueExpected := mathMax(0, blueRawOffense-redDefStrength)
+		redExpected := mathMax(0, redRawOffense-blueDefStrength)
+
+		// 3. Offense Deltas
+		blueOffDelta := (float64(blueActual) - blueExpected) * K
+		redOffDelta := (float64(redActual) - redExpected) * K
+
+		// 4. Defense Deltas
+		blueDefDelta := (redRawOffense - float64(redActual)) * DEF_K
+		redDefDelta := (blueRawOffense - float64(blueActual)) * DEF_K
+
+		// 5. Foul Deltas
+		blueFoulPred := 0.0
+		redFoulPred := 0.0
+		for _, r := range blueTeams {
+			if e, ok := epaStore[r]; ok {
+				blueFoulPred += e.foulEPA
+			}
+		}
+		for _, r := range redTeams {
+			if e, ok := epaStore[r]; ok {
+				redFoulPred += e.foulEPA
+			}
+		}
+		blueFoulDelta := (float64(redFoulPoints) - blueFoulPred) * FOUL_K
+		redFoulDelta := (float64(blueFoulPoints) - redFoulPred) * FOUL_K
+
+		// 6. Apply all updates
+		for _, r := range blueTeams {
+			if e, ok := epaStore[r]; ok {
+				e.offenseEPA += blueOffDelta / 3.0
+				e.defenseEPA += blueDefDelta / 3.0
+				e.foulEPA += blueFoulDelta / 3.0
+			}
+		}
+		for _, r := range redTeams {
+			if e, ok := epaStore[r]; ok {
+				e.offenseEPA += redOffDelta / 3.0
+				e.defenseEPA += redDefDelta / 3.0
+				e.foulEPA += redFoulDelta / 3.0
+			}
+		}
+	}
+
+	// Convert to output format
+	var teams []templates.TeamEPA
+	for team, e := range epaStore {
+		teams = append(teams, templates.TeamEPA{
+			Team:       team,
+			EPA:        e.offenseEPA,
+			DefenseEPA: e.defenseEPA,
+			FoulEPA:    e.foulEPA,
+		})
+	}
+
+	// Sort by EPA descending
+	for i := 0; i < len(teams)-1; i++ {
+		for j := i + 1; j < len(teams); j++ {
+			if teams[j].EPA > teams[i].EPA {
+				teams[i], teams[j] = teams[j], teams[i]
+			}
+		}
+	}
+
+	return teams, nil
+}
+
+func mathMax(a, b float64) float64 {
+	if a > b {
+		return a
+	}
+	return b
 }

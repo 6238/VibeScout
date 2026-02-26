@@ -21,10 +21,53 @@ type Match struct {
 		Red  Alliance `json:"red"`
 		Blue Alliance `json:"blue"`
 	} `json:"alliances"`
+	Winner         string         `json:"winner"`
+	Score          Score          `json:"scores"`
+	ScoreBreakdown ScoreBreakdown `json:"score_breakdown"`
+}
+
+type Score struct {
+	Red  int `json:"red"`
+	Blue int `json:"blue"`
+}
+
+type ScoreBreakdown struct {
+	Red  map[string]interface{} `json:"red"`
+	Blue map[string]interface{} `json:"blue"`
+}
+
+func getHubScore(breakdown map[string]interface{}, color string) int {
+	// Try different possible field names for hub score
+	if v, ok := breakdown["hubScore"]; ok {
+		if f, ok := v.(float64); ok {
+			return int(f)
+		}
+	}
+	if v, ok := breakdown["teleopPoints"]; ok {
+		if f, ok := v.(float64); ok {
+			return int(f)
+		}
+	}
+	// Try to get total points
+	if v, ok := breakdown["totalPoints"]; ok {
+		if f, ok := v.(float64); ok {
+			return int(f)
+		}
+	}
+	return 0
+}
+
+func getFoulPoints(breakdown map[string]interface{}) int {
+	if v, ok := breakdown["foulPoints"]; ok {
+		if f, ok := v.(float64); ok {
+			return int(f)
+		}
+	}
+	return 0
 }
 
 type Alliance struct {
-	TeamKeys []string `json:"team_keys"` // This is the gold mine
+	TeamKeys []string `json:"team_keys"`
 }
 
 // Cache variables
@@ -66,6 +109,25 @@ func getMatchesCached(eventKey string) ([]Match, error) {
 
 	matchCache[eventKey] = matches
 	matchTimestamp[eventKey] = time.Now()
+	return matches, nil
+}
+
+func getMatchesWithBreakdown(eventKey string) ([]Match, error) {
+	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/event/%s/matches", TBA_BASE, eventKey), nil)
+	req.Header.Set("X-TBA-Auth-Key", TBA_KEY)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var matches []Match
+	if err := json.NewDecoder(resp.Body).Decode(&matches); err != nil {
+		return nil, err
+	}
+
 	return matches, nil
 }
 
