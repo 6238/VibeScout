@@ -1,10 +1,14 @@
 package main
 
+//go:generate templ generate
+
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -48,8 +52,6 @@ func saveScoutDataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tierWeights := map[string]int{"HIGH": 3, "MID": 2, "LOW": 1}
-
-	fmt.Printf("📝 Received scout data - Teams: %d, Rankings: %v\n", len(sub.Teams), sub.Rankings)
 
 	// Save each team's scout data
 	for _, teamData := range sub.Teams {
@@ -184,6 +186,10 @@ func main() {
 	http.HandleFunc("/api/admin/clear-all", clearAllHandler)
 	http.HandleFunc("/epa", epaPageHandler)
 	http.HandleFunc("/api/run-epa", runEPAHandler)
+
+	// Picklist route
+	http.HandleFunc("/picklist", picklistHandler)
+	http.HandleFunc("/api/picklist", runPicklistHandler)
 
 	fmt.Println("🎨 Vibe Scout is running on http://localhost:8080")
 	http.ListenAndServe(":8080", nil)
@@ -325,17 +331,6 @@ func runAnalysisHandler(w http.ResponseWriter, r *http.Request) {
 	var totalStability float64
 
 	for _, category := range Config.Categories {
-		// Debug: check what's in the database
-		rows2, _ := db.Query("SELECT COUNT(*), category FROM pairwise_scouting WHERE event_key = ? GROUP BY category", eventKey)
-		fmt.Printf("🔍 Database check for event %s:\n", eventKey)
-		for rows2.Next() {
-			var count int
-			var cat string
-			rows2.Scan(&count, &cat)
-			fmt.Printf("   Category: %s, Count: %d\n", cat, count)
-		}
-		rows2.Close()
-
 		comps, err := getComparisonsForEvent(eventKey, category)
 		if err != nil {
 			continue
@@ -442,17 +437,13 @@ func runEPAHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func calculateEPA(eventKey string) ([]templates.TeamEPA, error) {
-	fmt.Printf("🔍 Starting EPA calculation for event: %s\n", eventKey)
-
 	// Get matches with score breakdown from TBA
 	matches, err := getMatchesWithBreakdown(eventKey)
 	if err != nil {
-		fmt.Printf("❌ Error getting matches: %v\n", err)
 		return nil, err
 	}
-	fmt.Printf("📊 Found %d matches\n", len(matches))
 
-	// Get teams that have scouting data
+	// Get teams that have scouting data for defense
 	scoutRows, err := db.Query(`
 		SELECT DISTINCT team_number FROM scout_submissions WHERE event_key = ?`, eventKey)
 	if err != nil {
@@ -467,23 +458,67 @@ func calculateEPA(eventKey string) ([]templates.TeamEPA, error) {
 	}
 	scoutRows.Close()
 
-	// Initialize EPA store with default values for scouted teams
+	// Get defense data from scouting
+	defenseRows, err := db.Query(`
+		SELECT team_number, COALESCE(AVG(defense_pct), 0) as avg_defense
+		FROM scout_submissions 
+		WHERE event_key = ?
+		GROUP BY team_number`, eventKey)
+	defenseData := make(map[string]float64)
+	if err == nil {
+		for defenseRows.Next() {
+			var team string
+			var avgDef float64
+			defenseRows.Scan(&team, &avgDef)
+			defenseData[team] = avgDef
+		}
+		defenseRows.Close()
+	}
+
+	// Initialize EPA store - add ALL teams from matches with default values
 	type teamEPA struct {
 		offenseEPA float64
 		defenseEPA float64
 		foulEPA    float64
 	}
 
-	// Start with base EPA for all scouted teams
 	epaStore := make(map[string]*teamEPA)
-	for team := range scoutedTeams {
-		epaStore[team] = &teamEPA{offenseEPA: 20.0, defenseEPA: 0.0, foulEPA: 0.0}
+
+	// First pass: collect all teams from matches
+	for _, match := range matches {
+		if match.CompLevel != "qm" {
+			continue
+		}
+		for _, tk := range match.Alliances.Blue.TeamKeys {
+			if len(tk) > 3 {
+				teamNum := tk[3:]
+				if _, exists := epaStore[teamNum]; !exists {
+					defPct := 0.0
+					if d, ok := defenseData[teamNum]; ok {
+						defPct = d
+					}
+					epaStore[teamNum] = &teamEPA{offenseEPA: 20.0, defenseEPA: 0, foulEPA: 0.0}
+				}
+			}
+		}
+		for _, tk := range match.Alliances.Red.TeamKeys {
+			if len(tk) > 3 {
+				teamNum := tk[3:]
+				if _, exists := epaStore[teamNum]; !exists {
+					defPct := 0.0
+					if d, ok := defenseData[teamNum]; ok {
+						defPct = d
+					}
+					epaStore[teamNum] = &teamEPA{offenseEPA: 20.0, defenseEPA: 0, foulEPA: 0.0}
+				}
+			}
+		}
 	}
 
 	// Constants (matching Python code)
-	const K float64 = 0.2
-	const DEF_K float64 = 0.2
-	const FOUL_K float64 = 0.1
+	const K float64 = 0.05
+	const DEF_K float64 = 0.1
+	const FOUL_K float64 = 0.5
 
 	// Process each match
 	for _, match := range matches {
@@ -662,4 +697,444 @@ func clearAllHandler(w http.ResponseWriter, r *http.Request) {
 	db.Exec("DELETE FROM pairwise_scouting")
 
 	fmt.Fprintf(w, "Deleted all data from database")
+}
+
+type TeamPickData struct {
+	Team  string
+	Score float64
+	Vars  map[string]float64
+}
+
+type PicklistResult struct {
+	Teams     []TeamPickData
+	UsedVars  []string
+	EventName string
+}
+
+type PicklistRequest struct {
+	EventKey string `json:"event_key"`
+	Equation string `json:"equation"`
+}
+
+func picklistHandler(w http.ResponseWriter, r *http.Request) {
+	events, err := getEventsCached("2026")
+	if err != nil {
+		http.Error(w, "Could not load events", 500)
+		return
+	}
+
+	eventMap := make(map[string]string)
+	for _, e := range events {
+		eventMap[e.Key] = e.Name
+	}
+	if len(eventMap) == 0 {
+		eventMap["none"] = "No events found"
+	}
+
+	data := templates.PicklistPageData{
+		Events: eventMap,
+	}
+	component := templates.PicklistPage(data)
+	templ.Handler(component).ServeHTTP(w, r)
+}
+
+func runPicklistHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req PicklistRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fmt.Printf("❌ Picklist decode error: %v\n", err)
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	if req.EventKey == "" || req.EventKey == "none" {
+		http.Error(w, "Event required", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Printf("📋 Picklist request - Event: %s, Equation: %s\n", req.EventKey, req.Equation)
+
+	// Get team data for the event
+	teamData, err := getTeamPickData(req.EventKey)
+	if err != nil {
+		http.Error(w, "Failed to get team data", 500)
+		return
+	}
+
+	// Find all variables used in equation
+	varsUsed := findVars(req.Equation)
+
+	// Parse and evaluate equation for each team
+
+	// Parse and evaluate equation for each team
+	var results []TeamPickData
+	for team, data := range teamData {
+		// Create variable map for this team
+		varMap := make(map[string]float64)
+		varMap["epa"] = data.EPA
+		varMap["defense_epa"] = data.DefenseEPA
+		varMap["foul_epa"] = data.FoulEPA
+		varMap["defense_pct"] = data.DefensePct
+		varMap["defended_against_pct"] = data.DefendedAgainstPct
+		varMap["match_efficiency"] = data.MatchEfficiency
+		varMap["match_efficiency_var"] = data.MatchEfficiencyVar
+		varMap["intake_efficiency"] = data.IntakeEfficiency
+		varMap["intake_efficiency_var"] = data.IntakeEfficiencyVar
+		varMap["auto_climb_rate"] = data.AutoClimbRate
+		varMap["teleop_climb_rate"] = data.TeleopClimbRate
+		varMap["matches"] = float64(data.MatchCount)
+		varMap["wins"] = float64(data.Wins)
+		varMap["losses"] = float64(data.Losses)
+
+		// Evaluate equation
+		score, err := evaluateEquation(req.Equation, varMap)
+		if err != nil {
+			// If equation fails, use EPA as default score
+			score = data.EPA
+		}
+
+		// Extract only the vars used in equation
+		usedVars := make(map[string]float64)
+		for _, v := range varsUsed {
+			if val, ok := varMap[v]; ok {
+				usedVars[v] = val
+			}
+		}
+
+		results = append(results, TeamPickData{
+			Team:  team,
+			Score: score,
+			Vars:  usedVars,
+		})
+	}
+
+	// Sort by score descending
+	for i := 0; i < len(results)-1; i++ {
+		for j := i + 1; j < len(results); j++ {
+			if results[j].Score > results[i].Score {
+				results[i], results[j] = results[j], results[i]
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
+}
+
+type teamPickRaw struct {
+	EPA                 float64
+	DefenseEPA          float64
+	FoulEPA             float64
+	DefensePct          float64
+	DefendedAgainstPct  float64
+	MatchCount          int
+	Wins                int
+	Losses              int
+	MatchEfficiency     float64
+	MatchEfficiencyVar  float64
+	IntakeEfficiency    float64
+	IntakeEfficiencyVar float64
+	AutoClimbRate       float64
+	TeleopClimbRate     float64
+}
+
+func getTeamPickData(eventKey string) (map[string]teamPickRaw, error) {
+	// Use the existing calculateEPA function
+	epaTeams, err := calculateEPA(eventKey)
+	if err != nil {
+		return nil, err
+	}
+
+	data := make(map[string]teamPickRaw)
+	for _, t := range epaTeams {
+		d := data[t.Team]
+		d.EPA = t.EPA
+		d.DefenseEPA = t.DefenseEPA
+		d.FoulEPA = t.FoulEPA
+		// These would need to come from scouting if available
+		d.DefensePct = t.DefenseEPA // Use defense EPA as defense pct
+		d.DefendedAgainstPct = 0
+		data[t.Team] = d
+	}
+
+	// Try to get more data from scouting if available
+	rows, _ := db.Query(`
+		SELECT team_number,
+			   COALESCE(AVG(defense_pct), 0),
+			   COALESCE(AVG(defended_against_pct), 0),
+			   COUNT(*)
+		FROM scout_submissions
+		WHERE event_key = ?
+		GROUP BY team_number`, eventKey)
+	if rows != nil {
+		for rows.Next() {
+			var team string
+			var def, defAgainst float64
+			var count int
+			rows.Scan(&team, &def, &defAgainst, &count)
+			d := data[team]
+			d.DefensePct = def
+			d.DefendedAgainstPct = defAgainst
+			d.MatchCount = count
+			data[team] = d
+		}
+		rows.Close()
+	}
+
+	// Get climb rates from scouting
+	rows, _ = db.Query(`
+		SELECT team_number,
+			   SUM(CASE WHEN auto_climb = 'Yes' OR auto_climb = 'yes' THEN 1 ELSE 0 END) * 1.0 / COUNT(*),
+			   SUM(CASE WHEN teleop_climb = 'Yes' OR teleop_climb = 'yes' THEN 1 ELSE 0 END) * 1.0 / COUNT(*)
+		FROM scout_submissions
+		WHERE event_key = ?
+		GROUP BY team_number`, eventKey)
+	if rows != nil {
+		for rows.Next() {
+			var team string
+			var autoRate, teleopRate float64
+			rows.Scan(&team, &autoRate, &teleopRate)
+			if d, ok := data[team]; ok {
+				d.AutoClimbRate = autoRate
+				d.TeleopClimbRate = teleopRate
+				data[team] = d
+			}
+		}
+		rows.Close()
+	}
+
+	// Get SVD analysis scores for each category
+	for _, cat := range Config.Categories {
+		catLower := strings.ToLower(strings.ReplaceAll(cat, " ", "_"))
+		summary, _ := analyzeEventCategory(eventKey, cat)
+		for _, v := range summary.Variabilities {
+			d := data[strconv.Itoa(v.Team)]
+			if catLower == "match_efficency" {
+				d.MatchEfficiency = v.RankingScore
+				d.MatchEfficiencyVar = v.Normalized
+			} else if catLower == "intake_efficency" {
+				d.IntakeEfficiency = v.RankingScore
+				d.IntakeEfficiencyVar = v.Normalized
+			}
+			data[strconv.Itoa(v.Team)] = d
+		}
+	}
+
+	// Get match counts and wins/losses from TBA
+	matches, _ := getMatchesCached(eventKey)
+	for _, match := range matches {
+		if match.CompLevel != "qm" {
+			continue
+		}
+		// Process blue
+		for _, tk := range match.Alliances.Blue.TeamKeys {
+			if len(tk) > 3 {
+				teamNum := tk[3:]
+				d := data[teamNum]
+				d.MatchCount++
+				if match.Score.Blue > match.Score.Red {
+					d.Wins++
+				} else if match.Score.Red > match.Score.Blue {
+					d.Losses++
+				}
+				data[teamNum] = d
+			}
+		}
+		// Process red
+		for _, tk := range match.Alliances.Red.TeamKeys {
+			if len(tk) > 3 {
+				teamNum := tk[3:]
+				d := data[teamNum]
+				d.MatchCount++
+				if match.Score.Red > match.Score.Blue {
+					d.Wins++
+				} else if match.Score.Blue > match.Score.Red {
+					d.Losses++
+				}
+				data[teamNum] = d
+			}
+		}
+	}
+
+	return data, nil
+}
+
+// Simple equation parser with variables
+func findVars(eq string) []string {
+	var vars []string
+	inVar := false
+	current := ""
+	for _, c := range eq {
+		if c == '#' {
+			inVar = true
+			current = ""
+		} else if inVar {
+			if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' {
+				current += string(c)
+			} else {
+				if current != "" {
+					vars = append(vars, current)
+				}
+				inVar = false
+				current = ""
+			}
+		}
+	}
+	if current != "" {
+		vars = append(vars, current)
+	}
+	return vars
+}
+
+func evaluateEquation(eq string, vars map[string]float64) (float64, error) {
+	// Replace #variables with values
+	expr := eq
+	for varName, val := range vars {
+		expr = strings.ReplaceAll(expr, "#"+varName, strconv.FormatFloat(val, 'f', -1, 64))
+	}
+
+	// Simple recursive descent parser
+	p := &parser{input: expr, pos: 0}
+	result, err := p.parseExpr()
+	return result, err
+}
+
+type parser struct {
+	input string
+	pos   int
+}
+
+func (p *parser) parseExpr() (float64, error) {
+	return p.parseAddSub()
+}
+
+func (p *parser) parseAddSub() (float64, error) {
+	left, err := p.parseMulDiv()
+	if err != nil {
+		return 0, err
+	}
+	for p.pos < len(p.input) {
+		// Skip whitespace
+		for p.pos < len(p.input) && p.input[p.pos] == ' ' {
+			p.pos++
+		}
+		if p.pos >= len(p.input) {
+			break
+		}
+		op := p.input[p.pos]
+		if op != '+' && op != '-' {
+			break
+		}
+		p.pos++
+		right, err := p.parseMulDiv()
+		if err != nil {
+			return 0, err
+		}
+		if op == '+' {
+			left += right
+		} else {
+			left -= right
+		}
+	}
+	return left, nil
+}
+
+func (p *parser) parseMulDiv() (float64, error) {
+	left, err := p.parsePower()
+	if err != nil {
+		return 0, err
+	}
+	for p.pos < len(p.input) {
+		// Skip whitespace
+		for p.pos < len(p.input) && p.input[p.pos] == ' ' {
+			p.pos++
+		}
+		if p.pos >= len(p.input) {
+			break
+		}
+		op := p.input[p.pos]
+		if op != '*' && op != '/' {
+			break
+		}
+		p.pos++
+		right, err := p.parsePower()
+		if err != nil {
+			return 0, err
+		}
+		if op == '*' {
+			left *= right
+		} else {
+			if right == 0 {
+				return 0, fmt.Errorf("division by zero")
+			}
+			left /= right
+		}
+	}
+	return left, nil
+}
+
+func (p *parser) parsePower() (float64, error) {
+	left, err := p.parseUnary()
+	if err != nil {
+		return 0, err
+	}
+	if p.pos < len(p.input) && p.input[p.pos] == '^' {
+		p.pos++
+		right, err := p.parsePower() // Right associative
+		if err != nil {
+			return 0, err
+		}
+		return math.Pow(left, right), nil
+	}
+	return left, nil
+}
+
+func (p *parser) parseUnary() (float64, error) {
+	if p.pos < len(p.input) && p.input[p.pos] == '-' {
+		p.pos++
+		val, err := p.parsePrimary()
+		if err != nil {
+			return 0, err
+		}
+		return -val, nil
+	}
+	return p.parsePrimary()
+}
+
+func (p *parser) parsePrimary() (float64, error) {
+	// Skip whitespace
+	for p.pos < len(p.input) && p.input[p.pos] == ' ' {
+		p.pos++
+	}
+
+	if p.pos < len(p.input) && p.input[p.pos] == '(' {
+		p.pos++
+		val, err := p.parseExpr()
+		if err != nil {
+			return 0, err
+		}
+		if p.pos >= len(p.input) || p.input[p.pos] != ')' {
+			return 0, fmt.Errorf("missing closing parenthesis")
+		}
+		p.pos++
+		return val, nil
+	}
+
+	// Parse number
+	start := p.pos
+	for p.pos < len(p.input) && (p.input[p.pos] >= '0' && p.input[p.pos] <= '9' || p.input[p.pos] == '.') {
+		p.pos++
+	}
+	if start == p.pos {
+		return 0, fmt.Errorf("expected number at position %d, got: %s", p.pos, p.input[p.pos:])
+	}
+	val, err := strconv.ParseFloat(p.input[start:p.pos], 64)
+	if err != nil {
+		return 0, err
+	}
+	return val, nil
 }

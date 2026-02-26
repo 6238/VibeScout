@@ -42,3 +42,13 @@ type EPAPageData struct {
 type AdminPageData struct {
 	Events []string
 }
+
+type PicklistPageData struct {
+	Events map[string]string
+}
+
+type PicklistTeam struct {
+	Team  string             `json:"team"`
+	Score float64            `json:"score"`
+	Vars  map[string]float64 `json:"vars"`
+}
