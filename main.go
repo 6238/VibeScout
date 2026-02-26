@@ -626,12 +626,7 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	rows.Close()
 
-	if len(events) == 0 {
-		events = []string{}
-	}
-
-	data := templates.AdminPageData{Events: events}
-	component := templates.AdminPage(data)
+	component := templates.AdminPage(events)
 	templ.Handler(component).ServeHTTP(w, r)
 }
 
