@@ -177,6 +177,11 @@ func main() {
 	// Analysis routes
 	http.HandleFunc("/analysis", analysisPageHandler)
 	http.HandleFunc("/api/run-analysis", runAnalysisHandler)
+
+	// Admin routes (hidden)
+	http.HandleFunc("/admin", adminHandler)
+	http.HandleFunc("/api/admin/clear-event", clearEventHandler)
+	http.HandleFunc("/api/admin/clear-all", clearAllHandler)
 	http.HandleFunc("/epa", epaPageHandler)
 	http.HandleFunc("/api/run-epa", runEPAHandler)
 
@@ -255,8 +260,8 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	// Define "This Week" as anything starting 3 days ago through 4 days from now
 	// (Adjust these offsets if you want a stricter Monday-Sunday window)
-	startOfWindow := now.AddDate(0, 0, -5)
-	endOfWindow := now.AddDate(0, 0, 5)
+	startOfWindow := now.AddDate(0, 0, -7)
+	endOfWindow := now.AddDate(0, 0, 7)
 
 	for _, e := range events {
 		// Parse the TBA date string "YYYY-MM-DD"
@@ -609,4 +614,57 @@ func mathMax(a, b float64) float64 {
 		return a
 	}
 	return b
+}
+
+func adminHandler(w http.ResponseWriter, r *http.Request) {
+	rows, _ := db.Query("SELECT DISTINCT event_key FROM scout_submissions")
+	var events []string
+	for rows.Next() {
+		var eventKey string
+		rows.Scan(&eventKey)
+		events = append(events, eventKey)
+	}
+	rows.Close()
+
+	if len(events) == 0 {
+		events = []string{}
+	}
+
+	data := templates.AdminPageData{Events: events}
+	component := templates.AdminPage(data)
+	templ.Handler(component).ServeHTTP(w, r)
+}
+
+func clearEventHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		EventKey string `json:"event_key"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+
+	if req.EventKey == "" {
+		http.Error(w, "Event key required", http.StatusBadRequest)
+		return
+	}
+
+	db.Exec("DELETE FROM scout_submissions WHERE event_key = ?", req.EventKey)
+	db.Exec("DELETE FROM pairwise_scouting WHERE event_key = ?", req.EventKey)
+
+	fmt.Fprintf(w, "Deleted all data for event: %s", req.EventKey)
+}
+
+func clearAllHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	db.Exec("DELETE FROM scout_submissions")
+	db.Exec("DELETE FROM pairwise_scouting")
+
+	fmt.Fprintf(w, "Deleted all data from database")
 }

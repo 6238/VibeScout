@@ -1,0 +1,61 @@
+package templates
+
+templ AdminPage(events []string) {
+	@Layout("Admin - Vibe Scout") {
+		<main class="container mx-auto px-4 py-8">
+			<div class="max-w-2xl mx-auto bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-3xl p-6">
+				<h1 class="text-3xl font-black text-[#5D4037] mb-6">Admin Panel</h1>
+				
+				<div class="mb-8">
+					<h2 class="text-xl font-bold text-[#5D4037] mb-4">Clear Event Data</h2>
+					<select id="event-select" class="w-full p-3 border-2 border-[#D2B48C] rounded-xl mb-4 bg-[#FFFBF5]">
+						<option value="">Select an event...</option>
+						for _, event := range events {
+							<option value={ event }>{ event }</option>
+						}
+					</select>
+					<button onclick="clearEvent()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-xl transition">
+						Clear Event Data
+					</button>
+				</div>
+				
+				<div>
+					<h2 class="text-xl font-bold text-[#5D4037] mb-4">Clear All Data</h2>
+					<button onclick="clearAll()" class="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-xl transition">
+						Clear Entire Database
+					</button>
+				</div>
+				
+				<div id="result" class="mt-4 text-[#5D4037] font-bold"></div>
+				
+				<div class="mt-8 text-center">
+					<a href="/" class="text-[#5D4037] hover:text-[#8D6E63] font-bold">← Back to Home</a>
+				</div>
+			</div>
+		</main>
+		
+		<script>
+			async function clearEvent() {
+				const eventKey = document.getElementById('event-select').value;
+				if (!eventKey) return alert('Select an event');
+				if (!confirm('Delete all data for ' + eventKey + '?')) return;
+				
+				const resp = await fetch('/api/admin/clear-event', {
+					method: 'POST',
+					headers: {'Content-Type': 'application/json'},
+					body: JSON.stringify({event_key: eventKey})
+				});
+				const text = await resp.text();
+				document.getElementById('result').textContent = text;
+			}
+			
+			async function clearAll() {
+				if (!confirm('Delete ALL data? This cannot be undone!')) return;
+				
+				const resp = await fetch('/api/admin/clear-all', {method: 'POST'});
+				const text = await resp.text();
+				document.getElementById('result').textContent = text;
+			}
+		</script>
+	}
+}

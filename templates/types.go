@@ -38,3 +38,7 @@ type EPAPageData struct {
 	SelectedEvent string
 	Teams         []TeamEPA
 }
+
+type AdminPageData struct {
+	Events []string
+}
