@@ -493,10 +493,6 @@ func calculateEPA(eventKey string) ([]templates.TeamEPA, error) {
 			if len(tk) > 3 {
 				teamNum := tk[3:]
 				if _, exists := epaStore[teamNum]; !exists {
-					defPct := 0.0
-					if d, ok := defenseData[teamNum]; ok {
-						defPct = d
-					}
 					epaStore[teamNum] = &teamEPA{offenseEPA: 20.0, defenseEPA: 0, foulEPA: 0.0}
 				}
 			}
@@ -505,10 +501,6 @@ func calculateEPA(eventKey string) ([]templates.TeamEPA, error) {
 			if len(tk) > 3 {
 				teamNum := tk[3:]
 				if _, exists := epaStore[teamNum]; !exists {
-					defPct := 0.0
-					if d, ok := defenseData[teamNum]; ok {
-						defPct = d
-					}
 					epaStore[teamNum] = &teamEPA{offenseEPA: 20.0, defenseEPA: 0, foulEPA: 0.0}
 				}
 			}
