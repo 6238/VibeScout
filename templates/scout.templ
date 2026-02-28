@@ -236,6 +236,7 @@ templ ScoutPage(event, match, scouterID, alliance string, teams, categories []st
                 const eventKey = urlParams.get('event_key');
                 const matchNum = parseInt(urlParams.get('match_num') || "1");
                 const scouterId = parseInt(urlParams.get('scouter_id') || "1");
+                const alliance = urlParams.get('alliance') || "";
                 
                 // Get teams from the page - look at the team headers in auto section
                 const teamElements = document.querySelectorAll('[data-team-card]');
@@ -293,7 +294,11 @@ templ ScoutPage(event, match, scouterID, alliance string, teams, categories []st
                     if (resp.ok) {
                         document.getElementById('scout-container').classList.add('exit-anim');
                         setTimeout(() => {
-                            window.location.href = `/scout?event_key=${eventKey}&match_num=${matchNum + 1}&scouter_id=${scouterId}`;
+                            let nextUrl = `/scout?event_key=${eventKey}&match_num=${matchNum + 1}&scouter_id=${scouterId}`;
+                            if (alliance) {
+                                nextUrl += `&alliance=${alliance}`;
+                            }
+                            window.location.href = nextUrl;
                         }, 300);
                     }
                 } catch (err) {

@@ -22,6 +22,15 @@ templ Home(events map[string]string) {
                                class="w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold" />
                     </div>
 
+                    <div class="text-left">
+                        <label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Alliance to Scout</label>
+                        <select name="alliance" class="w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
+                            <option value="auto">Auto (based on scouter)</option>
+                            <option value="Red">Red Alliance</option>
+                            <option value="Blue">Blue Alliance</option>
+                        </select>
+                    </div>
+
                     <button type="submit" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-5 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
                         Join Scouting Rotation
                     </button>

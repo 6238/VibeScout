@@ -204,6 +204,7 @@ func scoutHandler(w http.ResponseWriter, r *http.Request) {
 	eventKey := r.URL.Query().Get("event_key")
 	matchNum, _ := strconv.Atoi(r.URL.Query().Get("match_num"))
 	scouterID, _ := strconv.Atoi(r.URL.Query().Get("scouter_id"))
+	allianceOverride := r.URL.Query().Get("alliance")
 
 	matches, err := getMatchesCached(eventKey)
 	if err != nil {
@@ -228,18 +229,27 @@ func scoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Toggle: ensure Scouter 1 and 2 are always opposite
-	isEvenMatch := matchNum%2 == 0
-	isEvenScouter := scouterID%2 == 0
-
 	allianceName := "Red"
 	var teamKeys []string
 
-	if isEvenMatch != isEvenScouter {
-		allianceName = "Blue"
-		teamKeys = currentMatch.Alliances.Blue.TeamKeys
-	} else {
+	// Use alliance override if provided
+	if allianceOverride == "Red" || allianceOverride == "Blue" {
+		allianceName = allianceOverride
 		teamKeys = currentMatch.Alliances.Red.TeamKeys
+		if allianceName == "Blue" {
+			teamKeys = currentMatch.Alliances.Blue.TeamKeys
+		}
+	} else {
+		// Toggle: ensure Scouter 1 and 2 are always opposite
+		isEvenMatch := matchNum%2 == 0
+		isEvenScouter := scouterID%2 == 0
+
+		if isEvenMatch != isEvenScouter {
+			allianceName = "Blue"
+			teamKeys = currentMatch.Alliances.Blue.TeamKeys
+		} else {
+			teamKeys = currentMatch.Alliances.Red.TeamKeys
+		}
 	}
 
 	// CLEANING: "frc254" -> "254"
