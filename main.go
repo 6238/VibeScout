@@ -233,12 +233,12 @@ func scoutHandler(w http.ResponseWriter, r *http.Request) {
 	var teamKeys []string
 
 	// Use alliance override if provided
-	if allianceOverride == "Red" || allianceOverride == "Blue" {
-		allianceName = allianceOverride
+	if allianceOverride == "Red" {
+		allianceName = "Red"
 		teamKeys = currentMatch.Alliances.Red.TeamKeys
-		if allianceName == "Blue" {
-			teamKeys = currentMatch.Alliances.Blue.TeamKeys
-		}
+	} else if allianceOverride == "Blue" {
+		allianceName = "Blue"
+		teamKeys = currentMatch.Alliances.Blue.TeamKeys
 	} else {
 		// Toggle: ensure Scouter 1 and 2 are always opposite
 		isEvenMatch := matchNum%2 == 0

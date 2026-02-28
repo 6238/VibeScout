@@ -106,31 +106,47 @@ templ ScoutPage(event, match, scouterID, alliance string, teams, categories []st
             <!-- Defense & Teleop Stats -->
             <div class="max-w-4xl mx-auto mb-5 section-card p-4">
                 <h2 class="text-lg font-black text-[#5D4037] uppercase mb-4 text-center">⚡ Teleop Stats</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Defense % -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Defense Rating -->
                     <div>
-                        <h4 class="text-sm font-bold text-[#A1887F] uppercase mb-2">🛡️ Defense %</h4>
-                        <div class="grid grid-cols-3 gap-2">
+                        <h4 class="text-sm font-bold text-[#A1887F] uppercase mb-2">🛡️ Defense Rating</h4>
+                        <div class="space-y-3">
                             for _, team := range teams {
-                                <div class="flex items-center bg-white border-2 border-[#D2B48C] rounded-lg p-2">
-                                    <span class="text-xs font-bold text-[#5D4037] w-12">{ team }</span>
-                                    <input type="number" name={ "defense_" + team } min="0" max="100" value="0" 
-                                        class="w-full text-center text-sm" />
-                                    <span class="text-xs text-[#A1887F]">%</span>
+                                <div class="bg-white border-2 border-[#D2B48C] rounded-lg p-3">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs font-bold text-[#5D4037]">{ team }</span>
+                                        <span class="text-xs font-bold text-[#5D4037] defense-val-{ team }">3</span>
+                                    </div>
+                                    <input type="range" name={ "defense_" + team } min="1" max="5" value="3" 
+                                        class="w-full h-2 bg-[#D2B48C] rounded-lg appearance-none cursor-pointer"
+                                        oninput="this.previousElementSibling.previousElementSibling.textContent = this.value" />
+                                    <div class="flex justify-between text-[10px] text-[#A1887F] mt-1">
+                                        <span>Weak</span>
+                                        <span>Avg</span>
+                                        <span>Elite</span>
+                                    </div>
                                 </div>
                             }
                         </div>
                     </div>
-                    <!-- Defended Against % -->
+                    <!-- Stopped/Stalled Rating -->
                     <div>
-                        <h4 class="text-sm font-bold text-[#A1887F] uppercase mb-2">⚠️ Defended %</h4>
-                        <div class="grid grid-cols-3 gap-2">
+                        <h4 class="text-sm font-bold text-[#A1887F] uppercase mb-2">⚠️ Stopped/Stalled</h4>
+                        <div class="space-y-3">
                             for _, team := range teams {
-                                <div class="flex items-center bg-white border-2 border-[#D2B48C] rounded-lg p-2">
-                                    <span class="text-xs font-bold text-[#5D4037] w-12">{ team }</span>
-                                    <input type="number" name={ "defended_" + team } min="0" max="100" value="0" 
-                                        class="w-full text-center text-sm" />
-                                    <span class="text-xs text-[#A1887F]">%</span>
+                                <div class="bg-white border-2 border-[#D2B48C] rounded-lg p-3">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs font-bold text-[#5D4037]">{ team }</span>
+                                        <span class="text-xs font-bold text-[#5D4037] stopped-val-{ team }">3</span>
+                                    </div>
+                                    <input type="range" name={ "stopped_" + team } min="1" max="5" value="3" 
+                                        class="w-full h-2 bg-[#D2B48C] rounded-lg appearance-none cursor-pointer"
+                                        oninput="this.previousElementSibling.previousElementSibling.textContent = this.value" />
+                                    <div class="flex justify-between text-[10px] text-[#A1887F] mt-1">
+                                        <span>Fluid</span>
+                                        <span>Avg</span>
+                                        <span>Stalled</span>
+                                    </div>
                                 </div>
                             }
                         </div>
@@ -276,8 +292,8 @@ templ ScoutPage(event, match, scouterID, alliance string, teams, categories []st
                         auto_start_pos: document.querySelector(`select[name="auto_start_${team}"]`)?.value || "",
                         auto_climb: document.querySelector(`select[name="auto_climb_${team}"]`)?.value || "",
                         teleop_climb: document.querySelector(`select[name="teleop_climb_${team}"]`)?.value || "",
-                        defense_pct: parseInt(document.querySelector(`input[name="defense_${team}"]`)?.value || "0"),
-                        defended_against_pct: parseInt(document.querySelector(`input[name="defended_${team}"]`)?.value || "0"),
+                        defense_pct: parseInt(document.querySelector(`input[name="defense_${team}"]`)?.value || "3"),
+                        defended_against_pct: parseInt(document.querySelector(`input[name="stopped_${team}"]`)?.value || "3"),
                         notes: document.querySelector(`textarea[name="notes_${team}"]`)?.value || ""
                     };
                     
