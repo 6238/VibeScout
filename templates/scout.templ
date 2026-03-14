@@ -66,7 +66,7 @@ templ ScoutPage(event, match, scouterID, alliance string, teams, categories []st
                                 </select>
                                 <select name={ "auto_climb_" + team } class="w-full p-2 text-sm bg-white border-2 border-[#D2B48C] rounded-lg">
                                     <option value="">Climb...</option>
-                                    <option value="none">None</option>
+                                    <option value="none" selected>None</option>
                                     <option value="L1">L1</option>
                                     <option value="L2">L2</option>
                                     <option value="L3">L3</option>
@@ -117,9 +117,9 @@ templ ScoutPage(event, match, scouterID, alliance string, teams, categories []st
                                         <span class="text-xs font-bold text-[#5D4037]">{ team }</span>
                                         <span class="text-xs font-bold text-[#5D4037] defense-val-{ team }">3</span>
                                     </div>
-                                    <input type="range" name={ "defense_" + team } min="1" max="5" value="3" 
+                                    <input type="range" name={ "defense_" + team } min="1" max="5" value="3"
                                         class="w-full h-2 bg-[#D2B48C] rounded-lg appearance-none cursor-pointer"
-                                        oninput="this.previousElementSibling.previousElementSibling.textContent = this.value" />
+                                        oninput="this.previousElementSibling.lastElementChild.textContent = this.value" />
                                     <div class="flex justify-between text-[10px] text-[#A1887F] mt-1">
                                         <span>Weak</span>
                                         <span>Avg</span>
@@ -139,9 +139,9 @@ templ ScoutPage(event, match, scouterID, alliance string, teams, categories []st
                                         <span class="text-xs font-bold text-[#5D4037]">{ team }</span>
                                         <span class="text-xs font-bold text-[#5D4037] stopped-val-{ team }">3</span>
                                     </div>
-                                    <input type="range" name={ "stopped_" + team } min="1" max="5" value="3" 
+                                    <input type="range" name={ "stopped_" + team } min="1" max="5" value="3"
                                         class="w-full h-2 bg-[#D2B48C] rounded-lg appearance-none cursor-pointer"
-                                        oninput="this.previousElementSibling.previousElementSibling.textContent = this.value" />
+                                        oninput="this.previousElementSibling.lastElementChild.textContent = this.value" />
                                     <div class="flex justify-between text-[10px] text-[#A1887F] mt-1">
                                         <span>Fluid</span>
                                         <span>Avg</span>
@@ -159,7 +159,7 @@ templ ScoutPage(event, match, scouterID, alliance string, teams, categories []st
                         for _, team := range teams {
                             <select name={ "teleop_climb_" + team } class="p-2 text-sm bg-white border-2 border-[#D2B48C] rounded-lg">
                                 <option value="">Team { team }...</option>
-                                <option value="none">None</option>
+                                <option value="none" selected>None</option>
                                 <option value="L1">L1</option>
                                 <option value="L2">L2</option>
                                 <option value="L3">L3</option>

@@ -890,8 +890,8 @@ func getTeamPickData(eventKey string) (map[string]teamPickRaw, error) {
 	// Get climb rates from scouting
 	rows, _ = db.Query(`
 		SELECT team_number,
-			   SUM(CASE WHEN auto_climb = 'Yes' OR auto_climb = 'yes' THEN 1 ELSE 0 END) * 1.0 / COUNT(*),
-			   SUM(CASE WHEN teleop_climb = 'Yes' OR teleop_climb = 'yes' THEN 1 ELSE 0 END) * 1.0 / COUNT(*)
+			   SUM(CASE WHEN auto_climb != '' AND auto_climb != 'none' THEN 1 ELSE 0 END) * 1.0 / COUNT(*),
+			   SUM(CASE WHEN teleop_climb != '' AND teleop_climb != 'none' THEN 1 ELSE 0 END) * 1.0 / COUNT(*)
 		FROM scout_submissions
 		WHERE event_key = ?
 		GROUP BY team_number`, eventKey)

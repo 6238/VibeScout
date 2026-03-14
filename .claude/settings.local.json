@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"input.*type.*range\\\\|slider\" /c/Users/ryan/Dev/DataWithASideOfAnalysis/templates/*.templ)",
+      "Bash(templ generate)",
+      "Bash(templ generate --force)",
+      "Bash(templ generate -f templates/scout.templ)",
+      "Bash(go build ./...)"
+    ]
+  }
+}
