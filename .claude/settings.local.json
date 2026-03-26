@@ -6,7 +6,12 @@
       "Bash(templ generate --force)",
       "Bash(templ generate -f templates/scout.templ)",
       "Bash(go build ./...)",
-      "Bash(sqlite3 /c/Users/ryan/Dev/DataWithASideOfAnalysis/vibe_scout.db \".tables\")"
+      "Bash(sqlite3 /c/Users/ryan/Dev/DataWithASideOfAnalysis/vibe_scout.db \".tables\")",
+      "Bash(go build -o vibe-scout.exe .)",
+      "Bash(go generate ./...)",
+      "Bash(templ generate --help)",
+      "Bash(templ generate -f templates/analysis.templ)",
+      "Bash(templ generate -f templates/matchplanner.templ)"
     ]
   }
 }

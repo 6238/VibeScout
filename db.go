@@ -12,8 +12,12 @@ func initDB() {
 	var err error
 
 	if mountPath := os.Getenv("RAILWAY_VOLUME_MOUNT_PATH"); mountPath != "" {
-		dbPath := filepath.Join(mountPath, "vibescout.db")
-		db, err = sql.Open("sqlite", dbPath)
+		// Only use the Railway path if the directory actually exists
+		if info, statErr := os.Stat(mountPath); statErr == nil && info.IsDir() {
+			db, err = sql.Open("sqlite", filepath.Join(mountPath, "vibescout.db"))
+		} else {
+			db, err = sql.Open("sqlite", "./vibe_scout.db")
+		}
 	} else {
 		db, err = sql.Open("sqlite", "./vibe_scout.db")
 	}

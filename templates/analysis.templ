@@ -7,12 +7,6 @@ import (
 
 templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 	@Layout("Vibe Scout | AI Analysis") {
-		<style>
-			.htmx-indicator { display: none; }
-			.htmx-request .htmx-indicator { display: flex; }
-			.htmx-request.htmx-indicator { display: flex; }
-		</style>
-
 		<main class="container mx-auto px-4 py-8">
 			<div class="max-w-4xl mx-auto">
 				<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl mb-6">
@@ -21,8 +15,7 @@ templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 					<form class="flex gap-4 items-end"
 						hx-post="/api/run-analysis"
 						hx-target="#analysis-results"
-						hx-swap="innerHTML"
-						hx-indicator="#loading">
+						hx-swap="innerHTML">
 						<div class="flex-1">
 							<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Event</label>
 							<select name="event_key" class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
@@ -37,15 +30,6 @@ templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 					</form>
 				</div>
 
-				<!-- Loading indicator -->
-				<div id="loading" class="htmx-indicator items-center justify-center gap-3 py-12 text-[#A1887F]">
-					<svg class="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-					</svg>
-					<span class="font-bold text-lg">Analyzing teams...</span>
-				</div>
-
 				<div id="analysis-results"></div>
 			</div>
 
@@ -57,6 +41,93 @@ templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 	}
 }
 
+templ GeminiAnalysisProgressContainer(teams []string, eventKey string) {
+	if len(teams) == 0 {
+		<div class="text-center py-12 text-[#A1887F]">
+			<p class="text-xl font-bold">No scouting data found for this event.</p>
+			<p class="text-sm mt-2">Scout some matches first, then run analysis.</p>
+		</div>
+	} else {
+		<div id="progress-container" data-total={ strconv.Itoa(len(teams)) } class="mb-6 bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-2xl p-4">
+			<div class="flex justify-between items-center mb-2">
+				<span class="text-sm font-bold text-[#5D4037] uppercase">Analyzing Teams</span>
+				<span id="progress-text" class="text-sm font-black text-[#5D4037]">0 / { strconv.Itoa(len(teams)) }</span>
+			</div>
+			<div class="h-3 rounded-full overflow-hidden bg-[#D2B48C55]">
+				<div id="progress-bar" class="h-full rounded-full bg-[#8D6E63] transition-all duration-300" style="width: 0%"></div>
+			</div>
+		</div>
+		<div class="space-y-4">
+			for _, team := range teams {
+				<div
+					id={ "slot-" + team }
+					data-team-slot="true"
+					hx-get={ "/api/analyze-team?event_key=" + eventKey + "&team_number=" + team }
+					hx-trigger="load"
+					hx-swap="outerHTML"
+					class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md animate-pulse">
+					<div class="flex justify-between items-center mb-4">
+						<div class="h-6 w-28 bg-[#D2B48C44] rounded"></div>
+						<div class="h-5 w-16 bg-[#D2B48C44] rounded-full"></div>
+					</div>
+					<div class="grid grid-cols-3 gap-3 mb-4">
+						<div class="h-8 bg-[#D2B48C44] rounded"></div>
+						<div class="h-8 bg-[#D2B48C44] rounded"></div>
+						<div class="h-8 bg-[#D2B48C44] rounded"></div>
+					</div>
+					<div class="h-4 bg-[#D2B48C44] rounded w-full mb-2"></div>
+					<div class="h-4 bg-[#D2B48C44] rounded w-3/4"></div>
+				</div>
+			}
+		</div>
+		<script>
+			(function() {
+				var container = document.getElementById('progress-container');
+				var total = parseInt(container.dataset.total, 10);
+				var done = 0;
+				document.body.addEventListener('htmx:afterSwap', function(e) {
+					if (e.detail.target && e.detail.target.dataset && e.detail.target.dataset.teamSlot) {
+						done++;
+						var pct = Math.round(done / total * 100);
+						document.getElementById('progress-bar').style.width = pct + '%';
+						document.getElementById('progress-text').textContent = done + ' / ' + total;
+						if (done >= total) {
+							setTimeout(function() {
+								var pc = document.getElementById('progress-container');
+								if (pc) pc.style.display = 'none';
+							}, 1500);
+						}
+					}
+				});
+			})();
+		</script>
+	}
+}
+
+templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
+	<div class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md">
+		<!-- Header row -->
+		<div class="flex justify-between items-center mb-4">
+			<h2 class="text-xl font-black text-[#5D4037]">Team { card.TeamNumber }</h2>
+			if card.FromCache {
+				<span class="text-xs font-bold px-3 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-300">Cached</span>
+			} else {
+				<span class="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-300">Fresh</span>
+			}
+		</div>
+
+		<!-- Score bars -->
+		<div class="grid grid-cols-3 gap-3 mb-4">
+			@scoreBar("Scoring", card.Scoring, "#D2B48C", "#8D6E63")
+			@scoreBar("Reliability", card.Reliability, "#A8D5A2", "#4CAF50")
+			@defenseBar(card.Defense)
+		</div>
+
+		<!-- Summary -->
+		<p class="text-sm text-stone-700 leading-relaxed">{ card.Summary }</p>
+	</div>
+}
+
 templ GeminiAnalysisResults(cards []TeamAnalysisCard) {
 	if len(cards) == 0 {
 		<div class="text-center py-12 text-[#A1887F]">
@@ -66,27 +137,7 @@ templ GeminiAnalysisResults(cards []TeamAnalysisCard) {
 	} else {
 		<div class="space-y-4">
 			for _, card := range cards {
-				<div class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md">
-					<!-- Header row -->
-					<div class="flex justify-between items-center mb-4">
-						<h2 class="text-xl font-black text-[#5D4037]">Team { card.TeamNumber }</h2>
-						if card.FromCache {
-							<span class="text-xs font-bold px-3 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-300">Cached</span>
-						} else {
-							<span class="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-300">Fresh</span>
-						}
-					</div>
-
-					<!-- Score bars -->
-					<div class="grid grid-cols-3 gap-3 mb-4">
-						@scoreBar("Scoring", card.Scoring, "#D2B48C", "#8D6E63")
-						@scoreBar("Reliability", card.Reliability, "#A8D5A2", "#4CAF50")
-						@defenseBar(card.Defense)
-					</div>
-
-					<!-- Summary -->
-					<p class="text-sm text-stone-700 leading-relaxed">{ card.Summary }</p>
-				</div>
+				@SingleTeamAnalysisCard(card)
 			}
 		</div>
 	}

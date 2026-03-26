@@ -5,22 +5,33 @@ package main
 import (
 	"bytes"
 	"crypto/sha256"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"text/template"
 	"time"
 
 	"vibe-scout/templates"
 
 	"github.com/a-h/templ"
+	"github.com/joho/godotenv"
 
 	_ "github.com/glebarez/go-sqlite"
 )
+
+//go:embed prompts/team_analysis.prompt
+var teamAnalysisPromptTmpl string
+
+//go:embed prompts/match_plan.prompt
+var matchPlanPromptTmpl string
 
 type ScoutSubmission struct {
 	EventKey  string          `json:"event_key"`
@@ -42,6 +53,11 @@ type Event struct {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %s", err)
+	}
+
 	initDB()
 
 	http.Handle("/", http.HandlerFunc(homeHandler))
@@ -49,40 +65,23 @@ func main() {
 	http.HandleFunc("/api/save-scout", saveScoutDataHandler)
 	http.HandleFunc("/analysis", geminiAnalysisPageHandler)
 	http.HandleFunc("/api/run-analysis", apiRunAnalysisHandler)
+	http.HandleFunc("/api/analyze-team", apiAnalyzeTeamHandler)
 	http.HandleFunc("/match-planner", matchPlannerPageHandler)
 	http.HandleFunc("/api/match-plan", apiMatchPlanHandler)
 	http.HandleFunc("/admin", adminHandler)
 	http.HandleFunc("/api/admin/clear-event", clearEventHandler)
 	http.HandleFunc("/api/admin/clear-all", clearAllHandler)
+	http.HandleFunc("/api/admin/seed-test", seedTestHandler)
 
 	fmt.Println("Vibe Scout v2 running on http://localhost:8080")
 	http.ListenAndServe(":8080", nil)
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	events, err := getEventsCached("2026")
+	eventMap, err := currentEventMap()
 	if err != nil {
 		http.Error(w, "Could not load events", 500)
 		return
-	}
-
-	eventMap := make(map[string]string)
-	now := time.Now()
-	startOfWindow := now.AddDate(0, 0, -7)
-	endOfWindow := now.AddDate(0, 0, 7)
-
-	for _, e := range events {
-		eventTime, err := time.Parse("2006-01-02", e.StartDate)
-		if err != nil {
-			continue
-		}
-		if eventTime.After(startOfWindow) && eventTime.Before(endOfWindow) {
-			eventMap[e.Key] = e.Name
-		}
-	}
-
-	if len(eventMap) == 0 {
-		eventMap["none"] = "No events found for this week"
 	}
 
 	component := templates.Home(eventMap)
@@ -173,21 +172,43 @@ func saveScoutDataHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// currentEventMap returns events within ±7 days of today, always including the
+// test event so it's easy to find during development.
+func currentEventMap() (map[string]string, error) {
+	events, err := getEventsCached("2026")
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	start := now.AddDate(0, 0, -7)
+	end := now.AddDate(0, 0, 7)
+
+	m := map[string]string{
+		testEventKey: "★ " + testEventName, // always first-ish and easy to spot
+	}
+	for _, e := range events {
+		if e.Key == testEventKey {
+			continue
+		}
+		t, err := time.Parse("2006-01-02", e.StartDate)
+		if err != nil {
+			continue
+		}
+		if t.After(start) && t.Before(end) {
+			m[e.Key] = e.Name
+		}
+	}
+	return m, nil
+}
+
 // ── Analysis ──────────────────────────────────────────────────────────────────
 
 func geminiAnalysisPageHandler(w http.ResponseWriter, r *http.Request) {
-	events, err := getEventsCached("2026")
+	eventMap, err := currentEventMap()
 	if err != nil {
 		http.Error(w, "Could not load events", 500)
 		return
-	}
-
-	eventMap := make(map[string]string)
-	for _, e := range events {
-		eventMap[e.Key] = e.Name
-	}
-	if len(eventMap) == 0 {
-		eventMap["none"] = "No events found"
 	}
 
 	data := templates.GeminiAnalysisPageData{
@@ -225,20 +246,26 @@ func apiRunAnalysisHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	rows.Close()
 
-	var cards []templates.TeamAnalysisCard
-	for _, teamNum := range teams {
-		card, err := getOrGenerateAnalysis(eventKey, teamNum)
-		if err != nil {
-			cards = append(cards, templates.TeamAnalysisCard{
-				TeamNumber: teamNum,
-				Summary:    "Error generating analysis: " + err.Error(),
-			})
-			continue
-		}
-		cards = append(cards, card)
+	templates.GeminiAnalysisProgressContainer(teams, eventKey).Render(r.Context(), w)
+}
+
+func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey := r.URL.Query().Get("event_key")
+	teamNum := r.URL.Query().Get("team_number")
+	if eventKey == "" || teamNum == "" {
+		http.Error(w, "event_key and team_number required", http.StatusBadRequest)
+		return
 	}
 
-	templates.GeminiAnalysisResults(cards).Render(r.Context(), w)
+	card, err := getOrGenerateAnalysis(eventKey, teamNum)
+	if err != nil {
+		card = templates.TeamAnalysisCard{
+			TeamNumber: teamNum,
+			Summary:    "Error generating analysis: " + err.Error(),
+		}
+	}
+
+	templates.SingleTeamAnalysisCard(card).Render(r.Context(), w)
 }
 
 // teamAnalysisJSON is the structured response Gemini returns for team analysis.
@@ -318,18 +345,10 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 // ── Match Planner ─────────────────────────────────────────────────────────────
 
 func matchPlannerPageHandler(w http.ResponseWriter, r *http.Request) {
-	events, err := getEventsCached("2026")
+	eventMap, err := currentEventMap()
 	if err != nil {
 		http.Error(w, "Could not load events", 500)
 		return
-	}
-
-	eventMap := make(map[string]string)
-	for _, e := range events {
-		eventMap[e.Key] = e.Name
-	}
-	if len(eventMap) == 0 {
-		eventMap["none"] = "No events found"
 	}
 
 	data := templates.MatchPlannerPageData{Events: eventMap}
@@ -344,8 +363,9 @@ func apiMatchPlanHandler(w http.ResponseWriter, r *http.Request) {
 
 	eventKey := r.FormValue("event_key")
 	teamNumber := strings.TrimSpace(r.FormValue("team_number"))
-	if eventKey == "" || eventKey == "none" || teamNumber == "" {
-		http.Error(w, "Event and team number required", http.StatusBadRequest)
+	matchNum, _ := strconv.Atoi(r.FormValue("match_num"))
+	if eventKey == "" || eventKey == "none" || teamNumber == "" || matchNum == 0 {
+		http.Error(w, "Event, team number, and match number required", http.StatusBadRequest)
 		return
 	}
 
@@ -355,58 +375,57 @@ func apiMatchPlanHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find all quals matches involving this team
+	// Find the specific quals match
 	frcTeam := "frc" + teamNumber
-	var teamMatches []Match
+	var targetMatch Match
+	found := false
 	for _, m := range matches {
-		if m.CompLevel != "qm" {
-			continue
-		}
-		for _, tk := range m.Alliances.Red.TeamKeys {
-			if tk == frcTeam {
-				teamMatches = append(teamMatches, m)
-				break
-			}
-		}
-		for _, tk := range m.Alliances.Blue.TeamKeys {
-			if tk == frcTeam {
-				teamMatches = append(teamMatches, m)
-				break
-			}
+		if m.CompLevel == "qm" && m.MatchNumber == matchNum {
+			targetMatch = m
+			found = true
+			break
 		}
 	}
 
-	// Sort by match number
-	sort.Slice(teamMatches, func(i, j int) bool {
-		return teamMatches[i].MatchNumber < teamMatches[j].MatchNumber
-	})
-
-	var cards []templates.MatchPlanCard
-	for _, m := range teamMatches {
-		card, err := getOrGenerateMatchPlan(eventKey, teamNumber, m)
-		if err != nil {
-			redTeams := stripFRC(m.Alliances.Red.TeamKeys)
-			blueTeams := stripFRC(m.Alliances.Blue.TeamKeys)
-			ourAlliance := "Red"
-			for _, tk := range m.Alliances.Blue.TeamKeys {
-				if tk == frcTeam {
-					ourAlliance = "Blue"
-					break
-				}
-			}
-			cards = append(cards, templates.MatchPlanCard{
-				MatchNum:    m.MatchNumber,
-				OurAlliance: ourAlliance,
-				RedTeams:    redTeams,
-				BlueTeams:   blueTeams,
-				Strategy:    "Error generating strategy: " + err.Error(),
-			})
-			continue
-		}
-		cards = append(cards, card)
+	if !found {
+		templates.MatchPlannerResults(nil, teamNumber).Render(r.Context(), w)
+		return
 	}
 
-	templates.MatchPlannerResults(cards, teamNumber).Render(r.Context(), w)
+	// Verify the team is actually in this match
+	inMatch := false
+	for _, tk := range append(targetMatch.Alliances.Red.TeamKeys, targetMatch.Alliances.Blue.TeamKeys...) {
+		if tk == frcTeam {
+			inMatch = true
+			break
+		}
+	}
+	if !inMatch {
+		templates.MatchPlannerResults(nil, teamNumber).Render(r.Context(), w)
+		return
+	}
+
+	card, err := getOrGenerateMatchPlan(eventKey, teamNumber, targetMatch)
+	if err != nil {
+		redTeams := stripFRC(targetMatch.Alliances.Red.TeamKeys)
+		blueTeams := stripFRC(targetMatch.Alliances.Blue.TeamKeys)
+		ourAlliance := "Red"
+		for _, tk := range targetMatch.Alliances.Blue.TeamKeys {
+			if tk == frcTeam {
+				ourAlliance = "Blue"
+				break
+			}
+		}
+		card = templates.MatchPlanCard{
+			MatchNum:    targetMatch.MatchNumber,
+			OurAlliance: ourAlliance,
+			RedTeams:    redTeams,
+			BlueTeams:   blueTeams,
+			Strategy:    "Error generating strategy: " + err.Error(),
+		}
+	}
+
+	templates.MatchPlannerResults([]templates.MatchPlanCard{card}, teamNumber).Render(r.Context(), w)
 }
 
 func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.MatchPlanCard, error) {
@@ -426,7 +445,8 @@ func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.Mat
 	allTeams := append(redTeams, blueTeams...)
 	sort.Strings(allTeams)
 
-	var noteParts []string
+	var noteParts []string      // for hash (scouting notes only)
+	var contextParts []string   // for prompt (notes + EPA)
 	for _, t := range allTeams {
 		if t == teamNumber {
 			continue
@@ -442,10 +462,14 @@ func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.Mat
 			notes = append(notes, n)
 		}
 		rows.Close()
-		noteParts = append(noteParts, fmt.Sprintf("Team %s: %s", t, strings.Join(notes, " | ")))
+		noteLine := fmt.Sprintf("Team %s: %s", t, strings.Join(notes, " | "))
+		noteParts = append(noteParts, noteLine)
+		contextParts = append(contextParts, fmt.Sprintf("Team %s:\n  EPA:\n%s\n  Notes: %s",
+			t, fetchStatboticsEPA(t), strings.Join(notes, " | ")))
 	}
 
 	combinedNotes := strings.Join(noteParts, "\n")
+	notesContext := strings.Join(contextParts, "\n\n")
 	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(combinedNotes)))
 
 	// Check cache
@@ -466,7 +490,7 @@ func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.Mat
 		}, nil
 	}
 
-	strategy, err := callGeminiMatchPlan(teamNumber, eventKey, m.MatchNumber, ourAlliance, redTeams, blueTeams, combinedNotes)
+	strategy, err := callGeminiMatchPlan(teamNumber, eventKey, m.MatchNumber, ourAlliance, redTeams, blueTeams, notesContext)
 	if err != nil {
 		return templates.MatchPlanCard{}, err
 	}
@@ -500,9 +524,61 @@ func stripFRC(keys []string) []string {
 	return result
 }
 
+// ── Statbotics EPA ────────────────────────────────────────────────────────────
+
+var (
+	epaCache   = map[string]string{}
+	epaCacheMu sync.RWMutex
+	httpClient = &http.Client{Timeout: 5 * time.Second}
+)
+
+func fetchStatboticsEPA(teamNum string) string {
+	epaCacheMu.RLock()
+	if v, ok := epaCache[teamNum]; ok {
+		epaCacheMu.RUnlock()
+		return v
+	}
+	epaCacheMu.RUnlock()
+
+	year := time.Now().Year()
+	url := fmt.Sprintf("https://api.statbotics.io/v3/team_year/%s/%d", teamNum, year)
+	resp, err := httpClient.Get(url)
+	if err != nil || resp.StatusCode != 200 {
+		return "unavailable"
+	}
+	defer resp.Body.Close()
+
+	var data struct {
+		EPA struct {
+			Breakdown map[string]float64 `json:"breakdown"`
+		} `json:"epa"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil || len(data.EPA.Breakdown) == 0 {
+		return "unavailable"
+	}
+
+	keys := make([]string, 0, len(data.EPA.Breakdown))
+	for k := range data.EPA.Breakdown {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var lines []string
+	for _, k := range keys {
+		lines = append(lines, fmt.Sprintf("  %s: %.2f", k, data.EPA.Breakdown[k]))
+	}
+	result := strings.Join(lines, "\n")
+
+	epaCacheMu.Lock()
+	epaCache[teamNum] = result
+	epaCacheMu.Unlock()
+
+	return result
+}
+
 // ── Gemini helpers ────────────────────────────────────────────────────────────
 
-const geminiURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent"
+const geminiURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent"
 
 func geminiPost(prompt string) (string, error) {
 	apiKey := os.Getenv("GEMINI_API_KEY")
@@ -534,39 +610,56 @@ func geminiPost(prompt string) (string, error) {
 
 	var geminiResp struct {
 		Candidates []struct {
-			Content struct {
+			FinishReason string `json:"finishReason"`
+			Content      struct {
 				Parts []struct {
 					Text string `json:"text"`
 				} `json:"parts"`
 			} `json:"content"`
 		} `json:"candidates"`
+		PromptFeedback struct {
+			BlockReason string `json:"blockReason"`
+		} `json:"promptFeedback"`
 	}
 	if err := json.Unmarshal(respBody, &geminiResp); err != nil {
 		return "", fmt.Errorf("gemini parse error: %v — body: %s", err, string(respBody))
 	}
-	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
-		return "", fmt.Errorf("gemini returned empty response")
+	if geminiResp.PromptFeedback.BlockReason != "" {
+		return "", fmt.Errorf("gemini blocked prompt: %s", geminiResp.PromptFeedback.BlockReason)
 	}
-	return geminiResp.Candidates[0].Content.Parts[0].Text, nil
+	if len(geminiResp.Candidates) == 0 {
+		return "", fmt.Errorf("gemini returned no candidates — body: %s", string(respBody))
+	}
+	c := geminiResp.Candidates[0]
+	if len(c.Content.Parts) == 0 {
+		return "", fmt.Errorf("gemini candidate has no content (finishReason: %s)", c.FinishReason)
+	}
+	return c.Content.Parts[0].Text, nil
+}
+
+type teamAnalysisPromptData struct {
+	TeamNum      string
+	EventKey     string
+	Notes        string
+	EPABreakdown string
 }
 
 func callGeminiTeamAnalysis(teamNum, eventKey, notes string) (teamAnalysisJSON, error) {
-	prompt := fmt.Sprintf(
-		`You are a FIRST Robotics scouting analyst. Here are scouting notes for Team %s at %s.
+	tmpl, err := template.New("team_analysis").Parse(teamAnalysisPromptTmpl)
+	if err != nil {
+		return teamAnalysisJSON{}, fmt.Errorf("failed to parse team analysis prompt: %w", err)
+	}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, teamAnalysisPromptData{
+		TeamNum:      teamNum,
+		EventKey:     eventKey,
+		Notes:        notes,
+		EPABreakdown: fetchStatboticsEPA(teamNum),
+	}); err != nil {
+		return teamAnalysisJSON{}, fmt.Errorf("failed to render team analysis prompt: %w", err)
+	}
 
-Respond ONLY with a JSON object in exactly this format (no markdown, no explanation):
-{"summary":"<2-3 sentence analysis>","scoring":<1-10>,"reliability":<1-10>,"defense":<0-10>}
-
-scoring = offensive scoring ability (1=poor, 10=excellent)
-reliability = consistency and mechanical reliability (1=very unreliable, 10=very reliable)
-defense = defensive ability (0=no defense observed/N/A, 1-10 if they played defense)
-
-Notes:
-%s`,
-		teamNum, eventKey, notes,
-	)
-
-	raw, err := geminiPost(prompt)
+	raw, err := geminiPost(buf.String())
 	if err != nil {
 		return teamAnalysisJSON{}, err
 	}
@@ -585,6 +678,18 @@ Notes:
 	return result, nil
 }
 
+type matchPlanPromptData struct {
+	TeamNum          string
+	MatchNum         int
+	EventKey         string
+	OurAlliance      string
+	OpponentAlliance string
+	Partners         string
+	Opponents        string
+	OurEPA           string
+	NotesContext     string
+}
+
 func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance string, redTeams, blueTeams []string, notesContext string) (string, error) {
 	alliancePartners := redTeams
 	opponents := blueTeams
@@ -593,7 +698,6 @@ func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance str
 		opponents = redTeams
 	}
 
-	// Remove our team from partners list
 	var partners []string
 	for _, t := range alliancePartners {
 		if t != teamNum {
@@ -601,46 +705,45 @@ func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance str
 		}
 	}
 
-	partnersStr := strings.Join(partners, ", ")
-	opponentsStr := strings.Join(opponents, ", ")
+	opponentAlliance := "Blue"
+	if ourAlliance == "Blue" {
+		opponentAlliance = "Red"
+	}
 
-	prompt := fmt.Sprintf(
-		`You are a FIRST Robotics strategy analyst helping Team %s prepare for Match %d at %s.
+	tmpl, err := template.New("match_plan").Parse(matchPlanPromptTmpl)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse match plan prompt: %w", err)
+	}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, matchPlanPromptData{
+		TeamNum:          teamNum,
+		MatchNum:         matchNum,
+		EventKey:         eventKey,
+		OurAlliance:      ourAlliance,
+		OpponentAlliance: opponentAlliance,
+		Partners:         strings.Join(partners, ", "),
+		Opponents:        strings.Join(opponents, ", "),
+		OurEPA:           fetchStatboticsEPA(teamNum),
+		NotesContext:     notesContext,
+	}); err != nil {
+		return "", fmt.Errorf("failed to render match plan prompt: %w", err)
+	}
 
-%s Alliance (our side): %s, %s
-%s Alliance (opponents): %s
-
-Scouted data on other teams:
-%s
-
-Provide a concise match strategy for Team %s (3-5 bullet points covering: recommended role, key threats from opponents, coordination with partners, and any specific tactical notes).`,
-		teamNum, matchNum, eventKey,
-		ourAlliance, teamNum, partnersStr,
-		func() string {
-			if ourAlliance == "Red" {
-				return "Blue"
-			}
-			return "Red"
-		}(),
-		opponentsStr,
-		notesContext,
-		teamNum,
-	)
-
-	return geminiPost(prompt)
+	return geminiPost(buf.String())
 }
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
 
 func adminHandler(w http.ResponseWriter, r *http.Request) {
-	rows, _ := db.Query("SELECT DISTINCT event_key FROM scout_submissions")
 	var events []string
-	for rows.Next() {
-		var eventKey string
-		rows.Scan(&eventKey)
-		events = append(events, eventKey)
+	if rows, err := db.Query("SELECT DISTINCT event_key FROM scout_submissions"); err == nil {
+		for rows.Next() {
+			var eventKey string
+			rows.Scan(&eventKey)
+			events = append(events, eventKey)
+		}
+		rows.Close()
 	}
-	rows.Close()
 
 	component := templates.AdminPage(events)
 	templ.Handler(component).ServeHTTP(w, r)
@@ -667,6 +770,15 @@ func clearEventHandler(w http.ResponseWriter, r *http.Request) {
 	db.Exec("DELETE FROM match_plan_cache WHERE event_key = ?", req.EventKey)
 
 	fmt.Fprintf(w, "Deleted all data for event: %s", req.EventKey)
+}
+
+func seedTestHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	seedTestData()
+	fmt.Fprintf(w, "Test event seeded: %s (%d observations across 9 teams)", testEventKey, len(testObservations))
 }
 
 func clearAllHandler(w http.ResponseWriter, r *http.Request) {

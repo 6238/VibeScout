@@ -28,13 +28,18 @@ templ MatchPlannerPage(data MatchPlannerPageData) {
 								}
 							</select>
 						</div>
-						<div class="w-36">
+						<div class="w-28">
 							<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Team #</label>
-							<input type="text" name="team_number" placeholder="e.g. 254"
+							<input type="text" name="team_number" placeholder="e.g. 254" required
+								class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold" />
+						</div>
+						<div class="w-24">
+							<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Match #</label>
+							<input type="number" name="match_num" placeholder="e.g. 5" min="1" required
 								class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold" />
 						</div>
 						<button type="submit" class="bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-3 px-6 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
-							Plan Matches
+							Plan Match
 						</button>
 					</form>
 				</div>

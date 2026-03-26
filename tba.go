@@ -46,6 +46,10 @@ var (
 )
 
 func getMatchesCached(eventKey string) ([]Match, error) {
+	if eventKey == testEventKey {
+		return testMatches, nil
+	}
+
 	matchMutex.Lock()
 	defer matchMutex.Unlock()
 
@@ -74,11 +78,14 @@ func getMatchesCached(eventKey string) ([]Match, error) {
 }
 
 func getEventsCached(year string) ([]Event, error) {
+	// Always inject the test event regardless of year filter
+	testEvent := Event{Key: testEventKey, Name: testEventName, StartDate: "2026-01-01"}
+
 	cacheMutex.Lock()
 	defer cacheMutex.Unlock()
 
 	if len(eventCache) > 0 && time.Since(cacheTimestamp) < time.Hour {
-		return eventCache, nil
+		return append(eventCache, testEvent), nil
 	}
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/events/%s/simple", TBA_BASE, year), nil)
@@ -98,5 +105,5 @@ func getEventsCached(year string) ([]Event, error) {
 
 	eventCache = events
 	cacheTimestamp = time.Now()
-	return events, nil
+	return append(events, testEvent), nil
 }

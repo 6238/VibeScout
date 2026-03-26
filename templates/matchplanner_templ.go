@@ -79,7 +79,7 @@ func MatchPlannerPage(data MatchPlannerPageData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</select></div><div class=\"w-36\"><label class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Team #</label> <input type=\"text\" name=\"team_number\" placeholder=\"e.g. 254\" class=\"w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold\"></div><button type=\"submit\" class=\"bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-3 px-6 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]\">Plan Matches</button></form></div><!-- Loading indicator --><div id=\"loading\" class=\"htmx-indicator items-center justify-center gap-3 py-12 text-[#A1887F]\"><svg class=\"animate-spin h-6 w-6\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\"><circle class=\"opacity-25\" cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"4\"></circle> <path class=\"opacity-75\" fill=\"currentColor\" d=\"M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z\"></path></svg> <span class=\"font-bold text-lg\">Generating match plans...</span></div><div id=\"plan-results\"></div></div><div class=\"text-center mt-6 flex gap-6 justify-center\"><a href=\"/analysis\" class=\"text-[#A1887F] hover:text-[#5D4037] font-bold\">← AI Analysis</a> <a href=\"/\" class=\"text-[#A1887F] hover:text-[#5D4037] font-bold\">Home</a></div></main>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</select></div><div class=\"w-28\"><label class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Team #</label> <input type=\"text\" name=\"team_number\" placeholder=\"e.g. 254\" required class=\"w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold\"></div><div class=\"w-24\"><label class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Match #</label> <input type=\"number\" name=\"match_num\" placeholder=\"e.g. 5\" min=\"1\" required class=\"w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold\"></div><button type=\"submit\" class=\"bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-3 px-6 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]\">Plan Match</button></form></div><!-- Loading indicator --><div id=\"loading\" class=\"htmx-indicator items-center justify-center gap-3 py-12 text-[#A1887F]\"><svg class=\"animate-spin h-6 w-6\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\"><circle class=\"opacity-25\" cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"4\"></circle> <path class=\"opacity-75\" fill=\"currentColor\" d=\"M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z\"></path></svg> <span class=\"font-bold text-lg\">Generating match plans...</span></div><div id=\"plan-results\"></div></div><div class=\"text-center mt-6 flex gap-6 justify-center\"><a href=\"/analysis\" class=\"text-[#A1887F] hover:text-[#5D4037] font-bold\">← AI Analysis</a> <a href=\"/\" class=\"text-[#A1887F] hover:text-[#5D4037] font-bold\">Home</a></div></main>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -122,7 +122,7 @@ func MatchPlannerResults(cards []MatchPlanCard, ourTeam string) templ.Component 
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(ourTeam)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/matchplanner.templ`, Line: 65, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/matchplanner.templ`, Line: 70, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -145,7 +145,7 @@ func MatchPlannerResults(cards []MatchPlanCard, ourTeam string) templ.Component 
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(card.MatchNum))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/matchplanner.templ`, Line: 74, Col: 87}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/matchplanner.templ`, Line: 79, Col: 87}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
@@ -221,7 +221,7 @@ func MatchPlannerResults(cards []MatchPlanCard, ourTeam string) templ.Component 
 					var templ_7745c5c3_Var12 string
 					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(t)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/matchplanner.templ`, Line: 94, Col: 13}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/matchplanner.templ`, Line: 99, Col: 13}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 					if templ_7745c5c3_Err != nil {
@@ -264,7 +264,7 @@ func MatchPlannerResults(cards []MatchPlanCard, ourTeam string) templ.Component 
 					var templ_7745c5c3_Var15 string
 					templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(t)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/matchplanner.templ`, Line: 106, Col: 13}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/matchplanner.templ`, Line: 111, Col: 13}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 					if templ_7745c5c3_Err != nil {
@@ -282,7 +282,7 @@ func MatchPlannerResults(cards []MatchPlanCard, ourTeam string) templ.Component 
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(card.Strategy)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/matchplanner.templ`, Line: 116, Col: 91}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/matchplanner.templ`, Line: 121, Col: 91}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
