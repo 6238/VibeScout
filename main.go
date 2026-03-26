@@ -53,8 +53,7 @@ type Event struct {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
 		log.Fatalf("Error loading .env file: %s", err)
 	}
 
