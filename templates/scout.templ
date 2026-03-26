@@ -1,350 +1,91 @@
 package templates
 
-templ ScoutPage(event, match, scouterID, alliance string, teams, categories []string) {
-    @Layout("Vibe Scout | Match " + match) {
-        <style>
-            .page-transition { animation: slideIn 0.3s ease-out; }
-            @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-            .vibe-chip {
-                background-color: #D2B48C;
-                color: #4E342E;
-                font-weight: 900;
-                border-radius: 1rem;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                border-bottom: 4px solid #B99976;
-                padding: 0.75rem 1.5rem;
-                font-size: 0.875rem;
-                cursor: grab;
-            }
-            .vibe-chip:active { cursor: grabbing; transform: translateY(2px); border-bottom-width: 2px; }
-            .drag-over { background-color: rgba(210, 180, 140, 0.3) !important; border-style: solid !important; }
-            .tier-item { animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-            @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-            .section-card { background: rgba(255,251,245,0.95); border: 2px solid #D2B48C; border-radius: 1.5rem; }
-            input, select, textarea { -webkit-appearance: none; }
-        </style>
+templ ScoutPage(event, match, scouterID, alliance string, teams []string) {
+	@Layout("Vibe Scout | Match " + match) {
+		<style>
+			.page-transition { animation: slideIn 0.3s ease-out; }
+			@keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+			.section-card { background: rgba(255,251,245,0.95); border: 2px solid #D2B48C; border-radius: 1.5rem; }
+		</style>
 
-        <main id="scout-container" class="p-3 pb-36 page-transition" ondrop="trash(event)" ondragover="allowDrop(event)">
-            <!-- Header -->
-            <div class="max-w-4xl mx-auto mb-4 flex justify-between items-center bg-[#F2E8D5] p-4 rounded-2xl border-2 border-[#D2B48C] shadow-lg">
-                <div>
-                    <p class="text-xs font-bold text-[#A1887F] uppercase">Match { match } • { scouterID }</p>
-                    <h1 class="text-lg font-black text-[#5D4037] uppercase truncate">{ event }</h1>
-                </div>
-                <div class={ "px-4 py-1 rounded-xl font-black text-sm border-2", 
-                    templ.KV("bg-red-100 border-red-400 text-red-700", alliance == "Red"),
-                    templ.KV("bg-blue-100 border-blue-400 text-blue-700", alliance == "Blue") }>
-                    { alliance }
-                </div>
-            </div>
+		<main class="p-3 pb-36 page-transition">
+			<!-- Header -->
+			<div class="max-w-4xl mx-auto mb-4 flex justify-between items-center bg-[#F2E8D5] p-4 rounded-2xl border-2 border-[#D2B48C] shadow-lg">
+				<div>
+					<p class="text-xs font-bold text-[#A1887F] uppercase">Match { match } • { scouterID }</p>
+					<h1 class="text-lg font-black text-[#5D4037] uppercase truncate">{ event }</h1>
+				</div>
+				<div class={ "px-4 py-1 rounded-xl font-black text-sm border-2",
+					templ.KV("bg-red-100 border-red-400 text-red-700", alliance == "Red"),
+					templ.KV("bg-blue-100 border-blue-400 text-blue-700", alliance == "Blue") }>
+					{ alliance }
+				</div>
+			</div>
 
-            <!-- Auto Section -->
-            <div class="max-w-4xl mx-auto mb-5 section-card p-4">
-                <h2 class="text-lg font-black text-[#5D4037] uppercase mb-4 text-center">🚗 Auto</h2>
-                <div class="grid grid-cols-3 gap-4">
-                    for _, team := range teams {
-                        <div class="bg-white/50 p-3 rounded-xl" data-team-card={ team }>
-                            <p class="text-sm font-black text-[#5D4037] text-center mb-2">Team { team }</p>
-                            <div class="space-y-2">
-                                <select name={ "auto_path_" + team } class="w-full p-2 text-sm bg-white border-2 border-[#D2B48C] rounded-lg">
-                                    <option value="">Path...</option>
-                                    <option value="none">None</option>
-                                    <option value="mid_rush">Mid Rush</option>
-                                    <option value="mid_half">Mid Half</option>
-                                    <option value="mid_double">Mid Double</option>
-                                    <option value="depot">Depot</option>
-                                    <option value="outpost">Outpost</option>
-                                    <option value="preload">Preload</option>
-                                </select>
-                                <select name={ "auto_start_" + team } class="w-full p-2 text-sm bg-white border-2 border-[#D2B48C] rounded-lg">
-                                    <option value="">Start...</option>
-                                    <option value="top_trench">Top Trench</option>
-                                    <option value="top_bump">Top Bump</option>
-                                    <option value="hub">Hub</option>
-                                    <option value="bottom_trench">Bottom Trench</option>
-                                    <option value="bottom_bump">Bottom Bump</option>
-                                </select>
-                                <select name={ "auto_climb_" + team } class="w-full p-2 text-sm bg-white border-2 border-[#D2B48C] rounded-lg">
-                                    <option value="">Climb...</option>
-                                    <option value="none" selected>None</option>
-                                    <option value="L1">L1</option>
-                                    <option value="L2">L2</option>
-                                    <option value="L3">L3</option>
-                                </select>
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
+			<!-- Notes Section -->
+			<div class="max-w-4xl mx-auto mb-5 section-card p-4">
+				<h2 class="text-lg font-black text-[#5D4037] uppercase mb-4 text-center">Notes</h2>
+				<div class="grid grid-cols-3 gap-4">
+					for _, team := range teams {
+						<div data-team-card={ team }>
+							<label class="block text-sm font-black text-[#5D4037] mb-2 text-center">Team { team }</label>
+							<textarea
+								name={ "notes_" + team }
+								rows="12"
+								class="w-full p-3 text-sm bg-white border-2 border-[#D2B48C] rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]"
+								placeholder="Observations..."></textarea>
+						</div>
+					}
+				</div>
+			</div>
 
-            <!-- Team Tray -->
-            <div class="max-w-4xl mx-auto mb-5">
-                <p class="text-xs font-bold text-[#A1887F] uppercase mb-2 text-center">Drag teams to categories</p>
-                <div class="flex flex-wrap justify-center gap-3 bg-[#E5D3B3]/40 p-5 rounded-2xl border-2 border-dashed border-[#D2B48C]">
-                    for _, team := range teams {
-                        <div draggable="true" ondragstart="dragFromTray(event)" data-team={ team } class="vibe-chip">
-                            { team }
-                        </div>
-                    }
-                </div>
-            </div>
+			<!-- Submit -->
+			<div class="fixed bottom-0 left-0 right-0 p-4 bg-[#F2E8D5]/95 backdrop-blur-md flex justify-center z-50">
+				<button onclick="nextMatch()" class="bg-[#5D4037] text-white font-black py-3 px-12 rounded-2xl shadow-xl uppercase tracking-widest text-lg active:scale-95 transition">
+					Next Match →
+				</button>
+			</div>
+		</main>
 
-            <!-- Teleop Category Rankings -->
-            <div class="max-w-4xl mx-auto mb-5 space-y-4">
-                for _, cat := range categories {
-                    <div class="section-card p-4">
-                        <h3 class="text-md font-black text-[#5D4037] uppercase mb-3 text-center">{ cat }</h3>
-                        <div class="grid grid-cols-3 gap-3">
-                            @TierBox("HIGH", cat)
-                            @TierBox("MID", cat)
-                            @TierBox("LOW", cat)
-                        </div>
-                    </div>
-                }
-            </div>
+		<script>
+			async function nextMatch() {
+				const params = new URLSearchParams(window.location.search);
+				const eventKey = params.get('event_key') || '';
+				const matchNum = parseInt(params.get('match_num') || '1');
+				const scouterId = params.get('scouter_id') || '1';
+				const alliance = params.get('alliance') || '';
 
-            <!-- Defense & Teleop Stats -->
-            <div class="max-w-4xl mx-auto mb-5 section-card p-4">
-                <h2 class="text-lg font-black text-[#5D4037] uppercase mb-4 text-center">⚡ Teleop Stats</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Defense Rating -->
-                    <div>
-                        <h4 class="text-sm font-bold text-[#A1887F] uppercase mb-2">🛡️ Defense Rating</h4>
-                        <div class="space-y-3">
-                            for _, team := range teams {
-                                <div class="bg-white border-2 border-[#D2B48C] rounded-lg p-3">
-                                    <div class="flex justify-between items-center mb-2">
-                                        <span class="text-xs font-bold text-[#5D4037]">{ team }</span>
-                                        <span class="text-xs font-bold text-[#5D4037] defense-val-{ team }">3</span>
-                                    </div>
-                                    <input type="range" name={ "defense_" + team } min="1" max="5" value="3"
-                                        class="w-full h-2 bg-[#D2B48C] rounded-lg appearance-none cursor-pointer"
-                                        oninput="this.previousElementSibling.lastElementChild.textContent = this.value" />
-                                    <div class="flex justify-between text-[10px] text-[#A1887F] mt-1">
-                                        <span>Weak</span>
-                                        <span>Avg</span>
-                                        <span>Elite</span>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                    <!-- Stopped/Stalled Rating -->
-                    <div>
-                        <h4 class="text-sm font-bold text-[#A1887F] uppercase mb-2">⚠️ Stopped/Stalled</h4>
-                        <div class="space-y-3">
-                            for _, team := range teams {
-                                <div class="bg-white border-2 border-[#D2B48C] rounded-lg p-3">
-                                    <div class="flex justify-between items-center mb-2">
-                                        <span class="text-xs font-bold text-[#5D4037]">{ team }</span>
-                                        <span class="text-xs font-bold text-[#5D4037] stopped-val-{ team }">3</span>
-                                    </div>
-                                    <input type="range" name={ "stopped_" + team } min="1" max="5" value="3"
-                                        class="w-full h-2 bg-[#D2B48C] rounded-lg appearance-none cursor-pointer"
-                                        oninput="this.previousElementSibling.lastElementChild.textContent = this.value" />
-                                    <div class="flex justify-between text-[10px] text-[#A1887F] mt-1">
-                                        <span>Fluid</span>
-                                        <span>Avg</span>
-                                        <span>Stalled</span>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                </div>
-                <!-- Teleop Climb -->
-                <div class="mt-4">
-                    <h4 class="text-sm font-bold text-[#A1887F] uppercase mb-2">🏆 Teleop Climb</h4>
-                    <div class="grid grid-cols-3 gap-2">
-                        for _, team := range teams {
-                            <select name={ "teleop_climb_" + team } class="p-2 text-sm bg-white border-2 border-[#D2B48C] rounded-lg">
-                                <option value="">Team { team }...</option>
-                                <option value="none" selected>None</option>
-                                <option value="L1">L1</option>
-                                <option value="L2">L2</option>
-                                <option value="L3">L3</option>
-                            </select>
-                        }
-                    </div>
-                </div>
-            </div>
+				const teamCards = document.querySelectorAll('[data-team-card]');
+				const teams = Array.from(teamCards).map(card => ({
+					team_number: card.getAttribute('data-team-card'),
+					notes: card.querySelector('textarea')?.value || ''
+				}));
 
-            <!-- Notes -->
-            <div class="max-w-4xl mx-auto mb-5 section-card p-4">
-                <h2 class="text-lg font-black text-[#5D4037] uppercase mb-4 text-center">📝 Notes</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    for _, team := range teams {
-                        <div>
-                            <label class="block text-xs font-bold text-[#A1887F] mb-1">Team { team }</label>
-                            <textarea name={ "notes_" + team } rows="5" 
-                                class="w-full p-2 text-sm border-2 border-[#D2B48C] rounded-lg resize-none" 
-                                placeholder="Notes..."></textarea>
-                        </div>
-                    }
-                </div>
-            </div>
+				const submission = {
+					event_key: eventKey,
+					match_num: matchNum,
+					scouter_id: parseInt(scouterId),
+					teams: teams
+				};
 
-            <!-- Submit -->
-            <div class="fixed bottom-0 left-0 right-0 p-4 bg-[#F2E8D5]/95 backdrop-blur-md flex justify-center z-50">
-                <button onclick="nextMatch()" class="bg-[#5D4037] text-white font-black py-3 px-12 rounded-2xl shadow-xl uppercase tracking-widest text-lg">
-                    Next Match →
-                </button>
-            </div>
-        </main>
+				try {
+					const resp = await fetch('/api/save-scout', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(submission)
+					});
 
-        <script>
-            function dragFromTray(ev) {
-                ev.dataTransfer.setData("team", ev.target.getAttribute("data-team"));
-                ev.dataTransfer.setData("type", "new");
-            }
-
-            function dragFromBucket(ev) {
-                ev.dataTransfer.setData("team", ev.target.getAttribute("data-team"));
-                ev.dataTransfer.setData("type", "move");
-                ev.dataTransfer.setData("sourceId", ev.target.id);
-            }
-
-            function allowDrop(ev) {
-                ev.preventDefault();
-                ev.currentTarget.classList.add('drag-over');
-            }
-
-            function dragLeave(ev) {
-                ev.currentTarget.classList.remove('drag-over');
-            }
-
-            function drop(ev) {
-                ev.preventDefault();
-                ev.currentTarget.classList.remove('drag-over');
-                
-                const team = ev.dataTransfer.getData("team");
-                const bucket = ev.currentTarget;
-                const categoryGroup = bucket.closest('.category-group');
-                
-                // Check if already in this category
-                const existingInCat = categoryGroup.querySelector(`[data-team="${team}"][data-is-clone="true"]`);
-                if (existingInCat) existingInCat.remove();
-                
-                const clone = document.createElement('div');
-                clone.id = "clone-" + Date.now() + "-" + team;
-                clone.setAttribute("data-team", team);
-                clone.setAttribute("data-is-clone", "true");
-                clone.setAttribute("draggable", "true");
-                clone.ondragstart = dragFromBucket;
-                clone.className = "vibe-chip tier-item m-1";
-                clone.innerText = team;
-                
-                bucket.appendChild(clone);
-            }
-
-            function trash(ev) {
-                ev.preventDefault();
-                const type = ev.dataTransfer.getData("type");
-                const sourceId = ev.dataTransfer.getData("sourceId");
-                if (type === "move" && sourceId) {
-                    const el = document.getElementById(sourceId);
-                    if (el) el.remove();
-                }
-            }
-
-            async function nextMatch() {
-                const urlParams = new URLSearchParams(window.location.search);
-                const eventKey = urlParams.get('event_key');
-                const matchNum = parseInt(urlParams.get('match_num') || "1");
-                const scouterId = parseInt(urlParams.get('scouter_id') || "1");
-                const alliance = urlParams.get('alliance') || "";
-                
-                // Get teams from the page - look at the team headers in auto section
-                const teamElements = document.querySelectorAll('[data-team-card]');
-                const teams = Array.from(teamElements).map(el => el.getAttribute('data-team-card'));
-
-                const submission = {
-                    event_key: eventKey,
-                    match_num: matchNum,
-                    scouter_id: scouterId,
-                    teams: [],
-                    rankings: {}
-                };
-
-                // Collect tier rankings - group by category first
-                const categoryRankings = {};
-                document.querySelectorAll('.category-group').forEach(group => {
-                    const category = group.getAttribute('data-category');
-                    if (!categoryRankings[category]) {
-                        categoryRankings[category] = {};
-                    }
-                    ['HIGH', 'MID', 'LOW'].forEach(tier => {
-                        const bucket = group.querySelector(`.bucket[data-tier="${tier}"]`);
-                        if (bucket) {
-                            const chips = Array.from(bucket.querySelectorAll('.vibe-chip')).map(c => c.getAttribute("data-team"));
-                            if (chips.length > 0) categoryRankings[category][tier] = chips;
-                        }
-                    });
-                });
-                
-                console.log('Category rankings:', JSON.stringify(categoryRankings));
-                submission.rankings = categoryRankings;
-
-                teams.forEach(team => {
-                    const teamData = {
-                        team_number: team,
-                        auto_path: document.querySelector(`select[name="auto_path_${team}"]`)?.value || "",
-                        auto_start_pos: document.querySelector(`select[name="auto_start_${team}"]`)?.value || "",
-                        auto_climb: document.querySelector(`select[name="auto_climb_${team}"]`)?.value || "",
-                        teleop_climb: document.querySelector(`select[name="teleop_climb_${team}"]`)?.value || "",
-                        defense_pct: parseInt(document.querySelector(`input[name="defense_${team}"]`)?.value || "3"),
-                        defended_against_pct: parseInt(document.querySelector(`input[name="stopped_${team}"]`)?.value || "3"),
-                        notes: document.querySelector(`textarea[name="notes_${team}"]`)?.value || ""
-                    };
-                    
-                    submission.teams.push(teamData);
-                });
-
-                try {
-                    const resp = await fetch('/api/save-scout', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(submission)
-                    });
-
-                    if (resp.ok) {
-                        document.getElementById('scout-container').classList.add('exit-anim');
-                        setTimeout(() => {
-                            let nextUrl = `/scout?event_key=${eventKey}&match_num=${matchNum + 1}&scouter_id=${scouterId}`;
-                            if (alliance) {
-                                nextUrl += `&alliance=${alliance}`;
-                            }
-                            window.location.href = nextUrl;
-                        }, 300);
-                    }
-                } catch (err) {
-                    alert("Failed to save! " + err.message);
-                }
-            }
-        </script>
-    }
-}
-
-templ TierBox(tier string, category string) {
-    <div class="category-group" data-category={ category }>
-        <div class="text-xs font-bold text-[#5D4037] text-center mb-2 flex items-center justify-center gap-2">
-            { tier }
-            <div class="relative group inline-block">
-                <span class="text-[#A1887F] cursor-help">ⓘ</span>
-                <div class="absolute z-10 hidden group-hover:block bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-[#4E342E] text-[#FFFBF5] text-xs rounded-lg shadow-xl">
-                    if tier == "HIGH" {
-                        <strong>High Tier:</strong> Consistently performs at elite level. Key contributor to alliance success.
-                    } else if tier == "MID" {
-                        <strong>Mid Tier:</strong> Solid performer with occasional亮点. Reliable but not exceptional.
-                    } else {
-                        <strong>Low Tier:</strong> Struggles to contribute consistently. May have mechanical issues or lack experience.
-                    }
-                </div>
-            </div>
-        </div>
-        <div ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"
-            class="bucket min-h-[80px] rounded-xl border-2 border-dashed border-[#D2B48C] flex flex-wrap content-start justify-center p-2 bg-[#FAF7F2]/50"
-            data-tier={ tier }>
-        </div>
-    </div>
+					if (resp.ok) {
+						let nextUrl = `/scout?event_key=${eventKey}&match_num=${matchNum + 1}&scouter_id=${scouterId}`;
+						if (alliance) nextUrl += `&alliance=${alliance}`;
+						window.location.href = nextUrl;
+					} else {
+						alert('Failed to save scout data.');
+					}
+				} catch (err) {
+					alert('Error: ' + err.message);
+				}
+			}
+		</script>
+	}
 }

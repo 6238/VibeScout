@@ -1,329 +1,125 @@
 package templates
 
 import (
-	"encoding/json"
 	"fmt"
-	"strings"
+	"strconv"
 )
 
-templ AnalysisPage(data AnalysisPageData) {
-	@Layout("Vibe Scout | Analysis") {
-		<main class="container mx-auto px-4 py-8">
-			<div class="max-w-4xl mx-auto bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl">
-				<h1 class="text-3xl font-black text-[#5D4037] mb-6 text-center tracking-tight uppercase">Analysis</h1>
-				
-				<form hx-post="/api/run-analysis" hx-target="#analysis-results" hx-swap="innerHTML" class="flex gap-4 items-end mb-6">
-					<div class="flex-1">
-						<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Event</label>
-						<select name="event_key" class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
-							for key, name := range data.Events {
-								<option value={ key } selected={ key == data.SelectedEvent }>{ name }</option>
-							}
-						</select>
-					</div>
-					<button type="submit" class="bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-3 px-4 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
-						Run Analysis
-					</button>
-					<button type="button" onclick="runEPA()" class="bg-[#8D6E63] hover:bg-[#6D4C41] text-white font-extrabold py-3 px-4 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#6D4C41]">
-						Run EPA
-					</button>
-				</form>
-				
-				<div id="analysis-results"></div>
-				<div id="epa-results"></div>
-			</div>
-			<div class="text-center mt-4 flex gap-4 justify-center">
-				<a href="/picklist" class="bg-[#8D6E63] hover:bg-[#6D4C41] text-white font-bold py-2 px-4 rounded-xl">Picklist Generator</a>
-				<a href="/" class="text-[#5D4037] hover:text-[#8D6E63] font-bold">← Back to Home</a>
-			</div>
-		</main>
-		
-		<script>
-			async function runEPA() {
-				const select = document.querySelector('select[name="event_key"]');
-				const eventKey = select.value;
-				if (!eventKey || eventKey === "none") {
-					alert("Please select an event");
-					return;
-				}
-				
-				const formData = new FormData();
-				formData.append("event_key", eventKey);
-				
-				try {
-					const resp = await fetch('/api/run-epa', {
-						method: 'POST',
-						body: formData
-					});
-					if (resp.ok) {
-						const html = await resp.text();
-						document.getElementById('epa-results').innerHTML = html;
-					} else {
-						alert("EPA calculation failed");
-					}
-				} catch (err) {
-					alert("Error: " + err.message);
-				}
-			}
-		</script>
-	}
-}
+templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
+	@Layout("Vibe Scout | AI Analysis") {
+		<style>
+			.htmx-indicator { display: none; }
+			.htmx-request .htmx-indicator { display: flex; }
+			.htmx-request.htmx-indicator { display: flex; }
+		</style>
 
-templ AnalysisResults(categoryAnalyses []CategoryAnalysis, stabilityScore float64) {
-	if len(categoryAnalyses) > 0 {
-		<div class="mb-6 p-4 bg-[#FFFBF5] rounded-xl border-2 border-[#D2B48C]">
-			<h2 class="text-xl font-bold text-[#5D4037] mb-2">Stability Score</h2>
-			if stabilityScore > 20 {
-				<p class="text-4xl font-black text-green-600">{ fmt.Sprintf("%.2f", stabilityScore) }</p>
-			} else if stabilityScore > 10 {
-				<p class="text-4xl font-black text-yellow-600">{ fmt.Sprintf("%.2f", stabilityScore) }</p>
-			} else {
-				<p class="text-4xl font-black text-red-600">{ fmt.Sprintf("%.2f", stabilityScore) }</p>
-			}
-		</div>
-		
-		for _, cat := range categoryAnalyses {
-			<div class="mb-8 p-4 bg-[#FFFBF5] rounded-xl border-2 border-[#D2B48C]">
-				<div class="flex justify-between items-center mb-4">
-					<h3 class="text-lg font-bold text-[#5D4037]">{ cat.Category } - Rank vs Score</h3>
-					<span class="text-sm font-bold text-[#A1887F]">Stability: { fmt.Sprintf("%.2f", cat.Stability) }</span>
-				</div>
-				<canvas id={ "chart-" + cat.Category } class="w-full"></canvas>
-			</div>
-		}
-		
-		// Category Comparison Chart
-		<div class="mb-8 p-4 bg-[#FFFBF5] rounded-xl border-2 border-[#D2B48C]">
-			<h3 class="text-lg font-bold text-[#5D4037] mb-4">Category Comparison</h3>
-			<div class="flex gap-4 mb-4">
-				<div class="flex-1">
-					<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">X Category</label>
-					<select id="x-cat" class="w-full p-2 bg-white border-2 border-[#D2B48C] rounded-xl text-stone-700">
-						for i, cat := range categoryAnalyses {
-							<option value={ fmt.Sprintf("%d", i) } selected={ i == 0 }>{ cat.Category }</option>
-						}
-					</select>
-				</div>
-				<div class="flex-1">
-					<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Y Category</label>
-					<select id="y-cat" class="w-full p-2 bg-white border-2 border-[#D2B48C] rounded-xl text-stone-700">
-						for i, cat := range categoryAnalyses {
-							<option value={ fmt.Sprintf("%d", i) } selected={ i == 1 }>{ cat.Category }</option>
-						}
-					</select>
-				</div>
-			</div>
-			<canvas id="chart-comparison" class="w-full"></canvas>
-		</div>
-		
-		<span id="analysis-data" style="display:none">{jsonData(categoryAnalyses)}</span>
-		
-		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-		<script>
-			function initCharts() {
-				if (typeof Chart === 'undefined') {
-					setTimeout(initCharts, 100);
-					return;
-				}
-				
-				const analysisDataEl = document.getElementById('analysis-data');
-				if (!analysisDataEl || !analysisDataEl.textContent.trim()) return;
-				
-				var jsonStr = analysisDataEl.textContent;
-				jsonStr = jsonStr.replace(/&#123;/g, '{').replace(/&#125;/g, '}');
-				const analysisData = JSON.parse(jsonStr);
-				if (!analysisData || analysisData.length === 0) return;
-				
-				const categoryColors = {'FIELD AWARENESS': 'rgba(255, 99, 132, 1)', 'INTAKE EFFICIENCY': 'rgba(54, 162, 235, 1)', 'SHOOTING EFFECTIVENESS': 'rgba(255, 206, 86, 1)', 'DEFENSE': 'rgba(75, 192, 192, 1)'};
-				function getCategoryColor(category) { return categoryColors[category] || 'rgba(75, 192, 192, 1)'; }
-			
-				analysisData.forEach(cat => {
-					const ctx = document.getElementById('chart-' + cat.category);
-					if (!ctx) return;
-					new Chart(ctx.getContext('2d'), {
-						type: 'scatter',
-						data: {
-							datasets: [{
-								label: cat.category,
-								data: cat.variabilities.map(v => ({x: v.rank, y: v.ranking_score, team: v.team})),
-								backgroundColor: getCategoryColor(cat.category),
-								pointRadius: 6
-							}]
-						},
-						options: {
-							responsive: true,
-							plugins: {
-								tooltip: {
-									callbacks: {
-										label: ctx => 'Team ' + ctx.raw.team + ': Rank ' + ctx.raw.x + ', Score ' + ctx.raw.y.toFixed(2)
-									}
-								}
-							},
-							scales: {
-								x: { title: { display: true, text: 'Rank' } },
-								y: { title: { display: true, text: 'Score' } }
-							}
-						}
-					});
-				});
-				
-				// Comparison chart
-				let comparisonChart = null;
-				const colors = ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)', 'rgba(255, 159, 64, 1)'];
-				
-				function updateComparison() {
-					const xIdx = parseInt(document.getElementById('x-cat').value);
-					const yIdx = parseInt(document.getElementById('y-cat').value);
-					const xCat = analysisData[xIdx];
-					const yCat = analysisData[yIdx];
-					
-					// Build team lookup
-					const teamData = {};
-					xCat.variabilities.forEach(v => {
-						teamData[v.team] = { x: v.ranking_score, team: v.team };
-					});
-					yCat.variabilities.forEach(v => {
-						if (teamData[v.team]) {
-							teamData[v.team].y = v.ranking_score;
-						}
-					});
-					
-					const teams = Object.values(teamData).filter(t => t.y !== undefined);
-					
-					if (comparisonChart) comparisonChart.destroy();
-					const ctx = document.getElementById('chart-comparison').getContext('2d');
-					comparisonChart = new Chart(ctx, {
-						type: 'scatter',
-						data: {
-							datasets: [{
-								label: xCat.category + ' vs ' + yCat.category,
-								data: teams,
-								backgroundColor: colors[0],
-								pointRadius: 8
-							}]
-						},
-						options: {
-							responsive: true,
-							plugins: {
-								tooltip: {
-									callbacks: {
-										label: ctx => 'Team ' + ctx.raw.team + ': ' + xCat.category + ' ' + ctx.raw.x.toFixed(2) + ', ' + yCat.category + ' ' + ctx.raw.y.toFixed(2)
-									}
-								}
-							},
-							scales: {
-								x: { title: { display: true, text: xCat.category + ' Score' } },
-								y: { title: { display: true, text: yCat.category + ' Score' } }
-							}
-						}
-					});
-				}
-				
-				document.getElementById('x-cat').addEventListener('change', updateComparison);
-				document.getElementById('y-cat').addEventListener('change', updateComparison);
-				updateComparison();
-			}
-			
-			initCharts();
-		</script>
-	} else {
-		<p class="text-center text-[#A1887F] py-8">No analysis data. Run analysis first.</p>
-	}
-}
-
-templ EPAPage(data EPAPageData) {
-	@Layout("Vibe Scout | EPA Leaderboard") {
 		<main class="container mx-auto px-4 py-8">
-			<div class="max-w-4xl mx-auto bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl">
-				<h1 class="text-3xl font-black text-[#5D4037] mb-6 text-center tracking-tight uppercase">EPA Leaderboard</h1>
-				
-				<form hx-post="/api/run-epa" hx-target="#epa-results" hx-swap="innerHTML" class="flex gap-4 items-end mb-6">
-					<div class="flex-1">
-						<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Event</label>
-						<select name="event_key" class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
-							for key, name := range data.Events {
-								<option value={ key } selected={ key == data.SelectedEvent }>{ name }</option>
-							}
-						</select>
-					</div>
-					<button type="submit" class="bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-3 px-6 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
-						Run EPA
-					</button>
-				</form>
-				
-				<div id="epa-results">
-					if len(data.Teams) > 0 {
-						<div class="overflow-x-auto">
-							<table class="w-full text-sm">
-								<thead>
-									<tr class="bg-[#D2B48C] text-[#4E342E]">
-										<th class="p-3 text-left font-bold">Rank</th>
-										<th class="p-3 text-left font-bold">Team</th>
-										<th class="p-3 text-right font-bold">EPA</th>
-										<th class="p-3 text-right font-bold">Defense EPA</th>
-										<th class="p-3 text-right font-bold">Foul EPA</th>
-									</tr>
-								</thead>
-								<tbody>
-									for i, team := range data.Teams {
-										<tr class="border-b border-[#D2B48C]/30 bg-[#FFFBF5]">
-											<td class="p-3 font-bold text-[#5D4037]">{ fmt.Sprintf("%d", i+1) }</td>
-											<td class="p-3 font-bold text-[#5D4037]">{ team.Team }</td>
-											<td class="p-3 text-right font-bold text-[#5D4037]">{ fmt.Sprintf("%.2f", team.EPA) }</td>
-											<td class="p-3 text-right text-[#A1887F]">{ fmt.Sprintf("%.2f", team.DefenseEPA) }</td>
-											<td class="p-3 text-right text-[#A1887F]">{ fmt.Sprintf("%.2f", team.FoulEPA) }</td>
-										</tr>
-									}
-								</tbody>
-							</table>
+			<div class="max-w-4xl mx-auto">
+				<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl mb-6">
+					<h1 class="text-3xl font-black text-[#5D4037] mb-6 text-center tracking-tight uppercase">AI Analysis</h1>
+
+					<form class="flex gap-4 items-end"
+						hx-post="/api/run-analysis"
+						hx-target="#analysis-results"
+						hx-swap="innerHTML"
+						hx-indicator="#loading">
+						<div class="flex-1">
+							<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Event</label>
+							<select name="event_key" class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
+								for key, name := range data.Events {
+									<option value={ key } selected={ key == data.SelectedEvent }>{ name }</option>
+								}
+							</select>
 						</div>
-					} else {
-						<p class="text-center text-[#A1887F] py-8">No EPA data yet. Run analysis first.</p>
-					}
+						<button type="submit" class="bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-3 px-6 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
+							Run Analysis
+						</button>
+					</form>
 				</div>
+
+				<!-- Loading indicator -->
+				<div id="loading" class="htmx-indicator items-center justify-center gap-3 py-12 text-[#A1887F]">
+					<svg class="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+					</svg>
+					<span class="font-bold text-lg">Analyzing teams...</span>
+				</div>
+
+				<div id="analysis-results"></div>
 			</div>
-			<div class="text-center mt-4">
-				<a href="/" class="text-[#5D4037] hover:text-[#8D6E63] font-bold">← Back to Home</a>
+
+			<div class="text-center mt-6 flex gap-6 justify-center">
+				<a href="/match-planner" class="text-[#A1887F] hover:text-[#5D4037] font-bold">Match Planner →</a>
+				<a href="/" class="text-[#A1887F] hover:text-[#5D4037] font-bold">← Back to Home</a>
 			</div>
 		</main>
 	}
 }
 
-templ EPAResults(teams []TeamEPA) {
-	if len(teams) > 0 {
-		<div class="overflow-x-auto">
-			<table class="w-full text-sm" id="epa-table">
-				<thead>
-					<tr class="bg-[#D2B48C] text-[#4E342E]">
-						<th class="p-3 text-left font-bold">Rank</th>
-						<th class="p-3 text-left font-bold">Team</th>
-						<th class="p-3 text-right font-bold cursor-pointer hover:bg-[#B99976]" onclick="(function(){const t=document.querySelector('#epa-table tbody');const r=Array.from(t.querySelectorAll('tr'));const d=t.dataset.sd!='asc';t.dataset.sd=d?'asc':'desc';r.sort((a,b)=>d?parseFloat(a.children[2].textContent)-parseFloat(b.children[2].textContent):parseFloat(b.children[2].textContent)-parseFloat(a.children[2].textContent));r.forEach((x,i)=>{x.children[0].textContent=i+1;t.appendChild(x)})})()">EPA ⬍</th>
-						<th class="p-3 text-right font-bold cursor-pointer hover:bg-[#B99976]" onclick="(function(){const t=document.querySelector('#epa-table tbody');const r=Array.from(t.querySelectorAll('tr'));const d=t.dataset.sd!='asc';t.dataset.sd=d?'asc':'desc';r.sort((a,b)=>d?parseFloat(a.children[3].textContent)-parseFloat(b.children[3].textContent):parseFloat(b.children[3].textContent)-parseFloat(a.children[3].textContent));r.forEach((x,i)=>{x.children[0].textContent=i+1;t.appendChild(x)})})()">Defense EPA ⬍</th>
-						<th class="p-3 text-right font-bold cursor-pointer hover:bg-[#B99976]" onclick="(function(){const t=document.querySelector('#epa-table tbody');const r=Array.from(t.querySelectorAll('tr'));const d=t.dataset.sd!='asc';t.dataset.sd=d?'asc':'desc';r.sort((a,b)=>d?parseFloat(a.children[4].textContent)-parseFloat(b.children[4].textContent):parseFloat(b.children[4].textContent)-parseFloat(a.children[4].textContent));r.forEach((x,i)=>{x.children[0].textContent=i+1;t.appendChild(x)})})()">Foul EPA ⬍</th>
-					</tr>
-				</thead>
-				<tbody>
-					for i, team := range teams {
-						<tr class="border-b border-[#D2B48C]/30 bg-[#FFFBF5]">
-							<td class="p-3 font-bold text-[#5D4037]">{ fmt.Sprintf("%d", i+1) }</td>
-							<td class="p-3 font-bold text-[#5D4037]">{ team.Team }</td>
-							<td class="p-3 text-right font-bold text-[#5D4037]">{ fmt.Sprintf("%.2f", team.EPA) }</td>
-							<td class="p-3 text-right text-[#A1887F]">{ fmt.Sprintf("%.2f", team.DefenseEPA) }</td>
-							<td class="p-3 text-right text-[#A1887F]">{ fmt.Sprintf("%.2f", team.FoulEPA) }</td>
-						</tr>
-					}
-				</tbody>
-			</table>
+templ GeminiAnalysisResults(cards []TeamAnalysisCard) {
+	if len(cards) == 0 {
+		<div class="text-center py-12 text-[#A1887F]">
+			<p class="text-xl font-bold">No scouting data found for this event.</p>
+			<p class="text-sm mt-2">Scout some matches first, then run analysis.</p>
 		</div>
 	} else {
-		<p class="text-center text-[#A1887F] py-8">No EPA data yet. Run analysis first.</p>
+		<div class="space-y-4">
+			for _, card := range cards {
+				<div class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md">
+					<!-- Header row -->
+					<div class="flex justify-between items-center mb-4">
+						<h2 class="text-xl font-black text-[#5D4037]">Team { card.TeamNumber }</h2>
+						if card.FromCache {
+							<span class="text-xs font-bold px-3 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-300">Cached</span>
+						} else {
+							<span class="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-300">Fresh</span>
+						}
+					</div>
+
+					<!-- Score bars -->
+					<div class="grid grid-cols-3 gap-3 mb-4">
+						@scoreBar("Scoring", card.Scoring, "#D2B48C", "#8D6E63")
+						@scoreBar("Reliability", card.Reliability, "#A8D5A2", "#4CAF50")
+						@defenseBar(card.Defense)
+					</div>
+
+					<!-- Summary -->
+					<p class="text-sm text-stone-700 leading-relaxed">{ card.Summary }</p>
+				</div>
+			}
+		</div>
 	}
 }
 
-func jsonData(v interface{}) string {
-	b, _ := json.Marshal(v)
-	s := string(b)
-	s = strings.ReplaceAll(s, "{", "&#123;")
-	s = strings.ReplaceAll(s, "}", "&#125;")
-	return s
+templ scoreBar(label string, score int, trackColor string, fillColor string) {
+	<div>
+		<div class="flex justify-between items-center mb-1">
+			<span class="text-xs font-bold text-[#A1887F] uppercase">{ label }</span>
+			<span class="text-sm font-black text-[#5D4037]">{ strconv.Itoa(score) }/10</span>
+		</div>
+		<div class="h-2 rounded-full overflow-hidden" style={ fmt.Sprintf("background-color: %s33", trackColor) }>
+			<div class="h-full rounded-full transition-all" style={ fmt.Sprintf("width: %d%%; background-color: %s", score*10, fillColor) }></div>
+		</div>
+	</div>
+}
+
+templ defenseBar(score int) {
+	<div>
+		<div class="flex justify-between items-center mb-1">
+			<span class="text-xs font-bold text-[#A1887F] uppercase">Defense</span>
+			if score == 0 {
+				<span class="text-xs font-bold text-stone-400">N/A</span>
+			} else {
+				<span class="text-sm font-black text-[#5D4037]">{ strconv.Itoa(score) }/10</span>
+			}
+		</div>
+		<div class="h-2 rounded-full overflow-hidden bg-orange-100">
+			if score == 0 {
+				<div class="h-full w-0 rounded-full bg-orange-400"></div>
+			} else {
+				<div class="h-full rounded-full transition-all bg-orange-400" style={ fmt.Sprintf("width: %d%%", score*10) }></div>
+			}
+		</div>
+	</div>
 }
