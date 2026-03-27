@@ -65,6 +65,7 @@ func main() {
 	http.HandleFunc("/analysis", geminiAnalysisPageHandler)
 	http.HandleFunc("/api/run-analysis", apiRunAnalysisHandler)
 	http.HandleFunc("/api/analyze-team", apiAnalyzeTeamHandler)
+	http.HandleFunc("/api/team-notes", apiTeamNotesHandler)
 	http.HandleFunc("/match-planner", matchPlannerPageHandler)
 	http.HandleFunc("/api/match-plan", apiMatchPlanHandler)
 	http.HandleFunc("/admin", adminHandler)
@@ -259,12 +260,41 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 	card, err := getOrGenerateAnalysis(eventKey, teamNum)
 	if err != nil {
 		card = templates.TeamAnalysisCard{
+			EventKey:   eventKey,
 			TeamNumber: teamNum,
 			Summary:    "Error generating analysis: " + err.Error(),
 		}
 	}
 
 	templates.SingleTeamAnalysisCard(card).Render(r.Context(), w)
+}
+
+func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey := r.URL.Query().Get("event_key")
+	teamNum := r.URL.Query().Get("team_number")
+	if eventKey == "" || teamNum == "" {
+		http.Error(w, "event_key and team_number required", http.StatusBadRequest)
+		return
+	}
+
+	rows, err := db.Query(`
+		SELECT match_num, notes FROM scout_submissions
+		WHERE event_key = ? AND team_number = ?
+		ORDER BY match_num ASC`, eventKey, teamNum)
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var notes []templates.TeamNote
+	for rows.Next() {
+		var n templates.TeamNote
+		rows.Scan(&n.MatchNum, &n.Notes)
+		notes = append(notes, n)
+	}
+
+	templates.TeamNotesPanel(notes).Render(r.Context(), w)
 }
 
 // teamAnalysisJSON is the structured response Gemini returns for team analysis.
@@ -305,6 +335,7 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 		var result teamAnalysisJSON
 		if jsonErr := json.Unmarshal([]byte(cachedJSON), &result); jsonErr == nil {
 			return templates.TeamAnalysisCard{
+				EventKey:    eventKey,
 				TeamNumber:  teamNum,
 				Summary:     result.Summary,
 				Scoring:     result.Scoring,
@@ -332,6 +363,7 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 		eventKey, teamNum, string(resultJSON), hash)
 
 	return templates.TeamAnalysisCard{
+		EventKey:    eventKey,
 		TeamNumber:  teamNum,
 		Summary:     result.Summary,
 		Scoring:     result.Scoring,

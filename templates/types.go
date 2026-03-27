@@ -6,12 +6,18 @@ type GeminiAnalysisPageData struct {
 }
 
 type TeamAnalysisCard struct {
+	EventKey    string
 	TeamNumber  string
 	Summary     string
 	Scoring     int    // 1-10
 	Reliability int    // 1-10
 	Defense     int    // 0 = N/A, 1-10 = score
 	FromCache   bool
+}
+
+type TeamNote struct {
+	MatchNum int
+	Notes    string
 }
 
 type MatchPlannerPageData struct {
