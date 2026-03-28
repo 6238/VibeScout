@@ -72,7 +72,7 @@ func main() {
 	http.HandleFunc("/api/team-notes", apiTeamNotesHandler)
 	http.HandleFunc("/match-planner", matchPlannerPageHandler)
 	http.HandleFunc("/api/match-plan", apiMatchPlanHandler)
-	http.HandleFunc("/admin", adminHandler)
+	http.HandleFunc("/510c53c3", adminHandler)
 	http.HandleFunc("/api/admin/clear-event", clearEventHandler)
 	http.HandleFunc("/api/admin/clear-all", clearAllHandler)
 	http.HandleFunc("/api/admin/seed-test", seedTestHandler)
@@ -482,8 +482,8 @@ func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.Mat
 	allTeams := append(redTeams, blueTeams...)
 	sort.Strings(allTeams)
 
-	var noteParts []string      // for hash (scouting notes only)
-	var contextParts []string   // for prompt (notes + EPA)
+	var noteParts []string    // for hash (scouting notes only)
+	var contextParts []string // for prompt (notes + EPA)
 	for _, t := range allTeams {
 		if t == teamNumber {
 			continue
