@@ -771,7 +771,7 @@ func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance str
 
 // ── AI Fill-in Scout ──────────────────────────────────────────────────────────
 
-const geminiVideoURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+const geminiVideoURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent"
 
 func geminiVideoPost(videoURI, prompt string) (string, error) {
 	apiKey := os.Getenv("GEMINI_API_KEY")
