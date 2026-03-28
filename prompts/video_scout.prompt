@@ -8,5 +8,5 @@ Focus exclusively on the robot numbered {{.TeamNum}}. Provide a concise but spec
 - Reliability: Any mechanical issues, tips, brownouts, or penalties?
 - Overall impression: Key strengths and weaknesses
 
-Be specific and factual based only on what you observe. This is Qualification Match {{.MatchNum}} at event {{.EventKey}}.
+Be specific and factual based only on what you observe. Be brutally honest. This is Qualification Match {{.MatchNum}} at event {{.EventKey}}.
 Write in plain text, 3-5 sentences or a short bullet list. Do not include JSON.

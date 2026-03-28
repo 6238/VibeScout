@@ -930,20 +930,6 @@ func apiFillAIScoutTeamHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if this team already has a human scout entry for this match
-	var existing int
-	db.QueryRow(`
-		SELECT COUNT(*) FROM scout_submissions
-		WHERE event_key = ? AND match_num = ? AND team_number = ?
-		  AND (ai_generated = 0 OR ai_generated IS NULL)
-		  AND TRIM(notes) != ''`,
-		eventKey, matchNum, teamNum).Scan(&existing)
-
-	if existing > 0 {
-		templates.AiFillTeamResult(templates.AiFillTeamResultData{Team: teamNum, Skipped: true}).Render(r.Context(), w)
-		return
-	}
-
 	notes, err := callGeminiVideoScout(teamNum, eventKey, matchNum, youtubeURL)
 	if err != nil {
 		templates.AiFillTeamResult(templates.AiFillTeamResultData{Team: teamNum, Notes: err.Error(), Success: false}).Render(r.Context(), w)
