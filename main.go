@@ -934,7 +934,9 @@ func apiFillAIScoutTeamHandler(w http.ResponseWriter, r *http.Request) {
 	var existing int
 	db.QueryRow(`
 		SELECT COUNT(*) FROM scout_submissions
-		WHERE event_key = ? AND match_num = ? AND team_number = ? AND (ai_generated = 0 OR ai_generated IS NULL)`,
+		WHERE event_key = ? AND match_num = ? AND team_number = ?
+		  AND (ai_generated = 0 OR ai_generated IS NULL)
+		  AND TRIM(notes) != ''`,
 		eventKey, matchNum, teamNum).Scan(&existing)
 
 	if existing > 0 {
