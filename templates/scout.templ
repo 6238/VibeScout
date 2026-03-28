@@ -1,6 +1,8 @@
 package templates
 
-templ ScoutPage(event, match, scouterID, alliance string, teams []string) {
+import "strconv"
+
+templ ScoutPage(event, match, scouterID, alliance string, teams []string, teamDataCounts map[string]int) {
 	@Layout("Vibe Scout | Match " + match) {
 		<style>
 			.page-transition { animation: slideIn 0.3s ease-out; }
@@ -28,7 +30,10 @@ templ ScoutPage(event, match, scouterID, alliance string, teams []string) {
 				<div class="grid grid-cols-3 gap-4">
 					for _, team := range teams {
 						<div data-team-card={ team }>
-							<label class="block text-sm font-black text-[#5D4037] mb-2 text-center">Team { team }</label>
+							<label class="block text-sm font-black text-[#5D4037] mb-2 text-center">
+						Team { team }
+						<span class="ml-1 text-xs font-bold text-[#8D6E63]">({ strconv.Itoa(teamDataCounts[team]) } pts)</span>
+					</label>
 							<textarea
 								name={ "notes_" + team }
 								rows="12"

@@ -8,7 +8,9 @@ package templates
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-func ScoutPage(event, match, scouterID, alliance string, teams []string) templ.Component {
+import "strconv"
+
+func ScoutPage(event, match, scouterID, alliance string, teams []string, teamDataCounts map[string]int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -48,7 +50,7 @@ func ScoutPage(event, match, scouterID, alliance string, teams []string) templ.C
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(match)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 15, Col: 72}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 17, Col: 72}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -61,7 +63,7 @@ func ScoutPage(event, match, scouterID, alliance string, teams []string) templ.C
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(scouterID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 15, Col: 90}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 17, Col: 90}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -74,7 +76,7 @@ func ScoutPage(event, match, scouterID, alliance string, teams []string) templ.C
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(event)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 16, Col: 77}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 18, Col: 77}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -111,7 +113,7 @@ func ScoutPage(event, match, scouterID, alliance string, teams []string) templ.C
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(alliance)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 21, Col: 15}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 23, Col: 15}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -129,7 +131,7 @@ func ScoutPage(event, match, scouterID, alliance string, teams []string) templ.C
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(team)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 30, Col: 32}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 32, Col: 32}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -142,31 +144,44 @@ func ScoutPage(event, match, scouterID, alliance string, teams []string) templ.C
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(team)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 31, Col: 90}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 34, Col: 17}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</label> <textarea name=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, " <span class=\"ml-1 text-xs font-bold text-[#8D6E63]\">(")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var11 string
-				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs("notes_" + team)
+				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(teamDataCounts[team]))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 33, Col: 30}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 35, Col: 95}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" rows=\"12\" class=\"w-full p-3 text-sm bg-white border-2 border-[#D2B48C] rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]\" placeholder=\"Observations...\"></textarea></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, " pts)</span></label> <textarea name=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var12 string
+				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs("notes_" + team)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 38, Col: 30}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" rows=\"12\" class=\"w-full p-3 text-sm bg-white border-2 border-[#D2B48C] rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]\" placeholder=\"Observations...\"></textarea></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div></div><!-- Submit --><div class=\"fixed bottom-0 left-0 right-0 p-4 bg-[#F2E8D5]/95 backdrop-blur-md flex justify-center z-50\"><button onclick=\"nextMatch()\" class=\"bg-[#5D4037] text-white font-black py-3 px-12 rounded-2xl shadow-xl uppercase tracking-widest text-lg active:scale-95 transition\">Next Match →</button></div></main><script>\r\n\t\t\tasync function nextMatch() {\r\n\t\t\t\tconst params = new URLSearchParams(window.location.search);\r\n\t\t\t\tconst eventKey = params.get('event_key') || '';\r\n\t\t\t\tconst matchNum = parseInt(params.get('match_num') || '1');\r\n\t\t\t\tconst scouterId = params.get('scouter_id') || '1';\r\n\t\t\t\tconst alliance = params.get('alliance') || '';\r\n\r\n\t\t\t\tconst teamCards = document.querySelectorAll('[data-team-card]');\r\n\t\t\t\tconst teams = Array.from(teamCards).map(card => ({\r\n\t\t\t\t\tteam_number: card.getAttribute('data-team-card'),\r\n\t\t\t\t\tnotes: card.querySelector('textarea')?.value || ''\r\n\t\t\t\t}));\r\n\r\n\t\t\t\tconst submission = {\r\n\t\t\t\t\tevent_key: eventKey,\r\n\t\t\t\t\tmatch_num: matchNum,\r\n\t\t\t\t\tscouter_id: parseInt(scouterId),\r\n\t\t\t\t\tteams: teams\r\n\t\t\t\t};\r\n\r\n\t\t\t\ttry {\r\n\t\t\t\t\tconst resp = await fetch('/api/save-scout', {\r\n\t\t\t\t\t\tmethod: 'POST',\r\n\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\r\n\t\t\t\t\t\tbody: JSON.stringify(submission)\r\n\t\t\t\t\t});\r\n\r\n\t\t\t\t\tif (resp.ok) {\r\n\t\t\t\t\t\tlet nextUrl = `/scout?event_key=${eventKey}&match_num=${matchNum + 1}&scouter_id=${scouterId}`;\r\n\t\t\t\t\t\tif (alliance) nextUrl += `&alliance=${alliance}`;\r\n\t\t\t\t\t\twindow.location.href = nextUrl;\r\n\t\t\t\t\t} else {\r\n\t\t\t\t\t\talert('Failed to save scout data.');\r\n\t\t\t\t\t}\r\n\t\t\t\t} catch (err) {\r\n\t\t\t\t\talert('Error: ' + err.message);\r\n\t\t\t\t}\r\n\t\t\t}\r\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div></div><!-- Submit --><div class=\"fixed bottom-0 left-0 right-0 p-4 bg-[#F2E8D5]/95 backdrop-blur-md flex justify-center z-50\"><button onclick=\"nextMatch()\" class=\"bg-[#5D4037] text-white font-black py-3 px-12 rounded-2xl shadow-xl uppercase tracking-widest text-lg active:scale-95 transition\">Next Match →</button></div></main><script>\r\n\t\t\tasync function nextMatch() {\r\n\t\t\t\tconst params = new URLSearchParams(window.location.search);\r\n\t\t\t\tconst eventKey = params.get('event_key') || '';\r\n\t\t\t\tconst matchNum = parseInt(params.get('match_num') || '1');\r\n\t\t\t\tconst scouterId = params.get('scouter_id') || '1';\r\n\t\t\t\tconst alliance = params.get('alliance') || '';\r\n\r\n\t\t\t\tconst teamCards = document.querySelectorAll('[data-team-card]');\r\n\t\t\t\tconst teams = Array.from(teamCards).map(card => ({\r\n\t\t\t\t\tteam_number: card.getAttribute('data-team-card'),\r\n\t\t\t\t\tnotes: card.querySelector('textarea')?.value || ''\r\n\t\t\t\t}));\r\n\r\n\t\t\t\tconst submission = {\r\n\t\t\t\t\tevent_key: eventKey,\r\n\t\t\t\t\tmatch_num: matchNum,\r\n\t\t\t\t\tscouter_id: parseInt(scouterId),\r\n\t\t\t\t\tteams: teams\r\n\t\t\t\t};\r\n\r\n\t\t\t\ttry {\r\n\t\t\t\t\tconst resp = await fetch('/api/save-scout', {\r\n\t\t\t\t\t\tmethod: 'POST',\r\n\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\r\n\t\t\t\t\t\tbody: JSON.stringify(submission)\r\n\t\t\t\t\t});\r\n\r\n\t\t\t\t\tif (resp.ok) {\r\n\t\t\t\t\t\tlet nextUrl = `/scout?event_key=${eventKey}&match_num=${matchNum + 1}&scouter_id=${scouterId}`;\r\n\t\t\t\t\t\tif (alliance) nextUrl += `&alliance=${alliance}`;\r\n\t\t\t\t\t\twindow.location.href = nextUrl;\r\n\t\t\t\t\t} else {\r\n\t\t\t\t\t\talert('Failed to save scout data.');\r\n\t\t\t\t\t}\r\n\t\t\t\t} catch (err) {\r\n\t\t\t\t\talert('Error: ' + err.message);\r\n\t\t\t\t}\r\n\t\t\t}\r\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

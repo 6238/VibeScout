@@ -148,7 +148,14 @@ func scoutHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	templates.ScoutPage(eventKey, strconv.Itoa(matchNum), strconv.Itoa(scouterID), allianceName, teams).Render(r.Context(), w)
+	teamDataCounts := map[string]int{}
+	for _, team := range teams {
+		var count int
+		db.QueryRow(`SELECT COUNT(*) FROM scout_submissions WHERE event_key = ? AND team_number = ? AND TRIM(notes) != ''`, eventKey, team).Scan(&count)
+		teamDataCounts[team] = count
+	}
+
+	templates.ScoutPage(eventKey, strconv.Itoa(matchNum), strconv.Itoa(scouterID), allianceName, teams, teamDataCounts).Render(r.Context(), w)
 }
 
 func saveScoutDataHandler(w http.ResponseWriter, r *http.Request) {
