@@ -59,4 +59,7 @@ func initDB() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(event_key, team_number, match_num)
     );`)
+
+	// Idempotent migration: add ai_generated flag if it doesn't exist yet
+	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN ai_generated INTEGER DEFAULT 0`)
 }

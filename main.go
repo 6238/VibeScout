@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -32,6 +33,9 @@ var teamAnalysisPromptTmpl string
 
 //go:embed prompts/match_plan.prompt
 var matchPlanPromptTmpl string
+
+//go:embed prompts/video_scout.prompt
+var videoScoutPromptTmpl string
 
 type ScoutSubmission struct {
 	EventKey  string          `json:"event_key"`
@@ -72,6 +76,8 @@ func main() {
 	http.HandleFunc("/api/admin/clear-event", clearEventHandler)
 	http.HandleFunc("/api/admin/clear-all", clearAllHandler)
 	http.HandleFunc("/api/admin/seed-test", seedTestHandler)
+	http.HandleFunc("/api/admin/fill-ai-scout", apiFillAIScoutHandler)
+	http.HandleFunc("/api/admin/fill-ai-scout-team", apiFillAIScoutTeamHandler)
 
 	fmt.Println("Vibe Scout v2 running on http://localhost:8080")
 	http.ListenAndServe(":8080", nil)
@@ -761,6 +767,196 @@ func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance str
 	}
 
 	return geminiPost(buf.String())
+}
+
+// ── AI Fill-in Scout ──────────────────────────────────────────────────────────
+
+const geminiVideoURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+
+func geminiVideoPost(videoURI, prompt string) (string, error) {
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	if apiKey == "" {
+		return "", fmt.Errorf("GEMINI_API_KEY not set")
+	}
+
+	payload := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			{
+				"parts": []map[string]interface{}{
+					{
+						"fileData": map[string]string{
+							"mimeType": "video/mp4",
+							"fileUri":  videoURI,
+						},
+					},
+					{"text": prompt},
+				},
+			},
+		},
+	}
+
+	body, _ := json.Marshal(payload)
+	resp, err := http.Post(
+		fmt.Sprintf("%s?key=%s", geminiVideoURL, apiKey),
+		"application/json",
+		bytes.NewBuffer(body),
+	)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var geminiResp struct {
+		Candidates []struct {
+			FinishReason string `json:"finishReason"`
+			Content      struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+		PromptFeedback struct {
+			BlockReason string `json:"blockReason"`
+		} `json:"promptFeedback"`
+	}
+	if err := json.Unmarshal(respBody, &geminiResp); err != nil {
+		return "", fmt.Errorf("gemini parse error: %v — body: %s", err, string(respBody))
+	}
+	if geminiResp.PromptFeedback.BlockReason != "" {
+		return "", fmt.Errorf("gemini blocked prompt: %s", geminiResp.PromptFeedback.BlockReason)
+	}
+	if len(geminiResp.Candidates) == 0 {
+		return "", fmt.Errorf("gemini returned no candidates — body: %s", string(respBody))
+	}
+	c := geminiResp.Candidates[0]
+	if len(c.Content.Parts) == 0 {
+		return "", fmt.Errorf("gemini candidate has no content (finishReason: %s)", c.FinishReason)
+	}
+	return c.Content.Parts[0].Text, nil
+}
+
+type videoScoutPromptData struct {
+	TeamNum  string
+	MatchNum int
+	EventKey string
+}
+
+func callGeminiVideoScout(teamNum, eventKey string, matchNum int, videoURI string) (string, error) {
+	tmpl, err := template.New("video_scout").Parse(videoScoutPromptTmpl)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse video scout prompt: %w", err)
+	}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, videoScoutPromptData{
+		TeamNum:  teamNum,
+		MatchNum: matchNum,
+		EventKey: eventKey,
+	}); err != nil {
+		return "", fmt.Errorf("failed to render video scout prompt: %w", err)
+	}
+	return geminiVideoPost(videoURI, buf.String())
+}
+
+// apiFillAIScoutHandler receives event_key, match_num, youtube_url and returns
+// a progress container with per-team htmx slots.
+func apiFillAIScoutHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	eventKey := r.FormValue("event_key")
+	matchNum, _ := strconv.Atoi(r.FormValue("match_num"))
+	youtubeURL := strings.TrimSpace(r.FormValue("youtube_url"))
+
+	if eventKey == "" || matchNum == 0 || youtubeURL == "" {
+		http.Error(w, "event_key, match_num, and youtube_url are required", http.StatusBadRequest)
+		return
+	}
+
+	matches, err := getMatchesCached(eventKey)
+	if err != nil {
+		http.Error(w, "Failed to fetch match schedule: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var targetMatch Match
+	found := false
+	for _, m := range matches {
+		if m.CompLevel == "qm" && m.MatchNumber == matchNum {
+			targetMatch = m
+			found = true
+			break
+		}
+	}
+	if !found {
+		http.Error(w, fmt.Sprintf("Match %d not found in event %s", matchNum, eventKey), http.StatusNotFound)
+		return
+	}
+
+	allTeamKeys := append(targetMatch.Alliances.Red.TeamKeys, targetMatch.Alliances.Blue.TeamKeys...)
+	allTeams := stripFRC(allTeamKeys)
+
+	encodedURL := url.QueryEscape(youtubeURL)
+	var slots []templates.AiFillSlot
+	for _, team := range allTeams {
+		slots = append(slots, templates.AiFillSlot{
+			Team: team,
+			HXURL: fmt.Sprintf(
+				"/api/admin/fill-ai-scout-team?event_key=%s&match_num=%d&team_number=%s&youtube_url=%s",
+				url.QueryEscape(eventKey), matchNum, url.QueryEscape(team), encodedURL,
+			),
+		})
+	}
+
+	templates.AiFillProgressContainer(slots).Render(r.Context(), w)
+}
+
+// apiFillAIScoutTeamHandler processes one team: checks for existing data, calls
+// Gemini video analysis, saves with ai_generated=1 if no prior data exists.
+func apiFillAIScoutTeamHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey := r.URL.Query().Get("event_key")
+	matchNum, _ := strconv.Atoi(r.URL.Query().Get("match_num"))
+	teamNum := r.URL.Query().Get("team_number")
+	youtubeURL := r.URL.Query().Get("youtube_url")
+
+	if eventKey == "" || matchNum == 0 || teamNum == "" || youtubeURL == "" {
+		http.Error(w, "missing parameters", http.StatusBadRequest)
+		return
+	}
+
+	// Check if this team already has a human scout entry for this match
+	var existing int
+	db.QueryRow(`
+		SELECT COUNT(*) FROM scout_submissions
+		WHERE event_key = ? AND match_num = ? AND team_number = ? AND (ai_generated = 0 OR ai_generated IS NULL)`,
+		eventKey, matchNum, teamNum).Scan(&existing)
+
+	if existing > 0 {
+		templates.AiFillTeamResult(templates.AiFillTeamResultData{Team: teamNum, Skipped: true}).Render(r.Context(), w)
+		return
+	}
+
+	notes, err := callGeminiVideoScout(teamNum, eventKey, matchNum, youtubeURL)
+	if err != nil {
+		templates.AiFillTeamResult(templates.AiFillTeamResultData{Team: teamNum, Notes: err.Error(), Success: false}).Render(r.Context(), w)
+		return
+	}
+
+	db.Exec(`
+		INSERT INTO scout_submissions (event_key, match_num, scouter_id, team_number, notes, ai_generated)
+		VALUES (?, ?, ?, ?, ?, 1)`,
+		eventKey, matchNum, 0, teamNum, strings.TrimSpace(notes))
+
+	// Bust analysis cache so this team gets re-analyzed with new data
+	db.Exec(`DELETE FROM analysis_cache WHERE event_key = ? AND team_number = ?`, eventKey, teamNum)
+
+	templates.AiFillTeamResult(templates.AiFillTeamResultData{Team: teamNum, Notes: notes, Success: true}).Render(r.Context(), w)
 }
 
 // ── Admin ─────────────────────────────────────────────────────────────────────

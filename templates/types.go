@@ -32,3 +32,15 @@ type MatchPlanCard struct {
 	Strategy    string
 	FromCache   bool
 }
+
+type AiFillSlot struct {
+	Team  string
+	HXURL string
+}
+
+type AiFillTeamResultData struct {
+	Team    string
+	Notes   string
+	Success bool
+	Skipped bool // team already had data
+}

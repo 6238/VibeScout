@@ -20,6 +20,41 @@ templ AdminPage(events []string) {
 				</div>
 
 				<div class="mb-8">
+					<h2 class="text-xl font-bold text-[#5D4037] mb-4">Fill in Gemini Analysis</h2>
+					<p class="text-sm text-[#A1887F] mb-3">
+						For a specific match, analyze teams using a YouTube video. Teams that already have human scouting notes for that match will be skipped.
+					</p>
+					<form
+						hx-post="/api/admin/fill-ai-scout"
+						hx-target="#ai-fill-result"
+						hx-swap="innerHTML"
+						hx-indicator="#ai-fill-btn"
+						class="space-y-3">
+						<input
+							name="event_key"
+							placeholder="Event key (e.g. 2026miket)"
+							class="w-full p-3 border-2 border-[#D2B48C] rounded-xl bg-[#FFFBF5] text-stone-700"/>
+						<input
+							name="match_num"
+							type="number"
+							min="1"
+							placeholder="Qual match number"
+							class="w-full p-3 border-2 border-[#D2B48C] rounded-xl bg-[#FFFBF5] text-stone-700"/>
+						<input
+							name="youtube_url"
+							placeholder="YouTube URL (e.g. https://www.youtube.com/watch?v=...)"
+							class="w-full p-3 border-2 border-[#D2B48C] rounded-xl bg-[#FFFBF5] text-stone-700"/>
+						<button
+							id="ai-fill-btn"
+							type="submit"
+							class="bg-[#8D6E63] hover:bg-[#6D4C41] text-white font-bold py-2 px-4 rounded-xl transition">
+							Fill in Gemini Analysis
+						</button>
+					</form>
+					<div id="ai-fill-result" class="mt-4"></div>
+				</div>
+
+				<div class="mb-8">
 					<h2 class="text-xl font-bold text-[#5D4037] mb-2">Seed Test Data</h2>
 					<p class="text-sm text-[#A1887F] mb-3">Loads 9 fake teams with match observations into the <code class="bg-stone-100 px-1 rounded">2026test</code> event.</p>
 					<button onclick="seedTest()" class="bg-[#8D6E63] hover:bg-[#6D4C41] text-white font-bold py-2 px-4 rounded-xl transition">
@@ -70,5 +105,41 @@ templ AdminPage(events []string) {
 				document.getElementById('result').textContent = await resp.text();
 			}
 		</script>
+	}
+}
+
+templ AiFillProgressContainer(slots []AiFillSlot) {
+	if len(slots) == 0 {
+		<p class="text-[#A1887F] text-sm">No teams found in that match.</p>
+	} else {
+		<div class="space-y-2">
+			for _, slot := range slots {
+				<div
+					hx-get={ slot.HXURL }
+					hx-trigger="load"
+					hx-swap="outerHTML"
+					class="bg-[#F2E8D5] border border-[#D2B48C] rounded-xl px-4 py-2 text-sm text-[#8D6E63] animate-pulse">
+					Team { slot.Team } — analyzing…
+				</div>
+			}
+		</div>
+	}
+}
+
+templ AiFillTeamResult(r AiFillTeamResultData) {
+	if r.Skipped {
+		<div class="bg-stone-100 border border-stone-300 rounded-xl px-4 py-2 text-sm text-stone-500">
+			Team { r.Team } — skipped (human notes already exist)
+		</div>
+	} else if r.Success {
+		<div class="bg-green-50 border border-green-300 rounded-xl px-4 py-2 text-sm text-green-800">
+			<span class="font-bold">Team { r.Team } — AI notes saved</span>
+			<p class="mt-1 whitespace-pre-wrap text-xs text-stone-600">{ r.Notes }</p>
+		</div>
+	} else {
+		<div class="bg-red-50 border border-red-300 rounded-xl px-4 py-2 text-sm text-red-800">
+			<span class="font-bold">Team { r.Team } — error</span>
+			<p class="mt-1 text-xs">{ r.Notes }</p>
+		</div>
 	}
 }
