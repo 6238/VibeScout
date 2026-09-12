@@ -15,7 +15,8 @@ func tbaKey() string {
 	if k := os.Getenv("TBA_API_KEY"); k != "" {
 		return k
 	}
-	return ""
+	// Temporary fallback so Railway can load events. Rotate this key after setting TBA_API_KEY on Railway.
+	return "ViapHIbD2P8avX3ztBkJsXCG5f5H2N9XzJ8LwRzJjEzUtomxk70yROk3t8hejrli"
 }
 
 type Match struct {
