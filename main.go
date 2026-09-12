@@ -63,7 +63,13 @@ func main() {
 
 	initDB()
 
-	http.Handle("/", http.HandlerFunc(homeHandler))
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		homeHandler(w, r)
+	})
 	http.HandleFunc("/scout", scoutHandler)
 	http.HandleFunc("/api/save-scout", saveScoutDataHandler)
 	http.HandleFunc("/analysis", geminiAnalysisPageHandler)
@@ -79,15 +85,25 @@ func main() {
 	http.HandleFunc("/api/admin/fill-ai-scout", apiFillAIScoutHandler)
 	http.HandleFunc("/api/admin/fill-ai-scout-team", apiFillAIScoutTeamHandler)
 
-	fmt.Println("Vibe Scout v2 running on http://localhost:8080")
-	http.ListenAndServe(":8080", nil)
+	go func() {
+		if _, err := getEventsCached("2026"); err != nil {
+			log.Printf("prefetch events: %v", err)
+		}
+	}()
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	fmt.Printf("Vibe Scout v2 running on http://localhost:%s\n", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	eventMap, err := currentEventMap()
 	if err != nil {
-		http.Error(w, "Could not load events", 500)
-		return
+		log.Printf("home events: %v", err)
+		eventMap = map[string]string{testEventKey: "★ " + testEventName}
 	}
 
 	component := templates.Home(eventMap)
@@ -220,8 +236,8 @@ func currentEventMap() (map[string]string, error) {
 func geminiAnalysisPageHandler(w http.ResponseWriter, r *http.Request) {
 	eventMap, err := currentEventMap()
 	if err != nil {
-		http.Error(w, "Could not load events", 500)
-		return
+		log.Printf("analysis events: %v", err)
+		eventMap = map[string]string{testEventKey: "★ " + testEventName}
 	}
 
 	data := templates.GeminiAnalysisPageData{
@@ -391,8 +407,8 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 func matchPlannerPageHandler(w http.ResponseWriter, r *http.Request) {
 	eventMap, err := currentEventMap()
 	if err != nil {
-		http.Error(w, "Could not load events", 500)
-		return
+		log.Printf("match planner events: %v", err)
+		eventMap = map[string]string{testEventKey: "★ " + testEventName}
 	}
 
 	data := templates.MatchPlannerPageData{Events: eventMap}

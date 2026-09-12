@@ -3,20 +3,60 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
 
 const TBA_BASE = "https://www.thebluealliance.com/api/v3"
 
+// Temporary hardcoded key so Railway can load events. Rotate after setting TBA_API_KEY on Railway.
+const tbaFallbackKey = "ViapHIbD2P8avX3ztBkJsXCG5f5H2N9XzJ8LwRzJjEzUtomxk70yROk3t8hejrli"
+
+var tbaHTTP = &http.Client{Timeout: 15 * time.Second}
+
 func tbaKey() string {
-	if k := os.Getenv("TBA_API_KEY"); k != "" {
+	k := strings.TrimSpace(os.Getenv("TBA_API_KEY"))
+	if k != "" && k != "your_tba_api_key_here" {
 		return k
 	}
-	// Temporary fallback so Railway can load events. Rotate this key after setting TBA_API_KEY on Railway.
-	return "ViapHIbD2P8avX3ztBkJsXCG5f5H2N9XzJ8LwRzJjEzUtomxk70yROk3t8hejrli"
+	return tbaFallbackKey
+}
+
+func tbaDo(path string) (*http.Response, error) {
+	resp, err := tbaDoWithKey(path, tbaKey())
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode == http.StatusUnauthorized && tbaKey() != tbaFallbackKey {
+		resp.Body.Close()
+		log.Printf("tba: env key rejected, retrying fallback key for %s", path)
+		return tbaDoWithKey(path, tbaFallbackKey)
+	}
+	return resp, nil
+}
+
+func tbaDoWithKey(path, key string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", TBA_BASE+path, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-TBA-Auth-Key", key)
+	req.Header.Set("User-Agent", "VibeScout/2 (FRC 6238; https://github.com/6238/VibeScout)")
+	return tbaHTTP.Do(req)
+}
+
+func decodeTBAList[T any](resp *http.Response, dest *[]T) error {
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return fmt.Errorf("tba %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+	return json.NewDecoder(resp.Body).Decode(dest)
 }
 
 type Match struct {
@@ -58,18 +98,13 @@ func getMatchesCached(eventKey string) ([]Match, error) {
 		return m, nil
 	}
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/event/%s/matches/simple", TBA_BASE, eventKey), nil)
-	req.Header.Set("X-TBA-Auth-Key", tbaKey())
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := tbaDo(fmt.Sprintf("/event/%s/matches/simple", eventKey))
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	var matches []Match
-	if err := json.NewDecoder(resp.Body).Decode(&matches); err != nil {
+	if err := decodeTBAList(resp, &matches); err != nil {
 		return nil, err
 	}
 
@@ -89,19 +124,16 @@ func getEventsCached(year string) ([]Event, error) {
 		return append(eventCache, testEvent), nil
 	}
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/events/%s/simple", TBA_BASE, year), nil)
-	req.Header.Set("X-TBA-Auth-Key", tbaKey())
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := tbaDo(fmt.Sprintf("/events/%s/simple", year))
 	if err != nil {
-		return nil, err
+		log.Printf("tba events fetch failed: %v", err)
+		return []Event{testEvent}, nil
 	}
-	defer resp.Body.Close()
 
 	var events []Event
-	if err := json.NewDecoder(resp.Body).Decode(&events); err != nil {
-		return nil, err
+	if err := decodeTBAList(resp, &events); err != nil {
+		log.Printf("tba events decode failed: %v", err)
+		return []Event{testEvent}, nil
 	}
 
 	eventCache = events
