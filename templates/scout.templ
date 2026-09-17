@@ -33,7 +33,7 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 			<!-- Notes Section -->
 			<div class="max-w-4xl mx-auto mb-5 section-card p-4">
 				<h2 class="text-lg font-black text-[#5D4037] uppercase mb-4 text-center">Notes</h2>
-				<div class={ "grid gap-4", templ.KV("grid-cols-3", !oneRobot), templ.KV("max-w-xl mx-auto", oneRobot) }>
+				<div class={ "grid", templ.KV("grid-cols-3 gap-4", !oneRobot), templ.KV("gap-6 max-w-3xl mx-auto", oneRobot) }>
 					for _, team := range teams {
 						<div data-team-card={ team.Number }>
 							<label class={ "block text-sm font-black mb-2 text-center",
@@ -42,17 +42,39 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 								Team { team.Number }
 								<span class="ml-1 text-xs font-bold text-[#8D6E63]">({ strconv.Itoa(team.DataCount) } pts)</span>
 							</label>
-							<textarea
-								name={ "notes_" + team.Number }
-								if oneRobot {
-									rows="16"
-								} else {
-									rows="10"
-								}
-								class={ "w-full p-3 text-sm bg-white border-2 rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]",
-									templ.KV("border-red-300", team.Alliance == "Red"),
-									templ.KV("border-blue-300", team.Alliance == "Blue") }
-								placeholder="Observations..."></textarea>
+							if oneRobot {
+								<!-- Checklist sits beside the notes on desktop and below them on mobile -->
+								<div class="flex flex-col md:flex-row gap-3">
+									<div class="flex-1 min-w-0">
+										<textarea
+											name={ "notes_" + team.Number }
+											rows="14"
+											class={ "w-full h-full p-3 text-sm bg-white border-2 rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]",
+												templ.KV("border-red-300", team.Alliance == "Red"),
+												templ.KV("border-blue-300", team.Alliance == "Blue") }
+											placeholder="Observations..."></textarea>
+									</div>
+									<div data-checklist class="md:w-60 shrink-0 space-y-2 bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-xl p-3">
+										@checklistSwitch(team.Number, "broke", "Broke")
+										@checklistSwitch(team.Number, "played_defense", "Played defense")
+										@checklistSwitch(team.Number, "was_defended", "Was defended")
+										<div>
+											<label for={ "auto_type_" + team.Number } class="block text-xs font-bold uppercase text-[#A1887F] mb-1">Auto type</label>
+											<input id={ "auto_type_" + team.Number } type="text" data-field="auto_type" maxlength="80"
+												placeholder="e.g. 2 piece center"
+												class="w-full p-2 text-sm bg-white border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8D6E63]"/>
+										</div>
+									</div>
+								</div>
+							} else {
+								<textarea
+									name={ "notes_" + team.Number }
+									rows="12"
+									class={ "w-full p-3 text-sm bg-white border-2 rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]",
+										templ.KV("border-red-300", team.Alliance == "Red"),
+										templ.KV("border-blue-300", team.Alliance == "Blue") }
+									placeholder="Observations..."></textarea>
+							}
 							<p class="mt-1 text-xs text-center text-[#A1887F]">Notes are saved when you press Next Match</p>
 						</div>
 					}
@@ -76,10 +98,21 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 				const pickedTeam = params.get('team');
 
 				const teamCards = document.querySelectorAll('[data-team-card]');
-				const teams = Array.from(teamCards).map(card => ({
-					team_number: card.getAttribute('data-team-card'),
-					notes: card.querySelector('textarea')?.value || ''
-				}));
+				const teams = Array.from(teamCards).map(card => {
+					const team = {
+						team_number: card.getAttribute('data-team-card'),
+						notes: card.querySelector('textarea')?.value || ''
+					};
+					// The checklist only exists in one-robot mode
+					if (card.querySelector('[data-checklist]')) {
+						team.has_checklist = true;
+						team.broke = card.querySelector('[data-field=broke]').checked;
+						team.played_defense = card.querySelector('[data-field=played_defense]').checked;
+						team.was_defended = card.querySelector('[data-field=was_defended]').checked;
+						team.auto_type = card.querySelector('[data-field=auto_type]').value;
+					}
+					return team;
+				});
 
 				const submission = {
 					event_key: eventKey,
@@ -114,4 +147,18 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 			}
 		</script>
 	}
+}
+
+// checklistSwitch is a yes/no toggle for one checklist question.
+templ checklistSwitch(team string, field string, label string) {
+	<label class="flex items-center justify-between gap-2 cursor-pointer select-none">
+		<span class="text-sm font-bold text-[#5D4037]">{ label }</span>
+		<span class="relative inline-flex items-center">
+			<input type="checkbox" data-field={ field } id={ field + "_" + team } class="sr-only peer"/>
+			<span class="w-12 h-7 rounded-full bg-stone-300 transition peer-checked:bg-[#5D4037] peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]"></span>
+			<span class="absolute left-1 top-1 w-5 h-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+			<span class="absolute -left-9 text-xs font-bold text-[#A1887F] peer-checked:hidden">No</span>
+			<span class="absolute -left-9 text-xs font-bold text-[#5D4037] hidden peer-checked:inline">Yes</span>
+		</span>
+	</label>
 }

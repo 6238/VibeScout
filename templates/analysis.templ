@@ -158,7 +158,26 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 	<div data-team={ card.TeamNumber } class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md">
 		<!-- Header row -->
 		<div class="flex flex-wrap justify-between items-center gap-2 mb-4">
-			<h2 class="text-xl font-black text-[#5D4037] whitespace-nowrap">Team { card.TeamNumber }</h2>
+			<div class="flex items-baseline gap-2">
+				<h2 class="text-xl font-black text-[#5D4037] whitespace-nowrap">Team { card.TeamNumber }</h2>
+				if card.HasEPA {
+					<span class="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-[#5D4037] text-white" title="Statbotics total points EPA this season">
+						{ fmt.Sprintf("EPA %.1f", card.EPA) }
+					</span>
+				}
+			</div>
+			if len(card.RecentMatches) > 0 {
+				<div class="flex flex-wrap items-center gap-1.5">
+					<span class="text-xs font-bold uppercase text-[#A1887F] whitespace-nowrap">Latest Matches</span>
+					for _, m := range card.RecentMatches {
+						<a href={ templ.SafeURL(m.URL) } target="_blank" rel="noopener noreferrer"
+							title={ "Watch " + m.Label + " on The Blue Alliance" }
+							class="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap bg-[#FFFBF5] text-[#5D4037] border border-[#8D6E63] hover:bg-[#8D6E63] hover:text-white transition">
+							{ m.Label } ↗
+						</a>
+					}
+				</div>
+			}
 			<div class="flex flex-wrap items-center gap-2">
 				if card.FromCache {
 					<span class="text-xs font-bold px-3 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-300">Cached</span>
@@ -233,11 +252,38 @@ templ TeamNotesPanel(notes []TeamNote) {
 							<span class="text-xs font-bold text-[#A1887F] truncate">{ note.ScouterName }</span>
 						}
 					</div>
-					<p class="text-sm text-stone-700 mt-1 whitespace-pre-wrap">{ note.Notes }</p>
+					if note.HasChecklist {
+						<div class="flex flex-wrap gap-1.5 mt-2">
+							@checklistChip("Broke", note.Broke, true)
+							@checklistChip("Played defense", note.PlayedDefense, false)
+							@checklistChip("Was defended", note.WasDefended, false)
+							if note.AutoType != "" {
+								<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FFFBF5] text-[#5D4037] border border-[#D2B48C]">Auto: { note.AutoType }</span>
+							}
+						</div>
+					}
+					if note.Notes != "" {
+						<p class="text-sm text-stone-700 mt-1 whitespace-pre-wrap">{ note.Notes }</p>
+					}
 				</div>
 			}
 		</div>
 	}
+}
+
+// checklistChip shows a yes/no answer; bad answers ("broke: yes") are red.
+templ checklistChip(label string, yes bool, yesIsBad bool) {
+	<span class={ "text-xs font-bold px-2 py-0.5 rounded-full border",
+		templ.KV("bg-red-100 text-red-700 border-red-300", yes && yesIsBad),
+		templ.KV("bg-[#8D6E63] text-white border-[#8D6E63]", yes && !yesIsBad),
+		templ.KV("bg-transparent text-[#A1887F] border-[#D2B48C]", !yes) }>
+		{ label }: 
+		if yes {
+			Yes
+		} else {
+			No
+		}
+	</span>
 }
 
 templ TeamPitNotesPanel(notes []PitNote) {

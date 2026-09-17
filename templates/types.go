@@ -16,8 +16,17 @@ type TeamAnalysisCard struct {
 	Reliability int // 1-10
 	Defense     int // 0 = N/A, 1-10 = score
 	FromCache   bool
-	HasNotes    bool // any non-empty match scouting notes at this event
-	HasPitNotes bool // any pit scouting summaries
+	HasNotes    bool    // any non-empty match scouting notes at this event
+	HasPitNotes bool    // any pit scouting summaries
+	EPA         float64 // Statbotics total points EPA, current season
+	HasEPA      bool
+	// Up to the two most recent played matches at the event, newest first
+	RecentMatches []MatchLink
+}
+
+type MatchLink struct {
+	Label string // e.g. "Q12"
+	URL   string
 }
 
 type TeamNote struct {
@@ -25,6 +34,12 @@ type TeamNote struct {
 	Notes       string
 	ScouterName string // "" for notes saved before scouters had names
 	AIGenerated bool   // filled in by Gemini from match video
+	// Match checklist; only meaningful when HasChecklist
+	HasChecklist  bool
+	Broke         bool
+	PlayedDefense bool
+	WasDefended   bool
+	AutoType      string
 }
 
 type PitTeam struct {
@@ -78,6 +93,10 @@ type PickTeam struct {
 	IsUs       bool
 	NextWithUs int  // next qual after this one shared with our team, 0 if none
 	Soonest    bool // NextWithUs is the soonest among this match's teams
+	// Coverage: scouted in fewer than half of the quals played before this match
+	Scouted      int
+	PlayedBefore int
+	NeedsData    bool
 }
 
 type ScoutTeam struct {
