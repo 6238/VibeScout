@@ -38,16 +38,18 @@ var matchPlanPromptTmpl string
 var videoScoutPromptTmpl string
 
 type ScoutSubmission struct {
-	EventKey  string          `json:"event_key"`
-	MatchNum  int             `json:"match_num"`
-	ScouterID int             `json:"scouter_id"`
-	Teams     []TeamScoutData `json:"teams"`
+	EventKey    string          `json:"event_key"`
+	MatchNum    int             `json:"match_num"`
+	ScouterName string          `json:"scouter_name"`
+	Teams       []TeamScoutData `json:"teams"`
 }
 
 type TeamScoutData struct {
 	TeamNumber string `json:"team_number"`
 	Notes      string `json:"notes"`
 }
+
+const ourTeam = templates.OurTeam
 
 // Event struct matches the TBA 'simple' model
 type Event struct {
@@ -70,12 +72,20 @@ func main() {
 		}
 		homeHandler(w, r)
 	})
+	http.HandleFunc("/field-scout", fieldScoutHandler)
 	http.HandleFunc("/scout", scoutHandler)
+	http.HandleFunc("/api/match-teams", apiMatchTeamsHandler)
 	http.HandleFunc("/api/save-scout", saveScoutDataHandler)
+	http.HandleFunc("/pit-scout", pitScoutPageHandler)
+	http.HandleFunc("/api/save-pit-scout", savePitScoutHandler)
+	http.HandleFunc("/api/pit-teams", apiPitTeamsHandler)
+	http.HandleFunc("/api/pit-note", apiPitNoteHandler)
 	http.HandleFunc("/analysis", geminiAnalysisPageHandler)
 	http.HandleFunc("/api/run-analysis", apiRunAnalysisHandler)
 	http.HandleFunc("/api/analyze-team", apiAnalyzeTeamHandler)
 	http.HandleFunc("/api/team-notes", apiTeamNotesHandler)
+	http.HandleFunc("/api/team-pit-notes", apiTeamPitNotesHandler)
+	http.HandleFunc("/api/search-teams", apiSearchTeamsHandler)
 	http.HandleFunc("/match-planner", matchPlannerPageHandler)
 	http.HandleFunc("/api/match-plan", apiMatchPlanHandler)
 	http.HandleFunc("/510c53c3", adminHandler)
@@ -106,15 +116,112 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		eventMap = map[string]string{testEventKey: "★ " + testEventName}
 	}
 
-	component := templates.Home(eventMap)
+	component := templates.Home(eventMap, r.URL.Query().Get("event_key"))
 	templ.Handler(component).ServeHTTP(w, r)
+}
+
+func fieldScoutHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey, ok := requireEvent(w, r)
+	if !ok {
+		return
+	}
+
+	matchNum, _ := strconv.Atoi(r.URL.Query().Get("match_num"))
+	if matchNum < 1 {
+		matchNum = 1
+	}
+	mode := r.URL.Query().Get("mode")
+	if mode != "one" {
+		mode = "all"
+	}
+
+	templ.Handler(templates.FieldScout(templates.FieldScoutData{
+		EventKey:    eventKey,
+		EventName:   eventNameFor(eventKey),
+		MatchNum:    matchNum,
+		ScouterName: normalizeScouterName(r.URL.Query().Get("scouter")),
+		Scouters:    pastScouters(),
+		Mode:        mode,
+	})).ServeHTTP(w, r)
+}
+
+const maxScouterNameLen = 40
+
+// normalizeScouterName trims and collapses whitespace and caps the length.
+func normalizeScouterName(name string) string {
+	name = strings.Join(strings.Fields(name), " ")
+	if r := []rune(name); len(r) > maxScouterNameLen {
+		name = string(r[:maxScouterNameLen])
+	}
+	return name
+}
+
+// canonicalScouterName reuses an existing scouter's spelling when the name only
+// differs by capitalization, so "alex" and "Alex" count as the same scouter.
+func canonicalScouterName(name string) string {
+	name = normalizeScouterName(name)
+	if name == "" {
+		return ""
+	}
+	var existing string
+	err := db.QueryRow(`
+		SELECT scouter_name FROM scout_submissions
+		WHERE scouter_name = ? COLLATE NOCASE
+		ORDER BY created_at DESC LIMIT 1`, name).Scan(&existing)
+	if err == nil && existing != "" {
+		return existing
+	}
+	return name
+}
+
+// pastScouters lists every scouter name used before, most recently active first.
+func pastScouters() []string {
+	rows, err := db.Query(`
+		SELECT scouter_name FROM scout_submissions
+		WHERE scouter_name != ''
+		GROUP BY scouter_name
+		ORDER BY MAX(created_at) DESC`)
+	if err != nil {
+		log.Printf("past scouters: %v", err)
+		return nil
+	}
+	defer rows.Close()
+
+	var names []string
+	for rows.Next() {
+		var n string
+		rows.Scan(&n)
+		names = append(names, n)
+	}
+	return names
+}
+
+// requireEvent returns the event_key query param. The event is only chosen on the
+// home page, so if it's missing the user is sent back there and ok is false.
+func requireEvent(w http.ResponseWriter, r *http.Request) (eventKey string, ok bool) {
+	eventKey = r.URL.Query().Get("event_key")
+	if eventKey == "" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return "", false
+	}
+	return eventKey, true
+}
+
+// eventNameFor returns the display name for an event, falling back to its key.
+func eventNameFor(eventKey string) string {
+	if eventMap, err := currentEventMap(); err == nil {
+		if name, ok := eventMap[eventKey]; ok {
+			return name
+		}
+	}
+	return eventKey
 }
 
 func scoutHandler(w http.ResponseWriter, r *http.Request) {
 	eventKey := r.URL.Query().Get("event_key")
 	matchNum, _ := strconv.Atoi(r.URL.Query().Get("match_num"))
-	scouterID, _ := strconv.Atoi(r.URL.Query().Get("scouter_id"))
-	allianceOverride := r.URL.Query().Get("alliance")
+	scouterName := normalizeScouterName(r.URL.Query().Get("scouter"))
+	pickedTeam := r.URL.Query().Get("team") // set in one-robot mode
 
 	matches, err := getMatchesCached(eventKey)
 	if err != nil {
@@ -122,56 +229,114 @@ func scoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var currentMatch Match
-	found := false
-	for _, m := range matches {
-		if m.CompLevel == "qm" && m.MatchNumber == matchNum {
-			currentMatch = m
-			found = true
-			break
-		}
-	}
-
+	currentMatch, found := findQualMatch(matches, matchNum)
 	if !found {
 		http.Error(w, fmt.Sprintf("Match %d not found", matchNum), 404)
 		return
 	}
 
-	allianceName := "Red"
-	var teamKeys []string
+	red := stripFRC(currentMatch.Alliances.Red.TeamKeys)
+	blue := stripFRC(currentMatch.Alliances.Blue.TeamKeys)
 
-	if allianceOverride == "Red" {
-		allianceName = "Red"
-		teamKeys = currentMatch.Alliances.Red.TeamKeys
-	} else if allianceOverride == "Blue" {
-		allianceName = "Blue"
-		teamKeys = currentMatch.Alliances.Blue.TeamKeys
-	} else {
-		isEvenMatch := matchNum%2 == 0
-		isEvenScouter := scouterID%2 == 0
-		if isEvenMatch != isEvenScouter {
-			allianceName = "Blue"
-			teamKeys = currentMatch.Alliances.Blue.TeamKeys
-		} else {
-			teamKeys = currentMatch.Alliances.Red.TeamKeys
+	var teams []templates.ScoutTeam
+	for _, t := range red {
+		teams = append(teams, templates.ScoutTeam{Number: t, Alliance: "Red"})
+	}
+	for _, t := range blue {
+		teams = append(teams, templates.ScoutTeam{Number: t, Alliance: "Blue"})
+	}
+
+	if pickedTeam != "" {
+		var picked []templates.ScoutTeam
+		for _, t := range teams {
+			if t.Number == pickedTeam {
+				picked = append(picked, t)
+				break
+			}
+		}
+		if len(picked) == 0 {
+			http.Error(w, fmt.Sprintf("Team %s is not in match %d", pickedTeam, matchNum), 404)
+			return
+		}
+		teams = picked
+	}
+
+	for i := range teams {
+		db.QueryRow(`SELECT COUNT(*) FROM scout_submissions WHERE event_key = ? AND team_number = ? AND TRIM(notes) != ''`,
+			eventKey, teams[i].Number).Scan(&teams[i].DataCount)
+	}
+
+	templates.ScoutPage(eventKey, strconv.Itoa(matchNum), scouterName, pickedTeam != "", teams).Render(r.Context(), w)
+}
+
+func findQualMatch(matches []Match, matchNum int) (Match, bool) {
+	for _, m := range matches {
+		if m.CompLevel == "qm" && m.MatchNumber == matchNum {
+			return m, true
 		}
 	}
+	return Match{}, false
+}
 
-	teams := []string{}
-	for _, tk := range teamKeys {
-		if len(tk) > 3 {
-			teams = append(teams, tk[3:])
+// nextQualWith returns the number of the first qual match after `after` in which
+// both teams play (as partners or opponents), or 0 if there isn't one.
+func nextQualWith(matches []Match, after int, team, other string) int {
+	next := 0
+	for _, m := range matches {
+		if m.CompLevel != "qm" || m.MatchNumber <= after || (next != 0 && m.MatchNumber >= next) {
+			continue
+		}
+		keys := append(append([]string{}, m.Alliances.Red.TeamKeys...), m.Alliances.Blue.TeamKeys...)
+		hasTeam, hasOther := false, false
+		for _, k := range keys {
+			hasTeam = hasTeam || k == "frc"+team
+			hasOther = hasOther || k == "frc"+other
+		}
+		if hasTeam && hasOther {
+			next = m.MatchNumber
 		}
 	}
+	return next
+}
 
-	teamDataCounts := map[string]int{}
-	for _, team := range teams {
-		var count int
-		db.QueryRow(`SELECT COUNT(*) FROM scout_submissions WHERE event_key = ? AND team_number = ? AND TRIM(notes) != ''`, eventKey, team).Scan(&count)
-		teamDataCounts[team] = count
+// apiMatchTeamsHandler renders the one-robot picker for a match: all six teams,
+// with the ones that play with or against our team soonest highlighted.
+func apiMatchTeamsHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey := r.URL.Query().Get("event_key")
+	matchNum, _ := strconv.Atoi(r.URL.Query().Get("match_num"))
+
+	matches, err := getMatchesCached(eventKey)
+	if err != nil {
+		templates.MatchTeamPicker(nil, matchNum, "Couldn't load the match schedule.").Render(r.Context(), w)
+		return
+	}
+	m, found := findQualMatch(matches, matchNum)
+	if !found {
+		templates.MatchTeamPicker(nil, matchNum, fmt.Sprintf("Match %d isn't in the schedule.", matchNum)).Render(r.Context(), w)
+		return
 	}
 
-	templates.ScoutPage(eventKey, strconv.Itoa(matchNum), strconv.Itoa(scouterID), allianceName, teams, teamDataCounts).Render(r.Context(), w)
+	var picks []templates.PickTeam
+	soonest := 0
+	add := func(keys []string, alliance string) {
+		for _, t := range stripFRC(keys) {
+			p := templates.PickTeam{Number: t, Alliance: alliance, IsUs: t == ourTeam}
+			if !p.IsUs {
+				p.NextWithUs = nextQualWith(matches, matchNum, t, ourTeam)
+				if p.NextWithUs != 0 && (soonest == 0 || p.NextWithUs < soonest) {
+					soonest = p.NextWithUs
+				}
+			}
+			picks = append(picks, p)
+		}
+	}
+	add(m.Alliances.Red.TeamKeys, "Red")
+	add(m.Alliances.Blue.TeamKeys, "Blue")
+
+	for i := range picks {
+		picks[i].Soonest = soonest != 0 && picks[i].NextWithUs == soonest
+	}
+	templates.MatchTeamPicker(picks, matchNum, "").Render(r.Context(), w)
 }
 
 func saveScoutDataHandler(w http.ResponseWriter, r *http.Request) {
@@ -186,19 +351,141 @@ func saveScoutDataHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	scouterName := canonicalScouterName(sub.ScouterName)
 	for _, teamData := range sub.Teams {
 		db.Exec(`
-			INSERT INTO scout_submissions (event_key, match_num, scouter_id, team_number, notes)
+			INSERT INTO scout_submissions (event_key, match_num, scouter_name, team_number, notes)
 			VALUES (?, ?, ?, ?, ?)`,
-			sub.EventKey, sub.MatchNum, sub.ScouterID, teamData.TeamNumber, teamData.Notes)
+			sub.EventKey, sub.MatchNum, scouterName, teamData.TeamNumber, teamData.Notes)
 
 		// Bust team analysis cache
 		db.Exec(`DELETE FROM analysis_cache WHERE event_key = ? AND team_number = ?`,
 			sub.EventKey, teamData.TeamNumber)
 	}
 
-	fmt.Printf("Saved match %d, scouter %d, %d teams\n", sub.MatchNum, sub.ScouterID, len(sub.Teams))
+	fmt.Printf("Saved match %d, scouter %q, %d teams\n", sub.MatchNum, scouterName, len(sub.Teams))
 	w.WriteHeader(http.StatusOK)
+}
+
+// ── Pit Scouting ──────────────────────────────────────────────────────────────
+
+func pitScoutPageHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey, ok := requireEvent(w, r)
+	if !ok {
+		return
+	}
+	templ.Handler(templates.PitScoutPage(eventKey, eventNameFor(eventKey))).ServeHTTP(w, r)
+}
+
+// apiPitTeamsHandler renders the event's team list, marking teams that already
+// have pit scouting notes.
+func apiPitTeamsHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey := r.URL.Query().Get("event_key")
+	if eventKey == "" {
+		http.Error(w, "event_key required", http.StatusBadRequest)
+		return
+	}
+
+	teams, err := getEventTeamsCached(eventKey)
+	if err != nil {
+		log.Printf("pit teams %s: %v", eventKey, err)
+		templates.PitTeamList(nil, "Couldn't load teams for this event.").Render(r.Context(), w)
+		return
+	}
+
+	scouted := map[string]bool{}
+	rows, err := db.Query(`SELECT DISTINCT team_number FROM pit_scouting`)
+	if err == nil {
+		for rows.Next() {
+			var t string
+			rows.Scan(&t)
+			scouted[t] = true
+		}
+		rows.Close()
+	}
+
+	list := make([]templates.PitTeam, len(teams))
+	for i, t := range teams {
+		list[i] = templates.PitTeam{Number: t, Scouted: scouted[t]}
+	}
+	templates.PitTeamList(list, "").Render(r.Context(), w)
+}
+
+func savePitScoutHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	teamNum := strings.TrimSpace(r.FormValue("team_number"))
+	summary := strings.TrimSpace(r.FormValue("summary"))
+	if teamNum == "" || summary == "" {
+		http.Error(w, "Team number and summary are required", http.StatusBadRequest)
+		return
+	}
+
+	// A team keeps one pit scouting entry: edit the latest one if it exists.
+	res, err := db.Exec(`
+		UPDATE pit_scouting SET summary = ?, created_at = CURRENT_TIMESTAMP
+		WHERE id = (SELECT id FROM pit_scouting WHERE team_number = ? ORDER BY created_at DESC, id DESC LIMIT 1)`,
+		summary, teamNum)
+	if err != nil {
+		log.Printf("update pit scout: %v", err)
+		http.Error(w, "Failed to save", http.StatusInternalServerError)
+		return
+	}
+	verb := "Updated"
+	if n, _ := res.RowsAffected(); n == 0 {
+		verb = "Saved"
+		if _, err := db.Exec(`INSERT INTO pit_scouting (team_number, summary) VALUES (?, ?)`, teamNum, summary); err != nil {
+			log.Printf("save pit scout: %v", err)
+			http.Error(w, "Failed to save", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	fmt.Printf("%s pit scouting for team %s\n", verb, teamNum)
+	w.Header().Set("HX-Trigger", "pitSaved") // refresh the team list
+	fmt.Fprintf(w, "%s pit scouting for team %s ✓", verb, template.HTMLEscapeString(teamNum))
+}
+
+// apiPitNoteHandler returns a team's current pit scouting summary so it can be edited.
+func apiPitNoteHandler(w http.ResponseWriter, r *http.Request) {
+	teamNum := strings.TrimSpace(r.URL.Query().Get("team_number"))
+	if teamNum == "" {
+		http.Error(w, "team_number required", http.StatusBadRequest)
+		return
+	}
+
+	var summary string
+	err := db.QueryRow(`
+		SELECT summary FROM pit_scouting WHERE team_number = ?
+		ORDER BY created_at DESC, id DESC LIMIT 1`, teamNum).Scan(&summary)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"exists": err == nil, "summary": summary})
+}
+
+// pitNotesFor returns all pit scouting summaries for a team, oldest first,
+// joined into one block of text. Returns "" if the team hasn't been pit scouted.
+func pitNotesFor(teamNum string) string {
+	rows, err := db.Query(`
+		SELECT summary FROM pit_scouting
+		WHERE team_number = ?
+		ORDER BY created_at ASC`, teamNum)
+	if err != nil {
+		log.Printf("pit notes for %s: %v", teamNum, err)
+		return ""
+	}
+	defer rows.Close()
+
+	var summaries []string
+	for rows.Next() {
+		var s string
+		rows.Scan(&s)
+		summaries = append(summaries, s)
+	}
+	return strings.Join(summaries, "\n---\n")
 }
 
 // currentEventMap returns events within ±7 days of today, always including the
@@ -234,15 +521,14 @@ func currentEventMap() (map[string]string, error) {
 // ── Analysis ──────────────────────────────────────────────────────────────────
 
 func geminiAnalysisPageHandler(w http.ResponseWriter, r *http.Request) {
-	eventMap, err := currentEventMap()
-	if err != nil {
-		log.Printf("analysis events: %v", err)
-		eventMap = map[string]string{testEventKey: "★ " + testEventName}
+	eventKey, ok := requireEvent(w, r)
+	if !ok {
+		return
 	}
 
 	data := templates.GeminiAnalysisPageData{
-		Events:        eventMap,
-		SelectedEvent: r.URL.Query().Get("event_key"),
+		EventKey:  eventKey,
+		EventName: eventNameFor(eventKey),
 	}
 	templ.Handler(templates.GeminiAnalysisPage(data)).ServeHTTP(w, r)
 }
@@ -295,6 +581,10 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	db.QueryRow(`SELECT EXISTS(SELECT 1 FROM scout_submissions WHERE event_key = ? AND team_number = ? AND TRIM(notes) != '')`,
+		eventKey, teamNum).Scan(&card.HasNotes)
+	db.QueryRow(`SELECT EXISTS(SELECT 1 FROM pit_scouting WHERE team_number = ?)`, teamNum).Scan(&card.HasPitNotes)
+
 	templates.SingleTeamAnalysisCard(card).Render(r.Context(), w)
 }
 
@@ -307,7 +597,7 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := db.Query(`
-		SELECT match_num, notes FROM scout_submissions
+		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(ai_generated, 0) FROM scout_submissions
 		WHERE event_key = ? AND team_number = ?
 		ORDER BY match_num ASC`, eventKey, teamNum)
 	if err != nil {
@@ -319,11 +609,77 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 	var notes []templates.TeamNote
 	for rows.Next() {
 		var n templates.TeamNote
-		rows.Scan(&n.MatchNum, &n.Notes)
+		rows.Scan(&n.MatchNum, &n.Notes, &n.ScouterName, &n.AIGenerated)
 		notes = append(notes, n)
 	}
 
 	templates.TeamNotesPanel(notes).Render(r.Context(), w)
+}
+
+func apiTeamPitNotesHandler(w http.ResponseWriter, r *http.Request) {
+	teamNum := r.URL.Query().Get("team_number")
+	if teamNum == "" {
+		http.Error(w, "team_number required", http.StatusBadRequest)
+		return
+	}
+
+	rows, err := db.Query(`
+		SELECT created_at, summary FROM pit_scouting
+		WHERE team_number = ?
+		ORDER BY created_at DESC`, teamNum)
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var notes []templates.PitNote
+	for rows.Next() {
+		var n templates.PitNote
+		var createdAt time.Time
+		rows.Scan(&createdAt, &n.Summary)
+		n.CreatedAt = createdAt.Format("Jan 2, 3:04 PM") + " UTC"
+		notes = append(notes, n)
+	}
+
+	templates.TeamPitNotesPanel(notes).Render(r.Context(), w)
+}
+
+// apiSearchTeamsHandler returns a JSON array of team numbers at the event whose
+// number contains q, or whose match scouting or pit scouting notes contain q.
+func apiSearchTeamsHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey := r.URL.Query().Get("event_key")
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if eventKey == "" || q == "" {
+		http.Error(w, "event_key and q required", http.StatusBadRequest)
+		return
+	}
+
+	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(q)
+	like := "%" + escaped + "%"
+
+	rows, err := db.Query(`
+		SELECT DISTINCT team_number FROM scout_submissions
+		WHERE event_key = ? AND (
+			team_number LIKE ? ESCAPE '\'
+			OR notes LIKE ? ESCAPE '\'
+			OR team_number IN (SELECT team_number FROM pit_scouting WHERE summary LIKE ? ESCAPE '\')
+		)`, eventKey, like, like, like)
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	teams := []string{}
+	for rows.Next() {
+		var t string
+		rows.Scan(&t)
+		teams = append(teams, t)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(teams)
 }
 
 // teamAnalysisJSON is the structured response Gemini returns for team analysis.
@@ -351,7 +707,12 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 	rows.Close()
 
 	combined := strings.Join(notesList, "\n")
-	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(combined)))
+	pitNotes := pitNotesFor(teamNum)
+	hashInput := combined
+	if pitNotes != "" {
+		hashInput += "\n[pit]\n" + pitNotes
+	}
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(hashInput)))
 
 	// Check cache
 	var cachedJSON, cachedHash string
@@ -376,7 +737,7 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 		// If JSON parse fails, fall through to regenerate
 	}
 
-	result, err := callGeminiTeamAnalysis(teamNum, eventKey, combined)
+	result, err := callGeminiTeamAnalysis(teamNum, eventKey, combined, pitNotes)
 	if err != nil {
 		return templates.TeamAnalysisCard{}, err
 	}
@@ -405,13 +766,12 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 // ── Match Planner ─────────────────────────────────────────────────────────────
 
 func matchPlannerPageHandler(w http.ResponseWriter, r *http.Request) {
-	eventMap, err := currentEventMap()
-	if err != nil {
-		log.Printf("match planner events: %v", err)
-		eventMap = map[string]string{testEventKey: "★ " + testEventName}
+	eventKey, ok := requireEvent(w, r)
+	if !ok {
+		return
 	}
 
-	data := templates.MatchPlannerPageData{Events: eventMap}
+	data := templates.MatchPlannerPageData{EventKey: eventKey, EventName: eventNameFor(eventKey)}
 	templ.Handler(templates.MatchPlannerPage(data)).ServeHTTP(w, r)
 }
 
@@ -523,9 +883,14 @@ func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.Mat
 		}
 		rows.Close()
 		noteLine := fmt.Sprintf("Team %s: %s", t, strings.Join(notes, " | "))
+		teamContext := fmt.Sprintf("Team %s:\n  EPA:\n%s\n  Notes: %s",
+			t, fetchStatboticsEPA(t), strings.Join(notes, " | "))
+		if pitNotes := pitNotesFor(t); pitNotes != "" {
+			noteLine += " [pit] " + pitNotes
+			teamContext += "\n  Pit scouting interview: " + pitNotes
+		}
 		noteParts = append(noteParts, noteLine)
-		contextParts = append(contextParts, fmt.Sprintf("Team %s:\n  EPA:\n%s\n  Notes: %s",
-			t, fetchStatboticsEPA(t), strings.Join(notes, " | ")))
+		contextParts = append(contextParts, teamContext)
 	}
 
 	combinedNotes := strings.Join(noteParts, "\n")
@@ -701,10 +1066,11 @@ type teamAnalysisPromptData struct {
 	TeamNum      string
 	EventKey     string
 	Notes        string
+	PitNotes     string
 	EPABreakdown string
 }
 
-func callGeminiTeamAnalysis(teamNum, eventKey, notes string) (teamAnalysisJSON, error) {
+func callGeminiTeamAnalysis(teamNum, eventKey, notes, pitNotes string) (teamAnalysisJSON, error) {
 	tmpl, err := template.New("team_analysis").Parse(teamAnalysisPromptTmpl)
 	if err != nil {
 		return teamAnalysisJSON{}, fmt.Errorf("failed to parse team analysis prompt: %w", err)
@@ -714,6 +1080,7 @@ func callGeminiTeamAnalysis(teamNum, eventKey, notes string) (teamAnalysisJSON, 
 		TeamNum:      teamNum,
 		EventKey:     eventKey,
 		Notes:        notes,
+		PitNotes:     pitNotes,
 		EPABreakdown: fetchStatboticsEPA(teamNum),
 	}); err != nil {
 		return teamAnalysisJSON{}, fmt.Errorf("failed to render team analysis prompt: %w", err)

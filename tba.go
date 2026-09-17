@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -111,6 +113,62 @@ func getMatchesCached(eventKey string) ([]Match, error) {
 	matchCache[eventKey] = matches
 	matchTimestamp[eventKey] = time.Now()
 	return matches, nil
+}
+
+var (
+	eventTeamsCache     = make(map[string][]string)
+	eventTeamsTimestamp = make(map[string]time.Time)
+	eventTeamsMutex     sync.Mutex
+)
+
+// getEventTeamsCached returns the team numbers (without "frc") registered for an
+// event, sorted numerically.
+func getEventTeamsCached(eventKey string) ([]string, error) {
+	if eventKey == testEventKey {
+		seen := map[string]bool{}
+		var teams []string
+		for _, m := range testMatches {
+			for _, t := range stripFRC(append(m.Alliances.Red.TeamKeys, m.Alliances.Blue.TeamKeys...)) {
+				if !seen[t] {
+					seen[t] = true
+					teams = append(teams, t)
+				}
+			}
+		}
+		sortTeamNumbers(teams)
+		return teams, nil
+	}
+
+	eventTeamsMutex.Lock()
+	defer eventTeamsMutex.Unlock()
+
+	if t, ok := eventTeamsCache[eventKey]; ok && time.Since(eventTeamsTimestamp[eventKey]) < 10*time.Minute {
+		return t, nil
+	}
+
+	resp, err := tbaDo(fmt.Sprintf("/event/%s/teams/keys", eventKey))
+	if err != nil {
+		return nil, err
+	}
+
+	var keys []string
+	if err := decodeTBAList(resp, &keys); err != nil {
+		return nil, err
+	}
+
+	teams := stripFRC(keys)
+	sortTeamNumbers(teams)
+	eventTeamsCache[eventKey] = teams
+	eventTeamsTimestamp[eventKey] = time.Now()
+	return teams, nil
+}
+
+func sortTeamNumbers(teams []string) {
+	sort.Slice(teams, func(i, j int) bool {
+		a, _ := strconv.Atoi(teams[i])
+		b, _ := strconv.Atoi(teams[j])
+		return a < b
+	})
 }
 
 func getEventsCached(year string) ([]Event, error) {

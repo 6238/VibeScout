@@ -1,56 +1,250 @@
 package templates
 
-templ Home(events map[string]string) {
+import "strconv"
+
+templ Home(events map[string]string, selectedEvent string) {
     @Layout("Vibe Scout | Home") {
         <main class="flex flex-col items-center justify-center min-h-screen px-4">
             <div class="max-w-md w-full bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-8 shadow-2xl text-center">
-                <h1 class="text-4xl font-black text-[#5D4037] mb-2 tracking-tight uppercase">Vibe Scout</h1>
-                
-                <form action="/scout" method="GET" class="space-y-4">
+                <h1 class="text-4xl font-black text-[#5D4037] mb-6 tracking-tight uppercase">Vibe Scout</h1>
+
+                <!-- Each button sends the chosen event to its own page -->
+                <form method="GET" action="/field-scout" class="space-y-4">
                     <div class="text-left">
-                        <label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Event</label>
-                        <select name="event_key" class="w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
+                        <label for="home-event" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Event</label>
+                        <select id="home-event" name="event_key" class="w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
                             for key, name := range events {
-                                <option value={ key }>{ name }</option>
+                                <option value={ key } selected?={ key == selectedEvent }>{ name }</option>
                             }
                         </select>
                     </div>
 
+                    <button type="submit" formaction="/field-scout" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-5 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
+                        Field Scouting
+                    </button>
+                    <button type="submit" formaction="/analysis" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-5 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
+                        AI Analysis
+                    </button>
+                    <button type="submit" formaction="/pit-scout" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-5 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
+                        Pit Scouting
+                    </button>
+                </form>
+            </div>
+        </main>
+    }
+}
+
+templ FieldScout(data FieldScoutData) {
+    @Layout("Vibe Scout | Field Scouting") {
+        <main class="flex flex-col items-center justify-center min-h-screen px-4 py-6">
+            <div class="max-w-md w-full bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-2xl text-center">
+                <h1 class="text-4xl font-black text-[#5D4037] mb-1 tracking-tight uppercase">Field Scouting</h1>
+                <p class="text-sm font-bold text-[#A1887F] mb-4">{ data.EventName }</p>
+
+                <form id="field-form" action="/scout" method="GET" class="space-y-4">
+                    <input type="hidden" id="field-event" name="event_key" value={ data.EventKey }/>
+
                     <div class="text-left">
-                        <label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Start at Match #</label>
-                        <input type="number" name="match_num" value="1" min="1"
+                        <label for="field-scouter" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Scouter</label>
+                        <div class="relative">
+                            <input id="field-scouter" type="text" name="scouter" value={ data.ScouterName } required maxlength="40"
+                                placeholder="Your name" autocomplete="off" autocapitalize="words" spellcheck="false"
+                                role="combobox" aria-autocomplete="list" aria-controls="field-scouter-suggest" aria-expanded="false"
+                                class="w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold"/>
+                            <ul id="field-scouter-suggest" role="listbox"
+                                class="hidden absolute z-20 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl shadow-lg text-left"></ul>
+                        </div>
+                        @templ.JSONScript("field-scouters", data.Scouters)
+                    </div>
+
+                    <div class="text-left">
+                        <label for="field-match" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Match #</label>
+                        <input id="field-match" type="number" name="match_num" value={ strconv.Itoa(data.MatchNum) } min="1" required
                                class="w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold" />
                     </div>
 
                     <div class="text-left">
-                        <label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Scouter #</label>
-                        <select name="scouter_id" class="w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
-                            <option value="1">Scouter 1</option>
-                            <option value="2">Scouter 2</option>
-                            <option value="3">Scouter 3</option>
-                            <option value="4">Scouter 4</option>
-                            <option value="5">Scouter 5</option>
-                            <option value="6">Scouter 6</option>
-                        </select>
+                        <span class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Scouting Mode</span>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="mode-option">
+                                <input type="radio" name="mode" value="all" class="sr-only peer" checked?={ data.Mode == "all" }/>
+                                <span class="block p-3 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]">
+                                    <span class="block font-black uppercase tracking-wide">All 6</span>
+                                    <span class="block text-xs opacity-80">every robot</span>
+                                </span>
+                            </label>
+                            <label class="mode-option">
+                                <input type="radio" name="mode" value="one" class="sr-only peer" checked?={ data.Mode == "one" }/>
+                                <span class="block p-3 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]">
+                                    <span class="block font-black uppercase tracking-wide">1 Robot</span>
+                                    <span class="block text-xs opacity-80">pick a team</span>
+                                </span>
+                            </label>
+                        </div>
                     </div>
 
-                    <div class="text-left">
-                        <label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Alliance to Scout</label>
-                        <select name="alliance" class="w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
-                            <option value="auto">Auto (based on scouter)</option>
-                            <option value="Red">Red Alliance</option>
-                            <option value="Blue">Blue Alliance</option>
-                        </select>
-                    </div>
-
-                    <button type="submit" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-5 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
-                        Join Scouting Rotation
+                    <!-- All-6 mode -->
+                    <button id="field-start-all" type="submit" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-5 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
+                        Start Scouting
                     </button>
+
+                    <!-- One-robot mode: each team button submits the form with its team -->
+                    <div id="field-team-picker" class="hidden text-left"
+                        hx-get="/api/match-teams"
+                        hx-include="#field-event, #field-match"
+                        hx-trigger="load, input changed delay:400ms from:#field-match"
+                        hx-swap="innerHTML">
+                        <p class="text-sm text-[#A1887F] ml-2">Loading teams...</p>
+                    </div>
                 </form>
             </div>
             <div class="mt-6 text-center">
-                <a href="/analysis" class="text-sm text-[#A1887F] hover:text-[#5D4037] font-bold">AI Analysis</a>
+                <a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">← Home</a>
             </div>
+            <script>
+                (function() {
+                    var form = document.getElementById('field-form');
+                    var startAll = document.getElementById('field-start-all');
+                    var picker = document.getElementById('field-team-picker');
+                    function applyMode() {
+                        var one = form.querySelector('input[name=mode]:checked').value === 'one';
+                        startAll.classList.toggle('hidden', one);
+                        picker.classList.toggle('hidden', !one);
+                    }
+                    form.querySelectorAll('input[name=mode]').forEach(function(r) { r.addEventListener('change', applyMode); });
+                    applyMode();
+
+                    // ── Scouter name type-ahead ──
+                    var input = document.getElementById('field-scouter');
+                    var suggest = document.getElementById('field-scouter-suggest');
+                    var scouters = JSON.parse(document.getElementById('field-scouters').textContent) || [];
+                    var items = [];      // names currently listed
+                    var highlighted = -1;
+
+                    // Remember the name on this device so the scouter doesn't retype it
+                    if (!input.value) {
+                        try { input.value = localStorage.getItem('vibescout.scouter') || ''; } catch (e) {}
+                    }
+                    form.addEventListener('submit', function() {
+                        input.value = input.value.replace(/\s+/g, ' ').trim();
+                        try { localStorage.setItem('vibescout.scouter', input.value); } catch (e) {}
+                    });
+
+                    function close() {
+                        suggest.classList.add('hidden');
+                        input.setAttribute('aria-expanded', 'false');
+                        highlighted = -1;
+                    }
+                    function render() {
+                        var q = input.value.trim().toLowerCase();
+                        var starts = [], contains = [];
+                        scouters.forEach(function(n) {
+                            var i = n.toLowerCase().indexOf(q);
+                            if (i === 0) starts.push(n); else if (i > 0) contains.push(n);
+                        });
+                        var names = starts.concat(contains).slice(0, 8);
+                        var exact = scouters.some(function(n) { return n.toLowerCase() === q; });
+                        items = names.slice();
+                        suggest.innerHTML = '';
+                        names.forEach(function(n) {
+                            var li = document.createElement('li');
+                            li.setAttribute('role', 'option');
+                            li.className = 'px-3 py-2 cursor-pointer font-bold text-[#5D4037]';
+                            li.textContent = n;
+                            suggest.appendChild(li);
+                        });
+                        if (q !== '' && !exact) {
+                            var typed = input.value.replace(/\s+/g, ' ').trim();
+                            items.push(typed);
+                            var li = document.createElement('li');
+                            li.setAttribute('role', 'option');
+                            li.className = 'px-3 py-2 cursor-pointer font-bold text-[#8D6E63] border-t border-[#D2B48C]';
+                            li.textContent = '+ New scouter "' + typed + '"';
+                            suggest.appendChild(li);
+                        }
+                        if (items.length === 0 || (exact && names.length === 1)) { close(); return; }
+                        highlighted = q === '' ? -1 : 0;
+                        paint();
+                        suggest.classList.remove('hidden');
+                        input.setAttribute('aria-expanded', 'true');
+                    }
+                    function paint() {
+                        Array.prototype.forEach.call(suggest.children, function(li, i) {
+                            li.classList.toggle('bg-[#F2E8D5]', i === highlighted);
+                            li.setAttribute('aria-selected', i === highlighted ? 'true' : 'false');
+                        });
+                    }
+                    function pick(i) {
+                        input.value = items[i];
+                        close();
+                    }
+
+                    input.addEventListener('input', render);
+                    input.addEventListener('focus', render);
+                    input.addEventListener('blur', close);
+                    input.addEventListener('keydown', function(e) {
+                        var open = !suggest.classList.contains('hidden');
+                        if (e.key === 'ArrowDown' && open) {
+                            e.preventDefault();
+                            highlighted = Math.min(highlighted + 1, items.length - 1);
+                            paint();
+                        } else if (e.key === 'ArrowUp' && open) {
+                            e.preventDefault();
+                            highlighted = Math.max(highlighted - 1, 0);
+                            paint();
+                        } else if (e.key === 'Enter' && open && highlighted >= 0) {
+                            e.preventDefault();
+                            pick(highlighted);
+                        } else if (e.key === 'Escape') {
+                            close();
+                        }
+                    });
+                    // mousedown so it fires before the input loses focus
+                    suggest.addEventListener('mousedown', function(e) {
+                        var li = e.target.closest('li');
+                        if (!li) return;
+                        e.preventDefault();
+                        pick(Array.prototype.indexOf.call(suggest.children, li));
+                    });
+                })();
+            </script>
         </main>
+    }
+}
+
+templ MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) {
+    <span class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Pick a team · Match { strconv.Itoa(matchNum) }</span>
+    if errMsg != "" {
+        <p class="text-sm text-red-700 ml-2">{ errMsg }</p>
+    } else {
+        <div class="grid grid-cols-3 gap-2">
+            for _, t := range teams {
+                <button type="submit" name="team" value={ t.Number } disabled?={ t.IsUs }
+                    class={ "relative p-3 rounded-xl border-2 border-b-4 font-black text-lg transition active:scale-95 disabled:opacity-50 disabled:active:scale-100",
+                        templ.KV("bg-red-50 border-red-300 text-red-800", t.Alliance == "Red" && !t.Soonest),
+                        templ.KV("bg-blue-50 border-blue-300 text-blue-800", t.Alliance == "Blue" && !t.Soonest),
+                        templ.KV("bg-amber-300 border-amber-500 text-[#4E342E] ring-2 ring-amber-400 ring-offset-1 ring-offset-[#F2E8D5]", t.Soonest) }>
+                    { t.Number }
+                    <span class={ "block text-xs font-bold uppercase tracking-wide whitespace-nowrap",
+                        templ.KV("text-red-600", t.Alliance == "Red" && !t.Soonest),
+                        templ.KV("text-blue-600", t.Alliance == "Blue" && !t.Soonest) }>
+                        if t.IsUs {
+                            Us
+                        } else if t.NextWithUs != 0 {
+                            { "Q" + strconv.Itoa(t.NextWithUs) }
+                        } else {
+                            { t.Alliance }
+                        }
+                    </span>
+                </button>
+            }
+        </div>
+        <p class="text-xs text-[#A1887F] ml-2 mt-2">
+            { "Q# = next match with or against " + OurTeam + "." }
+            <span class="whitespace-nowrap">
+                <span class="inline-block w-3 h-3 align-middle rounded bg-amber-300 border border-amber-500"></span>
+                = soonest
+            </span>
+        </p>
     }
 }

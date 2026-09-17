@@ -10,32 +10,81 @@ templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 		<main class="container mx-auto px-4 py-8">
 			<div class="max-w-4xl mx-auto">
 				<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl mb-6">
-					<h1 class="text-3xl font-black text-[#5D4037] mb-6 text-center tracking-tight uppercase">AI Analysis</h1>
+					<h1 class="text-3xl font-black text-[#5D4037] mb-1 text-center tracking-tight uppercase">AI Analysis</h1>
+					<p class="text-sm font-bold text-[#A1887F] mb-4 text-center">{ data.EventName }</p>
 
-					<form class="flex gap-4 items-end"
+					<form
 						hx-post="/api/run-analysis"
 						hx-target="#analysis-results"
 						hx-swap="innerHTML">
-						<div class="flex-1">
-							<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Event</label>
-							<select name="event_key" class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
-								for key, name := range data.Events {
-									<option value={ key } selected={ key == data.SelectedEvent }>{ name }</option>
-								}
-							</select>
-						</div>
-						<button type="submit" class="bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-3 px-6 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
+						<input type="hidden" id="event-key" name="event_key" value={ data.EventKey }/>
+						<button type="submit" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-3 px-6 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
 							Run Analysis
 						</button>
 					</form>
+
+					<div class="mt-4">
+						<label for="team-search" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Search Teams</label>
+						<input id="team-search" type="search" autocomplete="off" placeholder="Team # or keyword in scout / pit notes"
+							class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700"/>
+						<p id="team-search-status" class="text-xs text-[#A1887F] ml-2 mt-1"></p>
+					</div>
 				</div>
 
 				<div id="analysis-results"></div>
 			</div>
+			<script>
+				(function() {
+					var input = document.getElementById('team-search');
+					var status = document.getElementById('team-search-status');
+					var matches = null; // null = no filter; otherwise a Set of team numbers
+					var timer = null;
+					var seq = 0;
+
+					function applyFilter() {
+						var cards = document.querySelectorAll('#analysis-results [data-team]');
+						var shown = 0;
+						cards.forEach(function(card) {
+							var show = matches === null || matches.has(card.dataset.team);
+							card.style.display = show ? '' : 'none';
+							if (show) shown++;
+						});
+						if (matches === null) {
+							status.textContent = '';
+						} else if (cards.length === 0) {
+							status.textContent = 'Run analysis to see team cards.';
+						} else {
+							status.textContent = shown + ' of ' + cards.length + ' teams match';
+						}
+					}
+
+					function search() {
+						var q = input.value.trim();
+						if (q === '') { matches = null; applyFilter(); return; }
+						var eventKey = document.getElementById('event-key').value;
+						var mySeq = ++seq;
+						fetch('/api/search-teams?event_key=' + encodeURIComponent(eventKey) + '&q=' + encodeURIComponent(q))
+							.then(function(r) { return r.json(); })
+							.then(function(teams) {
+								if (mySeq !== seq) return; // a newer search is in flight
+								matches = new Set(teams);
+								applyFilter();
+							})
+							.catch(function() { status.textContent = 'Search failed.'; });
+					}
+
+					input.addEventListener('input', function() {
+						clearTimeout(timer);
+						timer = setTimeout(search, 250);
+					});
+					// Keep the filter applied as team cards load in
+					document.body.addEventListener('htmx:afterSettle', applyFilter);
+				})();
+			</script>
 
 			<div class="text-center mt-6 flex gap-6 justify-center">
-				<a href="/match-planner" class="text-[#A1887F] hover:text-[#5D4037] font-bold">Match Planner →</a>
-				<a href="/" class="text-[#A1887F] hover:text-[#5D4037] font-bold">← Back to Home</a>
+				<a href={ templ.SafeURL("/match-planner?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Match Planner →</a>
+				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">← Back to Home</a>
 			</div>
 		</main>
 	}
@@ -62,6 +111,7 @@ templ GeminiAnalysisProgressContainer(teams []string, eventKey string) {
 				<div
 					id={ "slot-" + team }
 					data-team-slot="true"
+					data-team={ team }
 					hx-get={ "/api/analyze-team?event_key=" + eventKey + "&team_number=" + team }
 					hx-trigger="load"
 					hx-swap="outerHTML"
@@ -105,24 +155,36 @@ templ GeminiAnalysisProgressContainer(teams []string, eventKey string) {
 }
 
 templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
-	<div class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md">
+	<div data-team={ card.TeamNumber } class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md">
 		<!-- Header row -->
-		<div class="flex justify-between items-center mb-4">
-			<h2 class="text-xl font-black text-[#5D4037]">Team { card.TeamNumber }</h2>
-			<div class="flex items-center gap-2">
+		<div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+			<h2 class="text-xl font-black text-[#5D4037] whitespace-nowrap">Team { card.TeamNumber }</h2>
+			<div class="flex flex-wrap items-center gap-2">
 				if card.FromCache {
 					<span class="text-xs font-bold px-3 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-300">Cached</span>
 				} else {
 					<span class="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-300">Fresh</span>
 				}
-				<button
-					class="text-xs font-bold px-3 py-1 rounded-full bg-[#F2E8D5] text-[#8D6E63] border border-[#D2B48C] hover:bg-[#D2B48C] transition"
-					hx-get={ "/api/team-notes?event_key=" + card.EventKey + "&team_number=" + card.TeamNumber }
-					hx-target={ "#notes-" + card.TeamNumber }
-					hx-swap="innerHTML"
-					hx-on:click="this.style.display='none'">
-					View Notes
-				</button>
+				if card.HasNotes {
+					<button
+						class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap bg-[#F2E8D5] text-[#8D6E63] border border-[#D2B48C] hover:bg-[#D2B48C] transition"
+						hx-get={ "/api/team-notes?event_key=" + card.EventKey + "&team_number=" + card.TeamNumber }
+						hx-target={ "#notes-" + card.TeamNumber }
+						hx-swap="innerHTML"
+						hx-on::before-request="var t = event.detail.target; if (t.innerHTML.trim() !== '') { t.innerHTML = ''; event.preventDefault(); }">
+						View Notes
+					</button>
+				}
+				if card.HasPitNotes {
+					<button
+						class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap bg-[#F2E8D5] text-[#8D6E63] border border-[#D2B48C] hover:bg-[#D2B48C] transition"
+						hx-get={ "/api/team-pit-notes?team_number=" + card.TeamNumber }
+						hx-target={ "#pit-notes-" + card.TeamNumber }
+						hx-swap="innerHTML"
+						hx-on::before-request="var t = event.detail.target; if (t.innerHTML.trim() !== '') { t.innerHTML = ''; event.preventDefault(); }">
+						Pit Notes
+					</button>
+				}
 			</div>
 		</div>
 
@@ -138,19 +200,62 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 
 		<!-- Notes (loaded on demand) -->
 		<div id={ "notes-" + card.TeamNumber }></div>
+		<div id={ "pit-notes-" + card.TeamNumber }></div>
 	</div>
+}
+
+templ closePanelButton() {
+	<button type="button" class="text-xs font-bold px-2 py-0.5 rounded-full text-[#8D6E63] hover:bg-[#D2B48C] transition"
+		onclick="this.closest('[data-notes-panel]').parentElement.innerHTML = ''">
+		✕ Close
+	</button>
 }
 
 templ TeamNotesPanel(notes []TeamNote) {
 	if len(notes) == 0 {
-		<p class="mt-4 text-sm text-[#A1887F] italic">No scouting notes found.</p>
+		<div data-notes-panel class="mt-4 flex justify-between items-center">
+			<p class="text-sm text-[#A1887F] italic">No scouting notes found.</p>
+			@closePanelButton()
+		</div>
 	} else {
-		<div class="mt-4 border-t border-[#D2B48C] pt-4 space-y-3">
-			<h3 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest">Scout Notes</h3>
+		<div data-notes-panel class="mt-4 border-t border-[#D2B48C] pt-4 space-y-3">
+			<div class="flex justify-between items-center">
+				<h3 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest">Scout Notes</h3>
+				@closePanelButton()
+			</div>
 			for _, note := range notes {
 				<div class="bg-[#F2E8D5] rounded-xl px-4 py-3">
-					<span class="text-xs font-bold text-[#8D6E63] uppercase">Match { fmt.Sprintf("%d", note.MatchNum) }</span>
+					<div class="flex justify-between items-baseline gap-2">
+						<span class="text-xs font-bold text-[#8D6E63] uppercase">Match { fmt.Sprintf("%d", note.MatchNum) }</span>
+						if note.AIGenerated {
+							<span class="text-xs font-bold text-[#A1887F]">Gemini (video)</span>
+						} else if note.ScouterName != "" {
+							<span class="text-xs font-bold text-[#A1887F] truncate">{ note.ScouterName }</span>
+						}
+					</div>
 					<p class="text-sm text-stone-700 mt-1 whitespace-pre-wrap">{ note.Notes }</p>
+				</div>
+			}
+		</div>
+	}
+}
+
+templ TeamPitNotesPanel(notes []PitNote) {
+	if len(notes) == 0 {
+		<div data-notes-panel class="mt-4 flex justify-between items-center">
+			<p class="text-sm text-[#A1887F] italic">No pit scouting notes found.</p>
+			@closePanelButton()
+		</div>
+	} else {
+		<div data-notes-panel class="mt-4 border-t border-[#D2B48C] pt-4 space-y-3">
+			<div class="flex justify-between items-center">
+				<h3 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest">Pit Scouting</h3>
+				@closePanelButton()
+			</div>
+			for _, note := range notes {
+				<div class="bg-[#F2E8D5] rounded-xl px-4 py-3">
+					<span class="text-xs font-bold text-[#8D6E63] uppercase">{ note.CreatedAt }</span>
+					<p class="text-sm text-stone-700 mt-1 whitespace-pre-wrap">{ note.Summary }</p>
 				</div>
 			}
 		</div>

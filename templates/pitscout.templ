@@ -1,0 +1,304 @@
+package templates
+
+import "fmt"
+
+var pitScoutQuestions = []string{
+	"Driver safety: would they run you over?",
+	"Biggest robot problem this season?",
+	"2 matches back to back (battery swap only)? 3?",
+	"In-match problems & how you fixed them?",
+	"How would you do without mentors here?",
+	"Fab & assembly: hard or easy?",
+	"If limited to one game task, which?",
+	"Team's biggest strength?",
+	"Robot part you're most proud of?",
+	"How much of the design is in CAD?",
+	"Pre-game checklist?",
+	"Debugging checklist when broken?",
+	"Team organization (mentors, captains, leads)?",
+	"Ask about the robot: why this choice? anything odd?",
+}
+
+templ PitScoutPage(eventKey string, eventName string) {
+	@Layout("Vibe Scout | Pit Scouting") {
+		<style>
+			#pit-teams.hide-scouted [data-scouted] { display: none; }
+		</style>
+		<main class="flex flex-col items-center justify-center min-h-screen px-3 py-6">
+			<div class="w-full max-w-md md:max-w-4xl bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-4 md:p-6 shadow-xl">
+				<h1 class="text-2xl font-black text-[#5D4037] mb-1 text-center tracking-tight uppercase">Pit Scouting</h1>
+				<p class="text-sm font-bold text-[#A1887F] mb-3 text-center">{ eventName }</p>
+				<input type="hidden" id="pit-event" name="event_key" value={ eventKey }/>
+
+				<!-- Form first so the team list sits below it on mobile and beside it on desktop -->
+				<div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_16rem] md:gap-6">
+					<div>
+						<form id="pit-form" class="space-y-3"
+							hx-post="/api/save-pit-scout"
+							hx-target="#pit-result"
+							hx-swap="innerHTML">
+							<div>
+								<label for="pit-team-number" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Team #</label>
+								<div class="relative">
+									<input id="pit-team-number" type="text" name="team_number" inputmode="numeric" pattern="[0-9]+" placeholder="Start typing a team number" required
+										autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="pit-team-suggest" aria-expanded="false"
+										class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold"/>
+									<ul id="pit-team-suggest" role="listbox"
+										class="hidden absolute z-10 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl shadow-lg"></ul>
+								</div>
+								<div id="pit-edit-status" class="hidden mt-2 ml-2 text-sm font-bold text-[#8D6E63]"></div>
+							</div>
+
+							<div>
+								<label for="pit-summary" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Ask about</label>
+								<ol class="list-decimal list-inside text-base leading-snug text-[#5D4037] bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl px-3 py-2 mb-2 space-y-1">
+									for _, q := range pitScoutQuestions {
+										<li>{ q }</li>
+									}
+								</ol>
+								<textarea id="pit-summary" name="summary" rows="8" required placeholder="Summary of their answers..."
+									class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700"></textarea>
+							</div>
+
+							<button id="pit-submit" type="submit" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-4 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
+								Save Pit Scouting
+							</button>
+						</form>
+						<div id="pit-result" class="mt-3 text-center font-bold text-[#5D4037]"></div>
+					</div>
+
+					<div>
+						<div class="flex justify-between items-center ml-2 mb-1">
+							<label class="text-xs font-bold uppercase text-[#A1887F]">Teams</label>
+							<label class="flex items-center gap-1.5 text-xs font-bold text-[#8D6E63] cursor-pointer select-none">
+								<input id="pit-hide-scouted" type="checkbox" class="accent-[#8D6E63]"/>
+								Hide scouted
+							</label>
+						</div>
+						<div id="pit-teams"
+							hx-get="/api/pit-teams"
+							hx-include="#pit-event"
+							hx-trigger="load, pitSaved from:body"
+							hx-swap="innerHTML">
+							<p class="text-sm text-[#A1887F] ml-2">Loading teams...</p>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="mt-4 text-center">
+				<a href={ templ.SafeURL("/?event_key=" + eventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">← Home</a>
+			</div>
+			<script>
+				(function() {
+					var teams = document.getElementById('pit-teams');
+					var hide = document.getElementById('pit-hide-scouted');
+					var form = document.getElementById('pit-form');
+					var input = document.getElementById('pit-team-number');
+					var suggest = document.getElementById('pit-team-suggest');
+					var summary = document.getElementById('pit-summary');
+					var status = document.getElementById('pit-edit-status');
+					var submit = document.getElementById('pit-submit');
+
+					var currentTeam = null;   // team whose notes state is loaded
+					var loadedSummary = null; // existing notes put in the text box, if any
+					var loadSeq = 0;
+					var highlighted = -1;
+
+					// ── Existing notes ──
+					function setStatus(html) {
+						status.innerHTML = html;
+						status.classList.toggle('hidden', html === '');
+					}
+					function setEditing(team, text) {
+						summary.value = text;
+						loadedSummary = text;
+						setStatus('✎ Editing existing notes for team ' + team);
+						submit.textContent = 'Update Pit Scouting';
+					}
+					function setNew() {
+						loadedSummary = null;
+						setStatus('');
+						submit.textContent = 'Save Pit Scouting';
+					}
+					// True if the text box holds something the scout typed that isn't saved anywhere
+					function hasUnsavedText() {
+						return summary.value.trim() !== '' && summary.value !== (loadedSummary || '');
+					}
+
+					function loadTeam(team) {
+						team = (team || '').trim();
+						if (team === currentTeam) return;
+						currentTeam = team;
+						var seq = ++loadSeq;
+						if (team === '') {
+							if (!hasUnsavedText()) summary.value = '';
+							setNew();
+							return;
+						}
+						fetch('/api/pit-note?team_number=' + encodeURIComponent(team))
+							.then(function(r) { return r.json(); })
+							.then(function(note) {
+								if (seq !== loadSeq) return; // a newer team was picked
+								if (!note.exists) {
+									if (!hasUnsavedText()) summary.value = '';
+									setNew();
+									return;
+								}
+								if (!hasUnsavedText()) {
+									setEditing(team, note.summary);
+									return;
+								}
+								// Don't clobber what they typed; let them choose
+								setStatus('Team ' + team + ' already has notes. Saving will replace them. ' +
+									'<button type="button" id="pit-load-existing" class="underline">Load existing notes</button>');
+								submit.textContent = 'Update Pit Scouting';
+								loadedSummary = null;
+								document.getElementById('pit-load-existing').onclick = function() {
+									setEditing(team, note.summary);
+									summary.focus();
+								};
+							});
+					}
+
+					// ── Type-ahead ──
+					function eventTeams() {
+						return Array.prototype.map.call(teams.querySelectorAll('[data-pit-team]'), function(b) {
+							return { number: b.dataset.pitTeam, scouted: b.hasAttribute('data-scouted') };
+						});
+					}
+					function closeSuggest() {
+						suggest.classList.add('hidden');
+						input.setAttribute('aria-expanded', 'false');
+						highlighted = -1;
+					}
+					function renderSuggest() {
+						var q = input.value.trim();
+						if (q === '') { closeSuggest(); return; }
+						var all = eventTeams();
+						var starts = all.filter(function(t) { return t.number.indexOf(q) === 0; });
+						var contains = all.filter(function(t) { return t.number.indexOf(q) > 0; });
+						var list = starts.concat(contains).slice(0, 8);
+						if (list.length === 0 || (list.length === 1 && list[0].number === q)) { closeSuggest(); return; }
+						highlighted = 0;
+						suggest.innerHTML = '';
+						list.forEach(function(t, i) {
+							var li = document.createElement('li');
+							li.setAttribute('role', 'option');
+							li.dataset.team = t.number;
+							li.className = 'suggest-item flex justify-between items-center px-3 py-2 cursor-pointer font-bold text-[#5D4037]';
+							li.innerHTML = '<span></span>' + (t.scouted ? '<span class="text-xs font-bold text-[#A1887F]">scouted · edit</span>' : '');
+							li.firstChild.textContent = t.number;
+							suggest.appendChild(li);
+						});
+						paintHighlight();
+						suggest.classList.remove('hidden');
+						input.setAttribute('aria-expanded', 'true');
+					}
+					function paintHighlight() {
+						Array.prototype.forEach.call(suggest.children, function(li, i) {
+							li.classList.toggle('bg-[#F2E8D5]', i === highlighted);
+							li.setAttribute('aria-selected', i === highlighted ? 'true' : 'false');
+						});
+					}
+					function pick(team) {
+						input.value = team;
+						closeSuggest();
+						loadTeam(team);
+						summary.focus();
+					}
+
+					input.addEventListener('input', function() {
+						input.value = input.value.replace(/[^0-9]/g, '');
+						renderSuggest();
+					});
+					input.addEventListener('keydown', function(e) {
+						var open = !suggest.classList.contains('hidden');
+						if (e.key === 'ArrowDown' && open) {
+							e.preventDefault();
+							highlighted = Math.min(highlighted + 1, suggest.children.length - 1);
+							paintHighlight();
+						} else if (e.key === 'ArrowUp' && open) {
+							e.preventDefault();
+							highlighted = Math.max(highlighted - 1, 0);
+							paintHighlight();
+						} else if (e.key === 'Enter') {
+							e.preventDefault(); // never submit from the team box
+							if (open && highlighted >= 0) pick(suggest.children[highlighted].dataset.team);
+							else pick(input.value);
+						} else if (e.key === 'Escape') {
+							closeSuggest();
+						}
+					});
+					// mousedown so it fires before the input loses focus
+					suggest.addEventListener('mousedown', function(e) {
+						var li = e.target.closest('[data-team]');
+						if (!li) return;
+						e.preventDefault();
+						pick(li.dataset.team);
+					});
+					input.addEventListener('blur', function() {
+						closeSuggest();
+						loadTeam(input.value);
+					});
+
+					// ── Team list ──
+					teams.addEventListener('click', function(e) {
+						var btn = e.target.closest('[data-pit-team]');
+						if (!btn) return;
+						pick(btn.dataset.pitTeam);
+					});
+					// The class lives on the htmx container, so it survives list refreshes
+					hide.addEventListener('change', function() {
+						teams.classList.toggle('hide-scouted', hide.checked);
+					});
+
+					// ── After saving, start fresh for the next team ──
+					form.addEventListener('htmx:afterRequest', function(e) {
+						if (e.detail.elt !== form || !e.detail.successful) return;
+						form.reset();
+						currentTeam = null;
+						setNew();
+					});
+				})();
+			</script>
+		</main>
+	}
+}
+
+templ PitTeamList(teams []PitTeam, errMsg string) {
+	if errMsg != "" {
+		<p class="text-sm text-red-700 ml-2">{ errMsg }</p>
+	} else if len(teams) == 0 {
+		<p class="text-sm text-[#A1887F] ml-2">No teams listed for this event yet.</p>
+	} else {
+		<div class="flex flex-wrap content-start gap-1.5 max-h-60 md:max-h-[36rem] overflow-y-auto bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl p-2">
+			for _, t := range teams {
+				if t.Scouted {
+					<button type="button" data-pit-team={ t.Number } data-scouted
+						class="px-2.5 py-1 rounded-lg text-sm font-bold line-through text-stone-400 bg-stone-100 border border-stone-200">
+						{ t.Number }
+					</button>
+				} else {
+					<button type="button" data-pit-team={ t.Number }
+						class="px-2.5 py-1 rounded-lg text-sm font-bold text-[#5D4037] bg-[#FFFBF5] border border-[#D2B48C] hover:bg-[#D2B48C] transition">
+						{ t.Number }
+					</button>
+				}
+			}
+		</div>
+		<p class="text-xs text-[#A1887F] ml-2 mt-1">
+			{ fmt.Sprintf("%d of %d scouted", countScouted(teams), len(teams)) } · tap a team to fill it in
+		</p>
+	}
+}
+
+func countScouted(teams []PitTeam) int {
+	n := 0
+	for _, t := range teams {
+		if t.Scouted {
+			n++
+		}
+	}
+	return n
+}

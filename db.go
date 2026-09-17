@@ -60,6 +60,17 @@ func initDB() {
       UNIQUE(event_key, team_number, match_num)
     );`)
 
+	db.Exec(`
+    CREATE TABLE IF NOT EXISTS pit_scouting (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      team_number TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`)
+
 	// Idempotent migration: add ai_generated flag if it doesn't exist yet
 	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN ai_generated INTEGER DEFAULT 0`)
+
+	// Idempotent migration: scouters are identified by name (scouter_id is legacy)
+	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN scouter_name TEXT DEFAULT ''`)
 }

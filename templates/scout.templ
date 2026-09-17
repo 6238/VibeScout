@@ -2,7 +2,7 @@ package templates
 
 import "strconv"
 
-templ ScoutPage(event, match, scouterID, alliance string, teams []string, teamDataCounts map[string]int) {
+templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTeam) {
 	@Layout("Vibe Scout | Match " + match) {
 		<style>
 			.page-transition { animation: slideIn 0.3s ease-out; }
@@ -14,31 +14,46 @@ templ ScoutPage(event, match, scouterID, alliance string, teams []string, teamDa
 			<!-- Header -->
 			<div class="max-w-4xl mx-auto mb-4 flex justify-between items-center bg-[#F2E8D5] p-4 rounded-2xl border-2 border-[#D2B48C] shadow-lg">
 				<div>
-					<p class="text-xs font-bold text-[#A1887F] uppercase">Match { match } • { scouterID }</p>
+					<p class="text-xs font-bold text-[#A1887F] uppercase">Match { match } • { scouterName }</p>
 					<h1 class="text-lg font-black text-[#5D4037] uppercase truncate">{ event }</h1>
 				</div>
-				<div class={ "px-4 py-1 rounded-xl font-black text-sm border-2",
-					templ.KV("bg-red-100 border-red-400 text-red-700", alliance == "Red"),
-					templ.KV("bg-blue-100 border-blue-400 text-blue-700", alliance == "Blue") }>
-					{ alliance }
-				</div>
+				if oneRobot {
+					<div class={ "px-4 py-1 rounded-xl font-black text-sm border-2",
+						templ.KV("bg-red-100 border-red-400 text-red-700", teams[0].Alliance == "Red"),
+						templ.KV("bg-blue-100 border-blue-400 text-blue-700", teams[0].Alliance == "Blue") }>
+						{ teams[0].Alliance }
+					</div>
+				} else {
+					<div class="px-4 py-1 rounded-xl font-black text-sm border-2 bg-[#FFFBF5] border-[#D2B48C] text-[#5D4037]">
+						All 6
+					</div>
+				}
 			</div>
 
 			<!-- Notes Section -->
 			<div class="max-w-4xl mx-auto mb-5 section-card p-4">
 				<h2 class="text-lg font-black text-[#5D4037] uppercase mb-4 text-center">Notes</h2>
-				<div class="grid grid-cols-3 gap-4">
+				<div class={ "grid gap-4", templ.KV("grid-cols-3", !oneRobot), templ.KV("max-w-xl mx-auto", oneRobot) }>
 					for _, team := range teams {
-						<div data-team-card={ team }>
-							<label class="block text-sm font-black text-[#5D4037] mb-2 text-center">
-						Team { team }
-						<span class="ml-1 text-xs font-bold text-[#8D6E63]">({ strconv.Itoa(teamDataCounts[team]) } pts)</span>
-					</label>
+						<div data-team-card={ team.Number }>
+							<label class={ "block text-sm font-black mb-2 text-center",
+								templ.KV("text-red-700", team.Alliance == "Red"),
+								templ.KV("text-blue-700", team.Alliance == "Blue") }>
+								Team { team.Number }
+								<span class="ml-1 text-xs font-bold text-[#8D6E63]">({ strconv.Itoa(team.DataCount) } pts)</span>
+							</label>
 							<textarea
-								name={ "notes_" + team }
-								rows="12"
-								class="w-full p-3 text-sm bg-white border-2 border-[#D2B48C] rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]"
+								name={ "notes_" + team.Number }
+								if oneRobot {
+									rows="16"
+								} else {
+									rows="10"
+								}
+								class={ "w-full p-3 text-sm bg-white border-2 rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]",
+									templ.KV("border-red-300", team.Alliance == "Red"),
+									templ.KV("border-blue-300", team.Alliance == "Blue") }
 								placeholder="Observations..."></textarea>
+							<p class="mt-1 text-xs text-center text-[#A1887F]">Notes are saved when you press Next Match</p>
 						</div>
 					}
 				</div>
@@ -57,8 +72,8 @@ templ ScoutPage(event, match, scouterID, alliance string, teams []string, teamDa
 				const params = new URLSearchParams(window.location.search);
 				const eventKey = params.get('event_key') || '';
 				const matchNum = parseInt(params.get('match_num') || '1');
-				const scouterId = params.get('scouter_id') || '1';
-				const alliance = params.get('alliance') || '';
+				const scouter = params.get('scouter') || '';
+				const pickedTeam = params.get('team');
 
 				const teamCards = document.querySelectorAll('[data-team-card]');
 				const teams = Array.from(teamCards).map(card => ({
@@ -69,7 +84,7 @@ templ ScoutPage(event, match, scouterID, alliance string, teams []string, teamDa
 				const submission = {
 					event_key: eventKey,
 					match_num: matchNum,
-					scouter_id: parseInt(scouterId),
+					scouter_name: scouter,
 					teams: teams
 				};
 
@@ -81,9 +96,15 @@ templ ScoutPage(event, match, scouterID, alliance string, teams []string, teamDa
 					});
 
 					if (resp.ok) {
-						let nextUrl = `/scout?event_key=${eventKey}&match_num=${matchNum + 1}&scouter_id=${scouterId}`;
-						if (alliance) nextUrl += `&alliance=${alliance}`;
-						window.location.href = nextUrl;
+						const next = new URLSearchParams({ event_key: eventKey, match_num: matchNum + 1, scouter: scouter });
+						if (pickedTeam) {
+							// One-robot mode: back to Field Scouting to pick a team for the next match
+							next.set('mode', 'one');
+							window.location.href = '/field-scout?' + next;
+						} else {
+							next.set('mode', 'all');
+							window.location.href = '/scout?' + next;
+						}
 					} else {
 						alert('Failed to save scout data.');
 					}
