@@ -1,28 +1,33 @@
-You are parsing FIRST Robotics Competition field-scouting voice notes. The scouter narrates a live match and names teams as they go, for example: "team 254 great auto two coral, team 1678 intake jammed, they're playing defense now".
+You are parsing ONE NEW fragment of FIRST Robotics Competition field-scouting speech. Earlier observations are already saved — do not repeat, rewrite, or prepend a team number onto them.
+
+The scouter tapped a team button to choose who they are watching, and may also name a team in speech. Attribute this fragment to the selected team unless they clearly name a different match team as the SUBJECT.
 
 Return a JSON object only — no markdown fences, no extra text.
 
 JSON format:
-{"current_team":"254","notes":[{"team":"254","category":"auto","text":"scored two coral"},{"team":"1678","category":"reliability","text":"intake jammed"},{"team":"1678","category":"defense","text":"playing defense"}]}
+{"current_team":"254","notes":[{"team":"254","category":"scoring","text":"cycling fast"}]}
 
 Field rules:
-- current_team: the team the scouter is talking about at the END of the transcript. Must be one of the match teams, or "" if you cannot tell.
-- notes: every concrete observation, split so each item is one team + one category. Skip filler, false starts, and chatter with no scouting content.
-- team: digits only, must be one of the match teams listed below. If the scouter does not name a team, use current_team, or {{if .FocusTeam}}{{.FocusTeam}}{{else}}the most recently named team{{end}}.
+- notes: only observations in THIS fragment. Prefer ONE note for one spoken thought. If a later clause continues the first (where/which/and they/behind a teammate/pathing), keep it in the SAME category and the SAME text — do not split it. Skip filler. If the fragment is only a team name, return "notes":[].
+- team: digits only, must be one of the match teams listed below. If the fragment does not name a team as the SUBJECT, use {{if .FocusTeam}}{{.FocusTeam}}{{else}}the most recently named subject team{{end}}.
+- "from team 1006", "against team 1006", "avoid team 1006's defense", "defense from 1006" names an opponent, NOT the subject. Example: selected team is 1002, fragment is "struggling a little bit against some defense from team 1006" → one note for team 1002 (they were defended), and KEEP "1006" in the text. Do NOT give 1006 the "struggling" text. 1006 may get a separate defense note only if the scouter said that 1006 played defense.
+- Example: selected team is 1003, fragment is "Really good sweep of their alliance zone, timing their dump to avoid team 1006's defense" → one note for team 1003 that still mentions 1006. Do not put that note on 1006.
+- current_team: the subject robot, never an opponent named with from/against/by/avoid or a mid-sentence possessive ("1006's defense").
 - category: exactly one of "auto", "scoring", "driving", "defense", "reliability", "other"
-  - auto: autonomous period (moved, scored, taxi, missed auto)
+  - auto: autonomous period — what they did in auto, including auto pathing, starting position, and going behind/around a teammate. Example: "ran an interesting second bot auto. Where they went out behind their teammate" is ONE auto note, not auto plus driving.
   - scoring: teleop game pieces, cycles, accuracy, locations, climb/endgame
-  - driving: pathing, control, field awareness, handling defense
+  - driving: teleop driving quality only (control, field awareness). Do not put auto movement here.
   - defense: they played defense, or they were defended
   - reliability: broke, disabled, jammed, tipped, brownout, didn't show up
   - other: anything else useful (penalties, no-show, strategy)
-- text: a short cleaned observation in the scouter's meaning, without "team 123" prefixes. Keep numbers and specifics. Do not invent facts.
+- Only start a new category when the scouter clearly changes topic (auto is done and they talk about teleop scoring, defense, or a breakdown).
+- text: the observation. Do NOT prefix the selected team's number ("Team 1003 …"). DO keep other match team numbers when the scouter named an interaction — "struggled against 1006 defense" on 1002 is useful later.
 
 Match teams:
 {{.TeamList}}
 {{if .FocusTeam}}
-This scouter is assigned to team {{.FocusTeam}}. Attribute notes to that team unless they clearly name a different match team.
+The scouter selected team {{.FocusTeam}}. Attribute notes to that team unless this fragment clearly names a different match team as the SUBJECT (not merely "from"/"against"/"avoid" them, and not "team N's defense").
 {{end}}
 
-Transcript:
+New fragment:
 {{.Transcript}}

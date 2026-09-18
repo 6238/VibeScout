@@ -67,11 +67,19 @@
     return parts.join(' ').replace(/\s+/g, ' ').trim();
   }
 
+  function emptyCaption() {
+    return oneRobot ? 'Talk, or type in the notes box.' : 'Tap a notes box, then talk. Saying “team 1234” also switches.';
+  }
+
   function renderCaption() {
-    if (captionEl) captionEl.textContent = fullTranscript() || 'Say “team 1234 …” and notes will land on that robot.';
+    if (captionEl) captionEl.textContent = fullTranscript() || emptyCaption();
   }
 
   function highlightTeam(team) {
+    if (oneRobot) {
+      voice.talkingAbout = focusTeam;
+      return;
+    }
     voice.talkingAbout = team || '';
     document.querySelectorAll('[data-team-card]').forEach(function (card) {
       var on = team && card.getAttribute('data-team-card') === team;
@@ -88,6 +96,59 @@
     talkingTeamEl.classList.toggle('text-red-700', meta && meta.alliance === 'Red');
     talkingTeamEl.classList.toggle('text-blue-700', meta && meta.alliance === 'Blue');
     talkingEl.classList.remove('invisible');
+  }
+
+  function sendFocus(team) {
+    if (!team) return;
+    if (voice.ws && voice.ws.readyState === 1) {
+      try { voice.ws.send(JSON.stringify({ type: 'focus', team: team })); } catch (e) {}
+    }
+  }
+
+  function selectTeam(team) {
+    if (oneRobot || !team) return;
+    highlightTeam(team);
+    sendFocus(team);
+  }
+
+  function activateTag(team, tag) {
+    var card = document.querySelector('[data-team-card="' + team + '"]');
+    if (!card) return;
+    var btns = card.querySelectorAll('[data-tag-btn]');
+    for (var i = 0; i < btns.length; i++) {
+      if (btns[i].getAttribute('data-tag') === tag) {
+        btns[i].classList.add('active');
+        return;
+      }
+    }
+  }
+
+  function tagsFromText(text) {
+    var t = String(text || '');
+    var tags = [];
+    if (/\b(broke|broken|broke down|disabled)\b/i.test(t)) tags.push('Broke');
+    if (/\b(was defended|being defended|got defended|against (?:some )?defense|struggling .{0,40}defense|avoid .{0,80}defense)\b/i.test(t)) {
+      tags.push('Was Defended');
+    }
+    if (/\b(played defense|playing defense|plays defense)\b/i.test(t)) tags.push('Played Defense');
+    return tags;
+  }
+
+  function applyQuickTags(team, text) {
+    if (!team) return;
+    tagsFromText(text).forEach(function (tag) { activateTag(team, tag); });
+  }
+
+  function applyQuickTagsFromNotes() {
+    teams.forEach(function (t) {
+      var bits = [];
+      (voice.items || []).forEach(function (n) {
+        if (n.team === t.number && n.text) bits.push(n.text);
+      });
+      var ta = textareaFor(t.number);
+      if (ta && ta.value) bits.push(ta.value);
+      applyQuickTags(t.number, bits.join(' '));
+    });
   }
 
   function renderCats(team, items) {
@@ -123,6 +184,7 @@
       }
       renderCats(t.number, voice.items);
     });
+    applyQuickTagsFromNotes();
   }
 
   function escapeHtml(s) {
@@ -194,8 +256,9 @@
       if (msg.type === 'ready') {
         voice.ready = true;
         voice.used = true;
-        setStatus('Listening — name a team, then talk.', true);
+        setStatus(oneRobot ? 'Listening.' : 'Listening — tap a notes box, then talk.', true);
         if (nextBtn) nextBtn.textContent = 'Review & next →';
+        sendFocus(oneRobot ? focusTeam : voice.talkingAbout);
       } else if (msg.type === 'interim') {
         voice.interim = msg.text || '';
         renderCaption();
@@ -203,6 +266,7 @@
         if (msg.text) voice.finals.push(msg.text);
         voice.interim = '';
         renderCaption();
+        applyQuickTags(oneRobot ? focusTeam : voice.talkingAbout, msg.text);
       } else if (msg.type === 'talking_about') {
         highlightTeam(msg.team);
       } else if (msg.type === 'notes') {
@@ -249,22 +313,6 @@
     voice.ws = null;
     teardownAudio();
     setStatus(voice.used ? 'Review your notes, or listen again.' : 'Mic off — tap to dictate notes.', false);
-  }
-
-  async function sortFullTranscript() {
-    var transcript = voice.finals.join(' ').replace(/\s+/g, ' ').trim();
-    if (!transcript) return null;
-    var resp = await fetch('/api/sort-notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        transcript: transcript,
-        focus_team: focusTeam,
-        teams: teams.map(function (t) { return { number: t.number, alliance: t.alliance }; })
-      })
-    });
-    if (!resp.ok) throw new Error(await resp.text());
-    return resp.json();
   }
 
   function itemsFromReview() {
@@ -356,15 +404,6 @@
     review.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
     fillReview({ items: voice.items });
-    try {
-      var sorted = await sortFullTranscript();
-      if (sorted) {
-        applyNotes(sorted);
-        fillReview(sorted);
-      }
-    } catch (err) {
-      reviewError.textContent = 'Could not re-sort the transcript automatically. Check the categories against what you said, then save.';
-    }
   }
 
   function closeReview() {
@@ -381,6 +420,7 @@
         ta.value = notes[t.number] || ta.value;
       }
     });
+    applyQuickTagsFromNotes();
     closeReview();
     window.saveAndAdvance();
   }
@@ -388,6 +428,14 @@
   document.querySelectorAll('[data-team-card] textarea').forEach(function (ta) {
     ta.addEventListener('input', function () { ta.dataset.userEdited = '1'; });
   });
+
+  if (!oneRobot) {
+    document.querySelectorAll('[data-team-card]').forEach(function (card) {
+      card.addEventListener('pointerdown', function () {
+        selectTeam(card.getAttribute('data-team-card'));
+      });
+    });
+  }
 
   if (toggleBtn) {
     toggleBtn.addEventListener('click', function () {

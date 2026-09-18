@@ -30,8 +30,9 @@ const geminiLiveWS = "wss://generativelanguage.googleapis.com/ws/google.ai.gener
 const transcribeLiveModel = "models/gemini-3.5-transcribe-live"
 
 var (
-	teamPrefixedRe = regexp.MustCompile(`(?i)\bteam\s+(\d{1,5})\b`)
+	teamPrefixedRe = regexp.MustCompile(`(?i)\bteam\s+(\d{1,5})(?:['’]s)?\b`)
 	bareTeamNumRe  = regexp.MustCompile(`\b(\d{3,5})\b`)
+	collapseSpace  = regexp.MustCompile(`\s+`)
 )
 
 var noteCategories = []string{"auto", "scoring", "driving", "defense", "reliability", "other"}
@@ -209,11 +210,21 @@ func sortVoiceNotes(req SortNotesRequest) (SortNotesResponse, error) {
 		if noteCategoryLabels[n.Category] == "" {
 			n.Category = "other"
 		}
+		if focus != "" && isOpponentOnly(req.Transcript, n.Team, mapsKeys(allowed)) {
+			if beingDefendedRe.MatchString(n.Text) || !playedDefenseRe.MatchString(n.Text) {
+				n.Team = focus
+			}
+		}
+		n.Text = cleanNoteText(n.Text, n.Team)
+		if n.Text == "" {
+			continue
+		}
 		items = append(items, n)
 	}
+	items = mergeRelatedNotes(items)
 
 	current := strings.TrimSpace(parsed.CurrentTeam)
-	if !allowed[current] {
+	if !allowed[current] || isOpponentOnly(req.Transcript, current, mapsKeys(allowed)) {
 		current = detectCurrentTeam(req.Transcript, mapsKeys(allowed))
 	}
 	if current == "" && allowed[focus] {
@@ -285,9 +296,79 @@ func mapsKeys(m map[string]bool) []string {
 	return keys
 }
 
-// detectCurrentTeam returns the last match-team mentioned in text. A "team 8"
-// prefix matches any length; a bare number only counts if it is 3+ digits so
-// "scored 2" does not steal team 2.
+var opponentPrep = map[string]bool{
+	"from":     true,
+	"against":  true,
+	"by":       true,
+	"vs":       true,
+	"versus":   true,
+	"off":      true,
+	"avoid":    true,
+	"avoiding": true,
+	"dodge":    true,
+	"dodging":  true,
+	"around":   true,
+	"past":     true,
+	"than":     true,
+	"facing":   true,
+}
+
+func isUtteranceStart(text string, idx int) bool {
+	if idx <= 0 {
+		return true
+	}
+	return strings.TrimSpace(strings.Trim(text[:idx], ".,;:!?\"'")) == ""
+}
+
+func isPossessiveSpan(text string, start, end int) bool {
+	if start < 0 || end < start || end > len(text) {
+		return false
+	}
+	span := strings.ToLower(text[start:end])
+	if strings.Contains(span, "'s") || strings.Contains(span, "’s") {
+		return true
+	}
+	if end >= len(text) {
+		return false
+	}
+	rest := text[end:]
+	return strings.HasPrefix(rest, "'s") || strings.HasPrefix(rest, "’s")
+}
+
+func isOpponentContext(text string, idx int) bool {
+	if idx <= 0 {
+		return false
+	}
+	fields := strings.Fields(strings.ToLower(strings.TrimSpace(text[:idx])))
+	if len(fields) == 0 {
+		return false
+	}
+	w := strings.Trim(fields[len(fields)-1], ".,;:!?")
+	if opponentPrep[w] {
+		return true
+	}
+	// "from team 1006" — the digits sit after the word "team"
+	if w == "team" && len(fields) >= 2 {
+		return opponentPrep[strings.Trim(fields[len(fields)-2], ".,;:!?")]
+	}
+	return false
+}
+
+func isOpponentMention(text string, idx, end int) bool {
+	if isOpponentContext(text, idx) {
+		return true
+	}
+	// Mid-sentence "team 1006's defense" is the opponent, not a subject switch.
+	// Possessive at the start ("Team 1006's auto") can still be the subject.
+	if isPossessiveSpan(text, idx, end) && !isUtteranceStart(text, idx) {
+		return true
+	}
+	return false
+}
+
+// detectCurrentTeam returns the last match-team mentioned as the subject of
+// the speech. "from team 1006" / "against 1006" / "avoid team 1006's defense"
+// does not switch the speaker's focus — that is the opponent.
 func detectCurrentTeam(text string, teams []string) string {
 	allowed := map[string]bool{}
 	for _, t := range teams {
@@ -295,19 +376,156 @@ func detectCurrentTeam(text string, teams []string) string {
 	}
 	lastIdx := -1
 	last := ""
-	consider := func(idx int, team string) {
-		if allowed[team] && idx >= lastIdx {
+	consider := func(idx, end int, team string) {
+		if !allowed[team] || isOpponentMention(text, idx, end) {
+			return
+		}
+		if idx >= lastIdx {
 			lastIdx = idx
 			last = team
 		}
 	}
 	for _, m := range teamPrefixedRe.FindAllStringSubmatchIndex(text, -1) {
-		consider(m[0], text[m[2]:m[3]])
+		consider(m[0], m[1], text[m[2]:m[3]])
 	}
 	for _, m := range bareTeamNumRe.FindAllStringSubmatchIndex(text, -1) {
-		consider(m[0], text[m[2]:m[3]])
+		consider(m[0], m[1], text[m[2]:m[3]])
 	}
 	return last
+}
+
+func isOpponentOnly(text, team string, teams []string) bool {
+	allowed := false
+	for _, t := range teams {
+		if t == team {
+			allowed = true
+			break
+		}
+	}
+	if !allowed || team == "" {
+		return false
+	}
+	saw := false
+	asSubject := false
+	check := func(idx, end int, found string) {
+		if found != team {
+			return
+		}
+		saw = true
+		if !isOpponentMention(text, idx, end) {
+			asSubject = true
+		}
+	}
+	for _, m := range teamPrefixedRe.FindAllStringSubmatchIndex(text, -1) {
+		check(m[0], m[1], text[m[2]:m[3]])
+	}
+	if len(team) >= 3 {
+		for _, m := range bareTeamNumRe.FindAllStringSubmatchIndex(text, -1) {
+			check(m[0], m[1], text[m[2]:m[3]])
+		}
+	}
+	return saw && !asSubject
+}
+
+func normalizeWS(s string) string {
+	return strings.TrimSpace(collapseSpace.ReplaceAllString(s, " "))
+}
+
+// leftoverIfRewrite reports whether newText is the previous utterance with extra
+// wrapping (Gemini SMART often prepends "Team 254" onto the last sentence).
+// leftover is only the new words; the original sentence should stay committed.
+func leftoverIfRewrite(old, new string) (string, bool) {
+	o := normalizeWS(old)
+	n := normalizeWS(new)
+	if o == "" || n == "" {
+		return n, false
+	}
+	if strings.EqualFold(o, n) {
+		return "", true
+	}
+	idx := strings.Index(strings.ToLower(n), strings.ToLower(o))
+	if idx < 0 {
+		return n, false
+	}
+	leftover := normalizeWS(n[:idx] + " " + n[idx+len(o):])
+	return leftover, true
+}
+
+func stripTeamMentions(text string, teams []string) string {
+	t := teamPrefixedRe.ReplaceAllString(text, " ")
+	for _, team := range teams {
+		if len(team) < 3 {
+			continue
+		}
+		t = regexp.MustCompile(`\b`+regexp.QuoteMeta(team)+`\b`).ReplaceAllString(t, " ")
+	}
+	return normalizeWS(strings.Trim(t, " \t.,;:-"))
+}
+
+func cleanNoteText(text, subject string) string {
+	t := strings.TrimSpace(text)
+	t = strings.TrimPrefix(t, "-")
+	t = strings.TrimSpace(t)
+	// Strip a leading "Team {subject}" prefix only. Keep other match teams in
+	// the body — "struggled against 1006" is useful on 1002's card.
+	if subject != "" {
+		if loc := teamPrefixedRe.FindStringSubmatchIndex(t); loc != nil && loc[0] == 0 && t[loc[2]:loc[3]] == subject {
+			t = strings.TrimSpace(t[loc[1]:])
+		}
+	}
+	return strings.Trim(t, " \t.,;:-")
+}
+
+var teleopTopicRe = regexp.MustCompile(`(?i)\b(teleop|tele-op|driver|driving|cycle|cycles|climb|endgame|defense|defended|broke|broken|disabled|jammed)\b`)
+var continuationRe = regexp.MustCompile(`(?i)^(where|which|and they|then they|behind|after that|went out)\b`)
+var beingDefendedRe = regexp.MustCompile(`(?i)\b(struggling|against (some )?defense|being defended|was defended|got defended)\b`)
+var playedDefenseRe = regexp.MustCompile(`(?i)\b(played defense|playing defense|on defense)\b`)
+
+// mergeRelatedNotes keeps a follow-up clause with the observation it continues.
+// "ran a second bot auto" + "went out behind their teammate" stays one auto note.
+func mergeRelatedNotes(items []SortedNote) []SortedNote {
+	if len(items) < 2 {
+		return items
+	}
+	out := []SortedNote{items[0]}
+	for _, n := range items[1:] {
+		prev := &out[len(out)-1]
+		if prev.Team == n.Team && shouldMergeNotes(*prev, n) {
+			prev.Text = strings.TrimSpace(prev.Text + "; " + n.Text)
+			continue
+		}
+		out = append(out, n)
+	}
+	return out
+}
+
+func shouldMergeNotes(prev, next SortedNote) bool {
+	if continuationRe.MatchString(next.Text) {
+		return true
+	}
+	if prev.Category == "auto" && next.Category == "driving" && !teleopTopicRe.MatchString(next.Text) {
+		return true
+	}
+	return false
+}
+
+func appendNotes(dst []SortedNote, extra []SortedNote) []SortedNote {
+	if len(extra) == 0 {
+		return dst
+	}
+	seen := map[string]bool{}
+	for _, n := range dst {
+		seen[strings.ToLower(n.Team+"|"+n.Category+"|"+n.Text)] = true
+	}
+	for _, n := range extra {
+		key := strings.ToLower(n.Team + "|" + n.Category + "|" + n.Text)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		dst = append(dst, n)
+	}
+	return dst
 }
 
 func voiceScoutWSHandler(w http.ResponseWriter, r *http.Request) {
@@ -372,13 +590,16 @@ func voiceScoutWSHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		clientMu   sync.Mutex
-		geminiMu   sync.Mutex
-		sortMu     sync.Mutex
-		sorting    bool
-		dirty      bool
-		transcript strings.Builder
-		readyOnce  sync.Once
+		clientMu    sync.Mutex
+		geminiMu    sync.Mutex
+		sortMu      sync.Mutex
+		sorting     bool
+		dirty       bool
+		unsorted    strings.Builder
+		committed   []SortedNote
+		lastFinal   string
+		currentTeam = focus
+		readyOnce   sync.Once
 	)
 
 	writeClient := func(msg any) {
@@ -400,7 +621,8 @@ func voiceScoutWSHandler(w http.ResponseWriter, r *http.Request) {
 	var runSort func()
 	runSort = func() {
 		sortMu.Lock()
-		text := transcript.String()
+		text := strings.TrimSpace(unsorted.String())
+		focusNow := currentTeam
 		if text == "" || sorting {
 			if text != "" {
 				dirty = true
@@ -408,6 +630,7 @@ func voiceScoutWSHandler(w http.ResponseWriter, r *http.Request) {
 			sortMu.Unlock()
 			return
 		}
+		unsorted.Reset()
 		sorting = true
 		dirty = false
 		sortMu.Unlock()
@@ -416,19 +639,24 @@ func voiceScoutWSHandler(w http.ResponseWriter, r *http.Request) {
 			resp, err := sortVoiceNotes(SortNotesRequest{
 				Transcript: text,
 				Teams:      sortTeams,
-				FocusTeam:  focus,
+				FocusTeam:  focusNow,
 			})
 			if err != nil {
 				log.Printf("live sort notes: %v", err)
 			} else {
+				sortMu.Lock()
+				committed = appendNotes(committed, resp.Items)
+				items := append([]SortedNote(nil), committed...)
+				cur := currentTeam
+				sortMu.Unlock()
 				writeClient(map[string]any{
 					"type":         "notes",
-					"current_team": resp.CurrentTeam,
-					"notes":        resp.Notes,
-					"items":        resp.Items,
+					"current_team": cur,
+					"notes":        formatNotesByTeam(items),
+					"items":        items,
 				})
-				if resp.CurrentTeam != "" {
-					writeClient(voiceClientMsg{Type: "talking_about", Team: resp.CurrentTeam})
+				if cur != "" {
+					writeClient(voiceClientMsg{Type: "talking_about", Team: cur})
 				}
 			}
 
@@ -473,31 +701,49 @@ func voiceScoutWSHandler(w http.ResponseWriter, r *http.Request) {
 				text := sc.InterimInputTranscription.Text
 				writeClient(voiceClientMsg{Type: "interim", Text: text})
 				team := detectCurrentTeam(text, teams)
-				if team == "" && focus != "" {
-					team = focus
-				}
-				if team != "" {
+				if team != "" && focus == "" {
+					sortMu.Lock()
+					currentTeam = team
+					sortMu.Unlock()
 					writeClient(voiceClientMsg{Type: "talking_about", Team: team})
 				}
 			}
 			if sc.InputTranscription != nil && sc.InputTranscription.Text != "" {
-				text := strings.TrimSpace(sc.InputTranscription.Text)
-				writeClient(voiceClientMsg{Type: "final", Text: text})
+				raw := strings.TrimSpace(sc.InputTranscription.Text)
 				sortMu.Lock()
-				if transcript.Len() > 0 {
-					transcript.WriteByte(' ')
+				chunk := raw
+				if lastFinal != "" {
+					if leftover, ok := leftoverIfRewrite(lastFinal, raw); ok {
+						chunk = leftover
+					}
 				}
-				transcript.WriteString(text)
-				full := transcript.String()
+				lastFinal = raw
+				if focus == "" {
+					if t := detectCurrentTeam(raw, teams); t != "" {
+						currentTeam = t
+					} else if t := detectCurrentTeam(chunk, teams); t != "" {
+						currentTeam = t
+					}
+				}
+				cur := currentTeam
+				hasNote := stripTeamMentions(chunk, teams) != ""
+				if hasNote {
+					if unsorted.Len() > 0 {
+						unsorted.WriteByte(' ')
+					}
+					unsorted.WriteString(chunk)
+				}
 				sortMu.Unlock()
-				team := detectCurrentTeam(full, teams)
-				if team == "" && focus != "" {
-					team = focus
+
+				if chunk != "" {
+					writeClient(voiceClientMsg{Type: "final", Text: chunk})
 				}
-				if team != "" {
-					writeClient(voiceClientMsg{Type: "talking_about", Team: team})
+				if cur != "" {
+					writeClient(voiceClientMsg{Type: "talking_about", Team: cur})
 				}
-				runSort()
+				if hasNote {
+					runSort()
+				}
 			}
 		}
 	}()
@@ -512,13 +758,61 @@ func voiceScoutWSHandler(w http.ResponseWriter, r *http.Request) {
 			if mt == websocket.TextMessage {
 				var ctrl struct {
 					Type string `json:"type"`
+					Team string `json:"team"`
 				}
-				if json.Unmarshal(data, &ctrl) == nil && ctrl.Type == "stop" {
+				if json.Unmarshal(data, &ctrl) != nil {
+					continue
+				}
+				if ctrl.Type == "stop" {
 					_ = writeGemini(map[string]any{
 						"realtimeInput": map[string]any{"audioStreamEnd": true},
 					})
 					runSort()
 					return
+				}
+				if ctrl.Type == "focus" {
+					team := strings.TrimSpace(ctrl.Team)
+					ok := false
+					for _, t := range teams {
+						if t == team {
+							ok = true
+							break
+						}
+					}
+					if !ok {
+						continue
+					}
+					sortMu.Lock()
+					pending := strings.TrimSpace(unsorted.String())
+					old := currentTeam
+					unsorted.Reset()
+					currentTeam = team
+					sortMu.Unlock()
+					writeClient(voiceClientMsg{Type: "talking_about", Team: team})
+					if pending != "" && old != "" {
+						go func(text, focusNow string) {
+							resp, err := sortVoiceNotes(SortNotesRequest{
+								Transcript: text,
+								Teams:      sortTeams,
+								FocusTeam:  focusNow,
+							})
+							if err != nil {
+								log.Printf("live sort notes: %v", err)
+								return
+							}
+							sortMu.Lock()
+							committed = appendNotes(committed, resp.Items)
+							items := append([]SortedNote(nil), committed...)
+							cur := currentTeam
+							sortMu.Unlock()
+							writeClient(map[string]any{
+								"type":         "notes",
+								"current_team": cur,
+								"notes":        formatNotesByTeam(items),
+								"items":        items,
+							})
+						}(pending, old)
+					}
 				}
 				continue
 			}
