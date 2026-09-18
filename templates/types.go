@@ -9,17 +9,25 @@ type GeminiAnalysisPageData struct {
 }
 
 type TeamAnalysisCard struct {
-	EventKey    string
-	TeamNumber  string
-	Summary     string
-	Scoring     int // 1-10
-	Reliability int // 1-10
-	Defense     int // 0 = N/A, 1-10 = score
-	FromCache   bool
+	EventKey       string
+	TeamNumber     string
+	Verdict        string // one of: Elite Pick, Strong Pick, Average, Below Average, Avoid
+	Shooting       string
+	Driving        string
+	Failures       string
+	Auto           string
+	Recommendation string
+	Scoring        int // 1-10
+	Reliability    int // 1-10
+	Defense        int // 0 = N/A, 1-10 = score
+	Error          string // set instead of the fields above when analysis generation failed
+	FromCache      bool
 	HasNotes    bool    // any non-empty match scouting notes at this event
 	HasPitNotes bool    // any pit scouting summaries
 	EPA         float64 // Statbotics total points EPA, current season
 	HasEPA      bool
+	Rank        int // current event qualification rank
+	HasRank     bool
 	// Up to the two most recent played matches at the event, newest first
 	RecentMatches []MatchLink
 }

@@ -221,6 +221,52 @@ func getEventTeamsCached(eventKey string) ([]string, error) {
 	return teams, nil
 }
 
+var (
+	rankingsCache     = make(map[string]map[string]int)
+	rankingsTimestamp = make(map[string]time.Time)
+	rankingsMutex     sync.Mutex
+)
+
+// getEventRankingsCached returns the event's current rankings as a map of team
+// number (without "frc") to rank.
+func getEventRankingsCached(eventKey string) (map[string]int, error) {
+	rankingsMutex.Lock()
+	defer rankingsMutex.Unlock()
+
+	if r, ok := rankingsCache[eventKey]; ok && time.Since(rankingsTimestamp[eventKey]) < 10*time.Minute {
+		return r, nil
+	}
+
+	resp, err := tbaDo(fmt.Sprintf("/event/%s/rankings", eventKey))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, fmt.Errorf("tba %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	var data struct {
+		Rankings []struct {
+			TeamKey string `json:"team_key"`
+			Rank    int    `json:"rank"`
+		} `json:"rankings"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	ranks := make(map[string]int, len(data.Rankings))
+	for _, r := range data.Rankings {
+		ranks[strings.TrimPrefix(r.TeamKey, "frc")] = r.Rank
+	}
+
+	rankingsCache[eventKey] = ranks
+	rankingsTimestamp[eventKey] = time.Now()
+	return ranks, nil
+}
+
 func sortTeamNumbers(teams []string) {
 	sort.Slice(teams, func(i, j int) bool {
 		a, _ := strconv.Atoi(teams[i])

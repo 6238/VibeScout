@@ -43,29 +43,13 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 								<span class="ml-1 text-xs font-bold text-[#8D6E63]">({ strconv.Itoa(team.DataCount) } pts)</span>
 							</label>
 							if oneRobot {
-								<!-- Checklist sits beside the notes on desktop and below them on mobile -->
-								<div class="flex flex-col md:flex-row gap-3">
-									<div class="flex-1 min-w-0">
-										<textarea
-											name={ "notes_" + team.Number }
-											rows="14"
-											class={ "w-full h-full p-3 text-sm bg-white border-2 rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]",
-												templ.KV("border-red-300", team.Alliance == "Red"),
-												templ.KV("border-blue-300", team.Alliance == "Blue") }
-											placeholder="Observations..."></textarea>
-									</div>
-									<div data-checklist class="md:w-60 shrink-0 space-y-2 bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-xl p-3">
-										@checklistSwitch(team.Number, "broke", "Broke")
-										@checklistSwitch(team.Number, "played_defense", "Played defense")
-										@checklistSwitch(team.Number, "was_defended", "Was defended")
-										<div>
-											<label for={ "auto_type_" + team.Number } class="block text-xs font-bold uppercase text-[#A1887F] mb-1">Auto type</label>
-											<input id={ "auto_type_" + team.Number } type="text" data-field="auto_type" maxlength="80"
-												placeholder="e.g. 2 piece center"
-												class="w-full p-2 text-sm bg-white border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8D6E63]"/>
-										</div>
-									</div>
-								</div>
+								<textarea
+									name={ "notes_" + team.Number }
+									rows="14"
+									class={ "w-full h-full p-3 text-sm bg-white border-2 rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]",
+										templ.KV("border-red-300", team.Alliance == "Red"),
+										templ.KV("border-blue-300", team.Alliance == "Blue") }
+									placeholder="Observations..."></textarea>
 							} else {
 								<textarea
 									name={ "notes_" + team.Number }

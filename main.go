@@ -645,7 +645,7 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 		card = templates.TeamAnalysisCard{
 			EventKey:   eventKey,
 			TeamNumber: teamNum,
-			Summary:    "Error generating analysis: " + err.Error(),
+			Error:      "Error generating analysis: " + err.Error(),
 		}
 	}
 
@@ -654,6 +654,12 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 	db.QueryRow(`SELECT EXISTS(SELECT 1 FROM pit_scouting WHERE team_number = ?)`, teamNum).Scan(&card.HasPitNotes)
 
 	card.EPA, card.HasEPA = teamTotalEPA(teamNum)
+
+	if rankings, err := getEventRankingsCached(eventKey); err == nil {
+		card.Rank, card.HasRank = rankings[teamNum]
+	} else {
+		log.Printf("rankings for %s at %s: %v", teamNum, eventKey, err)
+	}
 
 	if matches, err := getMatchesCached(eventKey); err == nil {
 		for _, m := range latestPlayedMatches(matches, teamNum, 2) {
@@ -769,11 +775,20 @@ func apiSearchTeamsHandler(w http.ResponseWriter, r *http.Request) {
 
 // teamAnalysisJSON is the structured response Gemini returns for team analysis.
 type teamAnalysisJSON struct {
-	Summary     string `json:"summary"`
-	Scoring     int    `json:"scoring"`
-	Reliability int    `json:"reliability"`
-	Defense     int    `json:"defense"` // 0 = N/A
+	Verdict        string `json:"verdict"` // Elite Pick, Strong Pick, Average, Below Average, Avoid
+	Shooting       string `json:"shooting"`
+	Driving        string `json:"driving"`
+	Failures       string `json:"failures"`
+	Auto           string `json:"auto"`
+	Recommendation string `json:"recommendation"`
+	Scoring        int    `json:"scoring"`
+	Reliability    int    `json:"reliability"`
+	Defense        int    `json:"defense"` // 0 = N/A
 }
+
+// analysisPromptVersion is mixed into the cache key so edits to the prompt's
+// output shape invalidate previously cached analyses.
+const analysisPromptVersion = "v3"
 
 func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard, error) {
 	rows, err := db.Query(`
@@ -792,7 +807,7 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 
 	combined := strings.Join(notesList, "\n")
 	pitNotes := pitNotesFor(teamNum)
-	hashInput := combined
+	hashInput := analysisPromptVersion + "\n" + combined
 	if pitNotes != "" {
 		hashInput += "\n[pit]\n" + pitNotes
 	}
@@ -809,13 +824,18 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 		var result teamAnalysisJSON
 		if jsonErr := json.Unmarshal([]byte(cachedJSON), &result); jsonErr == nil {
 			return templates.TeamAnalysisCard{
-				EventKey:    eventKey,
-				TeamNumber:  teamNum,
-				Summary:     result.Summary,
-				Scoring:     result.Scoring,
-				Reliability: result.Reliability,
-				Defense:     result.Defense,
-				FromCache:   true,
+				EventKey:       eventKey,
+				TeamNumber:     teamNum,
+				Verdict:        result.Verdict,
+				Shooting:       result.Shooting,
+				Driving:        result.Driving,
+				Failures:       result.Failures,
+				Auto:           result.Auto,
+				Recommendation: result.Recommendation,
+				Scoring:        result.Scoring,
+				Reliability:    result.Reliability,
+				Defense:        result.Defense,
+				FromCache:      true,
 			}, nil
 		}
 		// If JSON parse fails, fall through to regenerate
@@ -837,13 +857,18 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 		eventKey, teamNum, string(resultJSON), hash)
 
 	return templates.TeamAnalysisCard{
-		EventKey:    eventKey,
-		TeamNumber:  teamNum,
-		Summary:     result.Summary,
-		Scoring:     result.Scoring,
-		Reliability: result.Reliability,
-		Defense:     result.Defense,
-		FromCache:   false,
+		EventKey:       eventKey,
+		TeamNumber:     teamNum,
+		Verdict:        result.Verdict,
+		Shooting:       result.Shooting,
+		Driving:        result.Driving,
+		Failures:       result.Failures,
+		Auto:           result.Auto,
+		Recommendation: result.Recommendation,
+		Scoring:        result.Scoring,
+		Reliability:    result.Reliability,
+		Defense:        result.Defense,
+		FromCache:      false,
 	}, nil
 }
 
