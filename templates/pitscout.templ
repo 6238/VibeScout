@@ -44,6 +44,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 				<div>
 					<form id="pit-form" class="space-y-3"
 						hx-post="/api/save-pit-scout"
+						hx-include="#pit-event"
 						hx-target="#pit-result"
 						hx-swap="innerHTML">
 						<div>
@@ -55,6 +56,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 								<ul id="pit-team-suggest" role="listbox"
 									class="hidden absolute z-10 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl shadow-lg"></ul>
 							</div>
+							<div id="pit-team-error" class="hidden mt-2 ml-2 text-sm font-bold text-red-700"></div>
 							<div id="pit-edit-status" class="hidden mt-2 ml-2 text-sm font-bold text-[#8D6E63]"></div>
 						</div>
 
@@ -135,8 +137,24 @@ templ PitScoutPage(eventKey string, eventName string) {
 						return summary.value.trim() !== '' && summary.value !== (loadedSummary || '');
 					}
 
+					// ── Only teams on this event's list can be searched or scouted ──
+					var teamError = document.getElementById('pit-team-error');
+					function isEventTeam(n) {
+						return eventTeams().some(function(t) { return t.number === n; });
+					}
+					// True once the list has loaded and nothing in it matches what was typed
+					function noSuchTeam(q) {
+						var all = eventTeams();
+						return q !== '' && all.length > 0 && !all.some(function(t) { return t.number.indexOf(q) !== -1; });
+					}
+					function showTeamError(q) {
+						teamError.textContent = q ? 'Team ' + q + " isn't on this event's team list." : '';
+						teamError.classList.toggle('hidden', !q);
+					}
+
 					function loadTeam(team) {
 						team = (team || '').trim();
+						if (team !== '' && eventTeams().length && !isEventTeam(team)) team = '';
 						if (team === currentTeam) return;
 						currentTeam = team;
 						var seq = ++loadSeq;
@@ -236,6 +254,13 @@ templ PitScoutPage(eventKey string, eventName string) {
 					function pick(team) {
 						input.value = team;
 						closeSuggest();
+						if (team !== '' && eventTeams().length && !isEventTeam(team)) {
+							showTeamError(team);
+							clearHighlight();
+							loadTeam('');
+							return;
+						}
+						showTeamError('');
 						loadTeam(team);
 						highlightTeam(team);
 						summary.focus();
@@ -245,6 +270,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 						input.value = input.value.replace(/[^0-9]/g, '');
 						renderSuggest();
 						var q = input.value.trim();
+						showTeamError(noSuchTeam(q) ? q : '');
 						// Highlight as soon as the typed number (or the top suggestion) is a real team
 						var match = q && eventTeams().filter(function(t) { return t.number === q; })[0];
 						if (!match && q) match = eventTeams().filter(function(t) { return t.number.indexOf(q) === 0; })[0];
@@ -294,9 +320,23 @@ templ PitScoutPage(eventKey string, eventName string) {
 					});
 
 					// ── After saving, start fresh for the next team ──
+					// Only teams on the event list can be scouted; reject others before sending
+					form.addEventListener('htmx:beforeRequest', function(e) {
+						if (e.detail.elt !== form) return;
+						var list = eventTeams();
+						var n = input.value.trim();
+						if (list.length && !list.some(function(t) { return t.number === n; })) {
+							e.preventDefault();
+							document.getElementById('pit-result').innerHTML =
+								'<span class="text-red-700">Team ' + n.replace(/[^0-9]/g, '') + ' isn\'t on this event\'s team list, so it can\'t be pit scouted.</span>';
+						}
+					});
 					form.addEventListener('htmx:afterRequest', function(e) {
 						if (e.detail.elt !== form || !e.detail.successful) return;
+						// A rejected team comes back 200 without the pitSaved trigger; keep the form as is
+						if (e.detail.xhr.getResponseHeader('HX-Trigger') !== 'pitSaved') return;
 						form.reset();
+						showTeamError('');
 						currentTeam = null;
 						setNew();
 					});
