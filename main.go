@@ -118,6 +118,7 @@ func main() {
 	http.HandleFunc("/field-scout", fieldScoutHandler)
 	http.HandleFunc("/scout", scoutHandler)
 	http.HandleFunc("/api/match-teams", apiMatchTeamsHandler)
+	http.HandleFunc("/api/match-alliances", apiMatchAlliancesHandler)
 	http.HandleFunc("/api/save-scout", saveScoutDataHandler)
 	http.HandleFunc("/pit-scout", pitScoutPageHandler)
 	http.HandleFunc("/api/save-pit-scout", savePitScoutHandler)
@@ -175,7 +176,7 @@ func fieldScoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	mode := r.URL.Query().Get("mode")
 	if mode != "one" {
-		mode = "all"
+		mode = "three"
 	}
 
 	templ.Handler(templates.FieldScout(templates.FieldScoutData{
@@ -264,7 +265,8 @@ func scoutHandler(w http.ResponseWriter, r *http.Request) {
 	eventKey := r.URL.Query().Get("event_key")
 	matchNum, _ := strconv.Atoi(r.URL.Query().Get("match_num"))
 	scouterName := normalizeScouterName(r.URL.Query().Get("scouter"))
-	pickedTeam := r.URL.Query().Get("team") // set in one-robot mode
+	pickedTeam := r.URL.Query().Get("team")         // set in one-robot mode
+	pickedAlliance := r.URL.Query().Get("alliance") // set in three-robot mode
 
 	matches, err := getMatchesCached(eventKey)
 	if err != nil {
@@ -299,6 +301,18 @@ func scoutHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		if len(picked) == 0 {
 			http.Error(w, fmt.Sprintf("Team %s is not in match %d", pickedTeam, matchNum), 404)
+			return
+		}
+		teams = picked
+	} else if pickedAlliance != "" {
+		var picked []templates.ScoutTeam
+		for _, t := range teams {
+			if t.Alliance == pickedAlliance {
+				picked = append(picked, t)
+			}
+		}
+		if len(picked) == 0 {
+			http.Error(w, fmt.Sprintf("Alliance %q is not in match %d", pickedAlliance, matchNum), 404)
 			return
 		}
 		teams = picked
@@ -403,6 +417,26 @@ func apiMatchTeamsHandler(w http.ResponseWriter, r *http.Request) {
 		picks[i].Soonest = soonest != 0 && picks[i].NextWithUs == soonest
 	}
 	templates.MatchTeamPicker(picks, matchNum, "").Render(r.Context(), w)
+}
+
+// apiMatchAlliancesHandler renders the three-robot picker for a match: the red
+// and blue alliance's team numbers.
+func apiMatchAlliancesHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey := r.URL.Query().Get("event_key")
+	matchNum, _ := strconv.Atoi(r.URL.Query().Get("match_num"))
+
+	matches, err := getMatchesCached(eventKey)
+	if err != nil {
+		templates.AlliancePicker(nil, nil, matchNum, "Couldn't load the match schedule.").Render(r.Context(), w)
+		return
+	}
+	m, found := findQualMatch(matches, matchNum)
+	if !found {
+		templates.AlliancePicker(nil, nil, matchNum, fmt.Sprintf("Match %d isn't in the schedule.", matchNum)).Render(r.Context(), w)
+		return
+	}
+
+	templates.AlliancePicker(stripFRC(m.Alliances.Red.TeamKeys), stripFRC(m.Alliances.Blue.TeamKeys), matchNum, "").Render(r.Context(), w)
 }
 
 func saveScoutDataHandler(w http.ResponseWriter, r *http.Request) {

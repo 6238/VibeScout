@@ -1,6 +1,9 @@
 package templates
 
-import "strconv"
+import (
+    "strconv"
+    "strings"
+)
 
 templ Home(events map[string]string, selectedEvent string) {
     @Layout("Vibe Scout | Home") {
@@ -67,10 +70,10 @@ templ FieldScout(data FieldScoutData) {
                         <span class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Scouting Mode</span>
                         <div class="grid grid-cols-2 gap-3">
                             <label class="mode-option">
-                                <input type="radio" name="mode" value="all" class="sr-only peer" checked?={ data.Mode == "all" }/>
+                                <input type="radio" name="mode" value="three" class="sr-only peer" checked?={ data.Mode == "three" }/>
                                 <span class="block p-3 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]">
-                                    <span class="block font-black uppercase tracking-wide">All 6</span>
-                                    <span class="block text-xs opacity-80">every robot</span>
+                                    <span class="block font-black uppercase tracking-wide">3 Robot</span>
+                                    <span class="block text-xs opacity-80">pick an alliance</span>
                                 </span>
                             </label>
                             <label class="mode-option">
@@ -83,10 +86,14 @@ templ FieldScout(data FieldScoutData) {
                         </div>
                     </div>
 
-                    <!-- All-6 mode -->
-                    <button id="field-start-all" type="submit" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-5 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
-                        Start Scouting
-                    </button>
+                    <!-- Three-robot mode: each alliance button submits the form with its alliance -->
+                    <div id="field-alliance-picker" class="hidden text-left"
+                        hx-get="/api/match-alliances"
+                        hx-include="#field-event, #field-match"
+                        hx-trigger="load, input changed delay:400ms from:#field-match"
+                        hx-swap="innerHTML">
+                        <p class="text-sm text-[#A1887F] ml-2">Loading teams...</p>
+                    </div>
 
                     <!-- One-robot mode: each team button submits the form with its team -->
                     <div id="field-team-picker" class="hidden text-left"
@@ -104,12 +111,12 @@ templ FieldScout(data FieldScoutData) {
             <script>
                 (function() {
                     var form = document.getElementById('field-form');
-                    var startAll = document.getElementById('field-start-all');
-                    var picker = document.getElementById('field-team-picker');
+                    var alliancePicker = document.getElementById('field-alliance-picker');
+                    var teamPicker = document.getElementById('field-team-picker');
                     function applyMode() {
-                        var one = form.querySelector('input[name=mode]:checked').value === 'one';
-                        startAll.classList.toggle('hidden', one);
-                        picker.classList.toggle('hidden', !one);
+                        var mode = form.querySelector('input[name=mode]:checked').value;
+                        alliancePicker.classList.toggle('hidden', mode !== 'three');
+                        teamPicker.classList.toggle('hidden', mode !== 'one');
                     }
                     form.querySelectorAll('input[name=mode]').forEach(function(r) { r.addEventListener('change', applyMode); });
                     applyMode();
@@ -257,4 +264,26 @@ templ MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) {
             </span>
         </p>
     }
+}
+
+templ AlliancePicker(redTeams, blueTeams []string, matchNum int, errMsg string) {
+    <span class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Pick an alliance · Match { strconv.Itoa(matchNum) }</span>
+    if errMsg != "" {
+        <p class="text-sm text-red-700 ml-2">{ errMsg }</p>
+    } else {
+        <div class="grid grid-cols-2 gap-3">
+            @allianceButton("Red", redTeams)
+            @allianceButton("Blue", blueTeams)
+        </div>
+    }
+}
+
+templ allianceButton(alliance string, teamNums []string) {
+    <button type="submit" name="alliance" value={ alliance }
+        class={ "p-4 rounded-xl border-2 border-b-4 font-black transition active:scale-95",
+            templ.KV("bg-red-50 border-red-300 text-red-800", alliance == "Red"),
+            templ.KV("bg-blue-50 border-blue-300 text-blue-800", alliance == "Blue") }>
+        <span class="block uppercase tracking-wide">{ alliance }</span>
+        <span class="block text-sm font-bold opacity-80 mt-1">{ strings.Join(teamNums, " · ") }</span>
+    </button>
 }

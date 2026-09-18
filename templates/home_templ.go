@@ -8,7 +8,10 @@ package templates
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 func Home(events map[string]string, selectedEvent string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -55,7 +58,7 @@ func Home(events map[string]string, selectedEvent string) templ.Component {
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(key)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 17, Col: 51}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 20, Col: 51}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -78,7 +81,7 @@ func Home(events map[string]string, selectedEvent string) templ.Component {
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 17, Col: 95}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 20, Col: 95}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -143,7 +146,7 @@ func FieldScout(data FieldScoutData) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(data.EventName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 42, Col: 81}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 45, Col: 81}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -156,7 +159,7 @@ func FieldScout(data FieldScoutData) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(data.EventKey)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 45, Col: 96}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 48, Col: 96}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -169,7 +172,7 @@ func FieldScout(data FieldScoutData) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(data.ScouterName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 50, Col: 105}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 53, Col: 105}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -190,23 +193,23 @@ func FieldScout(data FieldScoutData) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.MatchNum))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 62, Col: 114}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 65, Col: 114}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" min=\"1\" required class=\"w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold\"></div><div class=\"text-left\"><span class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Scouting Mode</span><div class=\"grid grid-cols-2 gap-3\"><label class=\"mode-option\"><input type=\"radio\" name=\"mode\" value=\"all\" class=\"sr-only peer\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" min=\"1\" required class=\"w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold\"></div><div class=\"text-left\"><span class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Scouting Mode</span><div class=\"grid grid-cols-2 gap-3\"><label class=\"mode-option\"><input type=\"radio\" name=\"mode\" value=\"three\" class=\"sr-only peer\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if data.Mode == "all" {
+			if data.Mode == "three" {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, " checked")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "> <span class=\"block p-3 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]\"><span class=\"block font-black uppercase tracking-wide\">All 6</span> <span class=\"block text-xs opacity-80\">every robot</span></span></label> <label class=\"mode-option\"><input type=\"radio\" name=\"mode\" value=\"one\" class=\"sr-only peer\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "> <span class=\"block p-3 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]\"><span class=\"block font-black uppercase tracking-wide\">3 Robot</span> <span class=\"block text-xs opacity-80\">pick an alliance</span></span></label> <label class=\"mode-option\"><input type=\"radio\" name=\"mode\" value=\"one\" class=\"sr-only peer\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -216,20 +219,20 @@ func FieldScout(data FieldScoutData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "> <span class=\"block p-3 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]\"><span class=\"block font-black uppercase tracking-wide\">1 Robot</span> <span class=\"block text-xs opacity-80\">pick a team</span></span></label></div></div><!-- All-6 mode --><button id=\"field-start-all\" type=\"submit\" class=\"w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-5 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]\">Start Scouting</button><!-- One-robot mode: each team button submits the form with its team --><div id=\"field-team-picker\" class=\"hidden text-left\" hx-get=\"/api/match-teams\" hx-include=\"#field-event, #field-match\" hx-trigger=\"load, input changed delay:400ms from:#field-match\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div></form></div><div class=\"mt-6 text-center\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "> <span class=\"block p-3 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]\"><span class=\"block font-black uppercase tracking-wide\">1 Robot</span> <span class=\"block text-xs opacity-80\">pick a team</span></span></label></div></div><!-- Three-robot mode: each alliance button submits the form with its alliance --><div id=\"field-alliance-picker\" class=\"hidden text-left\" hx-get=\"/api/match-alliances\" hx-include=\"#field-event, #field-match\" hx-trigger=\"load, input changed delay:400ms from:#field-match\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div><!-- One-robot mode: each team button submits the form with its team --><div id=\"field-team-picker\" class=\"hidden text-left\" hx-get=\"/api/match-teams\" hx-include=\"#field-event, #field-match\" hx-trigger=\"load, input changed delay:400ms from:#field-match\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div></form></div><div class=\"mt-6 text-center\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var11 templ.SafeURL
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/?event_key=" + data.EventKey))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 102, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 109, Col: 71}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"text-[#A1887F] hover:text-[#5D4037] font-bold\">← Home</a></div><script>\n                (function() {\n                    var form = document.getElementById('field-form');\n                    var startAll = document.getElementById('field-start-all');\n                    var picker = document.getElementById('field-team-picker');\n                    function applyMode() {\n                        var one = form.querySelector('input[name=mode]:checked').value === 'one';\n                        startAll.classList.toggle('hidden', one);\n                        picker.classList.toggle('hidden', !one);\n                    }\n                    form.querySelectorAll('input[name=mode]').forEach(function(r) { r.addEventListener('change', applyMode); });\n                    applyMode();\n\n                    // ── Scouter name type-ahead ──\n                    var input = document.getElementById('field-scouter');\n                    var suggest = document.getElementById('field-scouter-suggest');\n                    var scouters = JSON.parse(document.getElementById('field-scouters').textContent) || [];\n                    var items = [];      // names currently listed\n                    var highlighted = -1;\n\n                    // Remember the name on this device so the scouter doesn't retype it\n                    if (!input.value) {\n                        try { input.value = localStorage.getItem('vibescout.scouter') || ''; } catch (e) {}\n                    }\n                    form.addEventListener('submit', function() {\n                        input.value = input.value.replace(/\\s+/g, ' ').trim();\n                        try { localStorage.setItem('vibescout.scouter', input.value); } catch (e) {}\n                    });\n\n                    function close() {\n                        suggest.classList.add('hidden');\n                        input.setAttribute('aria-expanded', 'false');\n                        highlighted = -1;\n                    }\n                    function render() {\n                        var q = input.value.trim().toLowerCase();\n                        var starts = [], contains = [];\n                        scouters.forEach(function(n) {\n                            var i = n.toLowerCase().indexOf(q);\n                            if (i === 0) starts.push(n); else if (i > 0) contains.push(n);\n                        });\n                        var names = starts.concat(contains).slice(0, 8);\n                        var exact = scouters.some(function(n) { return n.toLowerCase() === q; });\n                        items = names.slice();\n                        suggest.innerHTML = '';\n                        names.forEach(function(n) {\n                            var li = document.createElement('li');\n                            li.setAttribute('role', 'option');\n                            li.className = 'px-3 py-2 cursor-pointer font-bold text-[#5D4037]';\n                            li.textContent = n;\n                            suggest.appendChild(li);\n                        });\n                        if (q !== '' && !exact) {\n                            var typed = input.value.replace(/\\s+/g, ' ').trim();\n                            items.push(typed);\n                            var li = document.createElement('li');\n                            li.setAttribute('role', 'option');\n                            li.className = 'px-3 py-2 cursor-pointer font-bold text-[#8D6E63] border-t border-[#D2B48C]';\n                            li.textContent = '+ New scouter \"' + typed + '\"';\n                            suggest.appendChild(li);\n                        }\n                        if (items.length === 0 || (exact && names.length === 1)) { close(); return; }\n                        highlighted = q === '' ? -1 : 0;\n                        paint();\n                        suggest.classList.remove('hidden');\n                        input.setAttribute('aria-expanded', 'true');\n                    }\n                    function paint() {\n                        Array.prototype.forEach.call(suggest.children, function(li, i) {\n                            li.classList.toggle('bg-[#F2E8D5]', i === highlighted);\n                            li.setAttribute('aria-selected', i === highlighted ? 'true' : 'false');\n                        });\n                    }\n                    function pick(i) {\n                        input.value = items[i];\n                        close();\n                    }\n\n                    input.addEventListener('input', render);\n                    input.addEventListener('focus', render);\n                    input.addEventListener('blur', close);\n                    input.addEventListener('keydown', function(e) {\n                        var open = !suggest.classList.contains('hidden');\n                        if (e.key === 'ArrowDown' && open) {\n                            e.preventDefault();\n                            highlighted = Math.min(highlighted + 1, items.length - 1);\n                            paint();\n                        } else if (e.key === 'ArrowUp' && open) {\n                            e.preventDefault();\n                            highlighted = Math.max(highlighted - 1, 0);\n                            paint();\n                        } else if (e.key === 'Enter' && open && highlighted >= 0) {\n                            e.preventDefault();\n                            pick(highlighted);\n                        } else if (e.key === 'Escape') {\n                            close();\n                        }\n                    });\n                    // mousedown so it fires before the input loses focus\n                    suggest.addEventListener('mousedown', function(e) {\n                        var li = e.target.closest('li');\n                        if (!li) return;\n                        e.preventDefault();\n                        pick(Array.prototype.indexOf.call(suggest.children, li));\n                    });\n                })();\n            </script></main>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"text-[#A1887F] hover:text-[#5D4037] font-bold\">← Home</a></div><script>\r\n                (function() {\r\n                    var form = document.getElementById('field-form');\r\n                    var alliancePicker = document.getElementById('field-alliance-picker');\r\n                    var teamPicker = document.getElementById('field-team-picker');\r\n                    function applyMode() {\r\n                        var mode = form.querySelector('input[name=mode]:checked').value;\r\n                        alliancePicker.classList.toggle('hidden', mode !== 'three');\r\n                        teamPicker.classList.toggle('hidden', mode !== 'one');\r\n                    }\r\n                    form.querySelectorAll('input[name=mode]').forEach(function(r) { r.addEventListener('change', applyMode); });\r\n                    applyMode();\r\n\r\n                    // ── Scouter name type-ahead ──\r\n                    var input = document.getElementById('field-scouter');\r\n                    var suggest = document.getElementById('field-scouter-suggest');\r\n                    var scouters = JSON.parse(document.getElementById('field-scouters').textContent) || [];\r\n                    var items = [];      // names currently listed\r\n                    var highlighted = -1;\r\n\r\n                    // Remember the name on this device so the scouter doesn't retype it\r\n                    if (!input.value) {\r\n                        try { input.value = localStorage.getItem('vibescout.scouter') || ''; } catch (e) {}\r\n                    }\r\n                    form.addEventListener('submit', function() {\r\n                        input.value = input.value.replace(/\\s+/g, ' ').trim();\r\n                        try { localStorage.setItem('vibescout.scouter', input.value); } catch (e) {}\r\n                    });\r\n\r\n                    function close() {\r\n                        suggest.classList.add('hidden');\r\n                        input.setAttribute('aria-expanded', 'false');\r\n                        highlighted = -1;\r\n                    }\r\n                    function render() {\r\n                        var q = input.value.trim().toLowerCase();\r\n                        var starts = [], contains = [];\r\n                        scouters.forEach(function(n) {\r\n                            var i = n.toLowerCase().indexOf(q);\r\n                            if (i === 0) starts.push(n); else if (i > 0) contains.push(n);\r\n                        });\r\n                        var names = starts.concat(contains).slice(0, 8);\r\n                        var exact = scouters.some(function(n) { return n.toLowerCase() === q; });\r\n                        items = names.slice();\r\n                        suggest.innerHTML = '';\r\n                        names.forEach(function(n) {\r\n                            var li = document.createElement('li');\r\n                            li.setAttribute('role', 'option');\r\n                            li.className = 'px-3 py-2 cursor-pointer font-bold text-[#5D4037]';\r\n                            li.textContent = n;\r\n                            suggest.appendChild(li);\r\n                        });\r\n                        if (q !== '' && !exact) {\r\n                            var typed = input.value.replace(/\\s+/g, ' ').trim();\r\n                            items.push(typed);\r\n                            var li = document.createElement('li');\r\n                            li.setAttribute('role', 'option');\r\n                            li.className = 'px-3 py-2 cursor-pointer font-bold text-[#8D6E63] border-t border-[#D2B48C]';\r\n                            li.textContent = '+ New scouter \"' + typed + '\"';\r\n                            suggest.appendChild(li);\r\n                        }\r\n                        if (items.length === 0 || (exact && names.length === 1)) { close(); return; }\r\n                        highlighted = q === '' ? -1 : 0;\r\n                        paint();\r\n                        suggest.classList.remove('hidden');\r\n                        input.setAttribute('aria-expanded', 'true');\r\n                    }\r\n                    function paint() {\r\n                        Array.prototype.forEach.call(suggest.children, function(li, i) {\r\n                            li.classList.toggle('bg-[#F2E8D5]', i === highlighted);\r\n                            li.setAttribute('aria-selected', i === highlighted ? 'true' : 'false');\r\n                        });\r\n                    }\r\n                    function pick(i) {\r\n                        input.value = items[i];\r\n                        close();\r\n                    }\r\n\r\n                    input.addEventListener('input', render);\r\n                    input.addEventListener('focus', render);\r\n                    input.addEventListener('blur', close);\r\n                    input.addEventListener('keydown', function(e) {\r\n                        var open = !suggest.classList.contains('hidden');\r\n                        if (e.key === 'ArrowDown' && open) {\r\n                            e.preventDefault();\r\n                            highlighted = Math.min(highlighted + 1, items.length - 1);\r\n                            paint();\r\n                        } else if (e.key === 'ArrowUp' && open) {\r\n                            e.preventDefault();\r\n                            highlighted = Math.max(highlighted - 1, 0);\r\n                            paint();\r\n                        } else if (e.key === 'Enter' && open && highlighted >= 0) {\r\n                            e.preventDefault();\r\n                            pick(highlighted);\r\n                        } else if (e.key === 'Escape') {\r\n                            close();\r\n                        }\r\n                    });\r\n                    // mousedown so it fires before the input loses focus\r\n                    suggest.addEventListener('mousedown', function(e) {\r\n                        var li = e.target.closest('li');\r\n                        if (!li) return;\r\n                        e.preventDefault();\r\n                        pick(Array.prototype.indexOf.call(suggest.children, li));\r\n                    });\r\n                })();\r\n            </script></main>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -271,7 +274,7 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(matchNum))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 216, Col: 122}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 223, Col: 122}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {
@@ -289,7 +292,7 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 218, Col: 53}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 225, Col: 53}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
@@ -321,7 +324,7 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 222, Col: 66}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 229, Col: 66}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
@@ -357,7 +360,7 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 228, Col: 30}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 235, Col: 30}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {
@@ -400,7 +403,7 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 					var templ_7745c5c3_Var21 string
 					templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs("Q" + strconv.Itoa(t.NextWithUs))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 235, Col: 62}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 242, Col: 62}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 					if templ_7745c5c3_Err != nil {
@@ -410,7 +413,7 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 					var templ_7745c5c3_Var22 string
 					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(t.Alliance)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 237, Col: 40}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 244, Col: 40}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 					if templ_7745c5c3_Err != nil {
@@ -429,7 +432,7 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 					var templ_7745c5c3_Var23 string
 					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(t.Scouted) + "/" + strconv.Itoa(t.PlayedBefore) + " scouted")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 242, Col: 103}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 249, Col: 103}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 					if templ_7745c5c3_Err != nil {
@@ -452,7 +455,7 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs("Q# = next match with or against " + OurTeam + ".")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 249, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 256, Col: 64}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 			if templ_7745c5c3_Err != nil {
@@ -462,6 +465,172 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
+		}
+		return nil
+	})
+}
+
+func AlliancePicker(redTeams, blueTeams []string, matchNum int, errMsg string) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var25 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var25 == nil {
+			templ_7745c5c3_Var25 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<span class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Pick an alliance · Match ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var26 string
+		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(matchNum))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 270, Col: 127}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</span> ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if errMsg != "" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<p class=\"text-sm text-red-700 ml-2\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var27 string
+			templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 272, Col: 53}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</p>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		} else {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<div class=\"grid grid-cols-2 gap-3\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = allianceButton("Red", redTeams).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = allianceButton("Blue", blueTeams).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "</div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		return nil
+	})
+}
+
+func allianceButton(alliance string, teamNums []string) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var28 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var28 == nil {
+			templ_7745c5c3_Var28 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		var templ_7745c5c3_Var29 = []any{"p-4 rounded-xl border-2 border-b-4 font-black transition active:scale-95",
+			templ.KV("bg-red-50 border-red-300 text-red-800", alliance == "Red"),
+			templ.KV("bg-blue-50 border-blue-300 text-blue-800", alliance == "Blue")}
+		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var29...)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "<button type=\"submit\" name=\"alliance\" value=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var30 string
+		templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(alliance)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 282, Col: 58}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "\" class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var31 string
+		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var29).String())
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 1, Col: 0}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "\"><span class=\"block uppercase tracking-wide\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var32 string
+		templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(alliance)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 286, Col: 62}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "</span> <span class=\"block text-sm font-bold opacity-80 mt-1\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var33 string
+		templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(strings.Join(teamNums, " · "))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 287, Col: 94}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "</span></button>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
 		}
 		return nil
 	})
