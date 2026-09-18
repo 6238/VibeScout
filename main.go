@@ -123,6 +123,7 @@ func main() {
 	http.HandleFunc("/api/voice-scout", voiceScoutWSHandler)
 	http.HandleFunc("/api/sort-notes", sortNotesHandler)
 	http.HandleFunc("/static/voice-scout.js", voiceScoutJSHandler)
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/pit-scout", pitScoutPageHandler)
 	http.HandleFunc("/api/save-pit-scout", savePitScoutHandler)
 	http.HandleFunc("/api/pit-teams", apiPitTeamsHandler)

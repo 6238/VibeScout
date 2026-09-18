@@ -64,14 +64,14 @@ func PitScoutPage(eventKey string, eventName string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<style>\r\n\t\t\t#pit-teams.hide-scouted [data-scouted] { display: none; }\r\n\t\t</style> <main class=\"flex flex-col items-center justify-center min-h-screen px-3 py-6\"><div class=\"w-full max-w-md md:max-w-4xl bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-4 md:p-6 shadow-xl\"><h1 class=\"text-2xl font-black text-[#5D4037] mb-1 text-center tracking-tight uppercase\">Pit Scouting</h1><p class=\"text-sm font-bold text-[#A1887F] mb-3 text-center\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<style>\r\n\t\t\t#pit-teams.hide-scouted [data-scouted] { display: none; }\r\n\t\t\t#pit-teams .pit-highlight {\r\n\t\t\t\tbackground-color: rgba(250, 204, 21, 0.55) !important;\r\n\t\t\t\tborder-color: #CA8A04 !important;\r\n\t\t\t\toutline: 3px solid #FACC15;\r\n\t\t\t\tz-index: 5;\r\n\t\t\t}\r\n\t\t</style> <main class=\"flex flex-col items-center justify-center min-h-screen px-3 py-6\"><div class=\"w-full max-w-md md:max-w-4xl bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-4 md:p-6 shadow-xl\"><h1 class=\"text-2xl font-black text-[#5D4037] mb-1 text-center tracking-tight uppercase\">Pit Scouting</h1><p class=\"text-sm font-bold text-[#A1887F] mb-3 text-center\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(eventName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 34, Col: 76}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 40, Col: 76}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -84,13 +84,13 @@ func PitScoutPage(eventKey string, eventName string) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(eventKey)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 35, Col: 73}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 41, Col: 73}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><!-- Form first so the team list sits below it on mobile and beside it on desktop --><div class=\"grid gap-4 md:grid-cols-[minmax(0,1fr)_16rem] md:gap-6\"><div><form id=\"pit-form\" class=\"space-y-3\" hx-post=\"/api/save-pit-scout\" hx-target=\"#pit-result\" hx-swap=\"innerHTML\"><div><label for=\"pit-team-number\" class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Team #</label><div class=\"relative\"><input id=\"pit-team-number\" type=\"text\" name=\"team_number\" inputmode=\"numeric\" pattern=\"[0-9]+\" placeholder=\"Start typing a team number\" required autocomplete=\"off\" role=\"combobox\" aria-autocomplete=\"list\" aria-controls=\"pit-team-suggest\" aria-expanded=\"false\" class=\"w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold\"><ul id=\"pit-team-suggest\" role=\"listbox\" class=\"hidden absolute z-10 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl shadow-lg\"></ul></div><div id=\"pit-edit-status\" class=\"hidden mt-2 ml-2 text-sm font-bold text-[#8D6E63]\"></div></div><div><label for=\"pit-summary\" class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Ask about</label><ol class=\"list-decimal list-inside text-base leading-snug text-[#5D4037] bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl px-3 py-2 mb-2 space-y-1\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><!-- Form first, then the team map(s) full-width below it --><div><form id=\"pit-form\" class=\"space-y-3\" hx-post=\"/api/save-pit-scout\" hx-target=\"#pit-result\" hx-swap=\"innerHTML\"><div><label for=\"pit-team-number\" class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Team #</label><div class=\"relative\"><input id=\"pit-team-number\" type=\"text\" name=\"team_number\" inputmode=\"numeric\" pattern=\"[0-9]+\" placeholder=\"Search a team number\" required autocomplete=\"off\" role=\"combobox\" aria-autocomplete=\"list\" aria-controls=\"pit-team-suggest\" aria-expanded=\"false\" class=\"w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold\"><ul id=\"pit-team-suggest\" role=\"listbox\" class=\"hidden absolute z-10 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl shadow-lg\"></ul></div><div id=\"pit-edit-status\" class=\"hidden mt-2 ml-2 text-sm font-bold text-[#8D6E63]\"></div></div><div><label for=\"pit-summary\" class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Ask about</label><ol class=\"list-decimal list-inside text-base leading-snug text-[#5D4037] bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl px-3 py-2 mb-2 space-y-1\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -102,7 +102,7 @@ func PitScoutPage(eventKey string, eventName string) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(q)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 60, Col: 17}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 65, Col: 16}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -113,20 +113,20 @@ func PitScoutPage(eventKey string, eventName string) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</ol><textarea id=\"pit-summary\" name=\"summary\" rows=\"8\" required placeholder=\"Summary of their answers...\" class=\"w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700\"></textarea></div><button id=\"pit-submit\" type=\"submit\" class=\"w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-4 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]\">Save Pit Scouting</button></form><div id=\"pit-result\" class=\"mt-3 text-center font-bold text-[#5D4037]\"></div></div><div><div class=\"flex justify-between items-center ml-2 mb-1\"><label class=\"text-xs font-bold uppercase text-[#A1887F]\">Teams</label> <label class=\"flex items-center gap-2 text-sm font-bold text-[#8D6E63] cursor-pointer select-none\"><input id=\"pit-hide-scouted\" type=\"checkbox\" class=\"w-5 h-5 accent-[#8D6E63]\"> Hide scouted</label></div><div id=\"pit-teams\" hx-get=\"/api/pit-teams\" hx-include=\"#pit-event\" hx-trigger=\"load, pitSaved from:body\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div></div></div></div><div class=\"mt-4 text-center\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</ol><textarea id=\"pit-summary\" name=\"summary\" rows=\"8\" required placeholder=\"Summary of their answers...\" class=\"w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700\"></textarea></div><button id=\"pit-submit\" type=\"submit\" class=\"w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-4 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]\">Save Pit Scouting</button></form><div id=\"pit-result\" class=\"mt-3 text-center font-bold text-[#5D4037]\"></div></div><div class=\"mt-5\"><div class=\"flex justify-between items-center ml-2 mb-1\"><label class=\"text-xs font-bold uppercase text-[#A1887F]\">Teams</label> <label class=\"flex items-center gap-2 text-sm font-bold text-[#8D6E63] cursor-pointer select-none\"><input id=\"pit-hide-scouted\" type=\"checkbox\" class=\"w-5 h-5 accent-[#8D6E63]\"> Hide scouted</label></div><p class=\"text-xs text-[#A1887F] ml-2 mb-2\">Scroll/pinch to find a pit, then tap its number.</p><div id=\"pit-teams\" hx-get=\"/api/pit-teams\" hx-include=\"#pit-event\" hx-trigger=\"load, pitSaved from:body\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div></div></div><div class=\"mt-4 text-center\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var6 templ.SafeURL
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/?event_key=" + eventKey))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 94, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 99, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"text-[#A1887F] hover:text-[#5D4037] font-bold\">← Home</a></div><script>\r\n\t\t\t\t(function() {\r\n\t\t\t\t\tvar teams = document.getElementById('pit-teams');\r\n\t\t\t\t\tvar hide = document.getElementById('pit-hide-scouted');\r\n\t\t\t\t\tvar form = document.getElementById('pit-form');\r\n\t\t\t\t\tvar input = document.getElementById('pit-team-number');\r\n\t\t\t\t\tvar suggest = document.getElementById('pit-team-suggest');\r\n\t\t\t\t\tvar summary = document.getElementById('pit-summary');\r\n\t\t\t\t\tvar status = document.getElementById('pit-edit-status');\r\n\t\t\t\t\tvar submit = document.getElementById('pit-submit');\r\n\r\n\t\t\t\t\tvar currentTeam = null;   // team whose notes state is loaded\r\n\t\t\t\t\tvar loadedSummary = null; // existing notes put in the text box, if any\r\n\t\t\t\t\tvar loadSeq = 0;\r\n\t\t\t\t\tvar highlighted = -1;\r\n\r\n\t\t\t\t\t// ── Existing notes ──\r\n\t\t\t\t\tfunction setStatus(html) {\r\n\t\t\t\t\t\tstatus.innerHTML = html;\r\n\t\t\t\t\t\tstatus.classList.toggle('hidden', html === '');\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction setEditing(team, text) {\r\n\t\t\t\t\t\tsummary.value = text;\r\n\t\t\t\t\t\tloadedSummary = text;\r\n\t\t\t\t\t\tsetStatus('✎ Editing existing notes for team ' + team);\r\n\t\t\t\t\t\tsubmit.textContent = 'Update Pit Scouting';\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction setNew() {\r\n\t\t\t\t\t\tloadedSummary = null;\r\n\t\t\t\t\t\tsetStatus('');\r\n\t\t\t\t\t\tsubmit.textContent = 'Save Pit Scouting';\r\n\t\t\t\t\t}\r\n\t\t\t\t\t// True if the text box holds something the scout typed that isn't saved anywhere\r\n\t\t\t\t\tfunction hasUnsavedText() {\r\n\t\t\t\t\t\treturn summary.value.trim() !== '' && summary.value !== (loadedSummary || '');\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\tfunction loadTeam(team) {\r\n\t\t\t\t\t\tteam = (team || '').trim();\r\n\t\t\t\t\t\tif (team === currentTeam) return;\r\n\t\t\t\t\t\tcurrentTeam = team;\r\n\t\t\t\t\t\tvar seq = ++loadSeq;\r\n\t\t\t\t\t\tif (team === '') {\r\n\t\t\t\t\t\t\tif (!hasUnsavedText()) summary.value = '';\r\n\t\t\t\t\t\t\tsetNew();\r\n\t\t\t\t\t\t\treturn;\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t\tfetch('/api/pit-note?team_number=' + encodeURIComponent(team))\r\n\t\t\t\t\t\t\t.then(function(r) { return r.json(); })\r\n\t\t\t\t\t\t\t.then(function(note) {\r\n\t\t\t\t\t\t\t\tif (seq !== loadSeq) return; // a newer team was picked\r\n\t\t\t\t\t\t\t\tif (!note.exists) {\r\n\t\t\t\t\t\t\t\t\tif (!hasUnsavedText()) summary.value = '';\r\n\t\t\t\t\t\t\t\t\tsetNew();\r\n\t\t\t\t\t\t\t\t\treturn;\r\n\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t\tif (!hasUnsavedText()) {\r\n\t\t\t\t\t\t\t\t\tsetEditing(team, note.summary);\r\n\t\t\t\t\t\t\t\t\treturn;\r\n\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t\t// Don't clobber what they typed; let them choose\r\n\t\t\t\t\t\t\t\tsetStatus('Team ' + team + ' already has notes. Saving will replace them. ' +\r\n\t\t\t\t\t\t\t\t\t'<button type=\"button\" id=\"pit-load-existing\" class=\"underline\">Load existing notes</button>');\r\n\t\t\t\t\t\t\t\tsubmit.textContent = 'Update Pit Scouting';\r\n\t\t\t\t\t\t\t\tloadedSummary = null;\r\n\t\t\t\t\t\t\t\tdocument.getElementById('pit-load-existing').onclick = function() {\r\n\t\t\t\t\t\t\t\t\tsetEditing(team, note.summary);\r\n\t\t\t\t\t\t\t\t\tsummary.focus();\r\n\t\t\t\t\t\t\t\t};\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\t// ── Type-ahead ──\r\n\t\t\t\t\tfunction eventTeams() {\r\n\t\t\t\t\t\treturn Array.prototype.map.call(teams.querySelectorAll('[data-pit-team]'), function(b) {\r\n\t\t\t\t\t\t\treturn { number: b.dataset.pitTeam, scouted: b.hasAttribute('data-scouted') };\r\n\t\t\t\t\t\t});\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction closeSuggest() {\r\n\t\t\t\t\t\tsuggest.classList.add('hidden');\r\n\t\t\t\t\t\tinput.setAttribute('aria-expanded', 'false');\r\n\t\t\t\t\t\thighlighted = -1;\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction renderSuggest() {\r\n\t\t\t\t\t\tvar q = input.value.trim();\r\n\t\t\t\t\t\tif (q === '') { closeSuggest(); return; }\r\n\t\t\t\t\t\tvar all = eventTeams();\r\n\t\t\t\t\t\tvar starts = all.filter(function(t) { return t.number.indexOf(q) === 0; });\r\n\t\t\t\t\t\tvar contains = all.filter(function(t) { return t.number.indexOf(q) > 0; });\r\n\t\t\t\t\t\tvar list = starts.concat(contains).slice(0, 8);\r\n\t\t\t\t\t\tif (list.length === 0 || (list.length === 1 && list[0].number === q)) { closeSuggest(); return; }\r\n\t\t\t\t\t\thighlighted = 0;\r\n\t\t\t\t\t\tsuggest.innerHTML = '';\r\n\t\t\t\t\t\tlist.forEach(function(t, i) {\r\n\t\t\t\t\t\t\tvar li = document.createElement('li');\r\n\t\t\t\t\t\t\tli.setAttribute('role', 'option');\r\n\t\t\t\t\t\t\tli.dataset.team = t.number;\r\n\t\t\t\t\t\t\tli.className = 'suggest-item flex justify-between items-center px-3 py-2 cursor-pointer font-bold text-[#5D4037]';\r\n\t\t\t\t\t\t\tli.innerHTML = '<span></span>' + (t.scouted ? '<span class=\"text-xs font-bold text-[#A1887F]\">scouted · edit</span>' : '');\r\n\t\t\t\t\t\t\tli.firstChild.textContent = t.number;\r\n\t\t\t\t\t\t\tsuggest.appendChild(li);\r\n\t\t\t\t\t\t});\r\n\t\t\t\t\t\tpaintHighlight();\r\n\t\t\t\t\t\tsuggest.classList.remove('hidden');\r\n\t\t\t\t\t\tinput.setAttribute('aria-expanded', 'true');\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction paintHighlight() {\r\n\t\t\t\t\t\tArray.prototype.forEach.call(suggest.children, function(li, i) {\r\n\t\t\t\t\t\t\tli.classList.toggle('bg-[#F2E8D5]', i === highlighted);\r\n\t\t\t\t\t\t\tli.setAttribute('aria-selected', i === highlighted ? 'true' : 'false');\r\n\t\t\t\t\t\t});\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction pick(team) {\r\n\t\t\t\t\t\tinput.value = team;\r\n\t\t\t\t\t\tcloseSuggest();\r\n\t\t\t\t\t\tloadTeam(team);\r\n\t\t\t\t\t\tsummary.focus();\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\tinput.addEventListener('input', function() {\r\n\t\t\t\t\t\tinput.value = input.value.replace(/[^0-9]/g, '');\r\n\t\t\t\t\t\trenderSuggest();\r\n\t\t\t\t\t});\r\n\t\t\t\t\tinput.addEventListener('keydown', function(e) {\r\n\t\t\t\t\t\tvar open = !suggest.classList.contains('hidden');\r\n\t\t\t\t\t\tif (e.key === 'ArrowDown' && open) {\r\n\t\t\t\t\t\t\te.preventDefault();\r\n\t\t\t\t\t\t\thighlighted = Math.min(highlighted + 1, suggest.children.length - 1);\r\n\t\t\t\t\t\t\tpaintHighlight();\r\n\t\t\t\t\t\t} else if (e.key === 'ArrowUp' && open) {\r\n\t\t\t\t\t\t\te.preventDefault();\r\n\t\t\t\t\t\t\thighlighted = Math.max(highlighted - 1, 0);\r\n\t\t\t\t\t\t\tpaintHighlight();\r\n\t\t\t\t\t\t} else if (e.key === 'Enter') {\r\n\t\t\t\t\t\t\te.preventDefault(); // never submit from the team box\r\n\t\t\t\t\t\t\tif (open && highlighted >= 0) pick(suggest.children[highlighted].dataset.team);\r\n\t\t\t\t\t\t\telse pick(input.value);\r\n\t\t\t\t\t\t} else if (e.key === 'Escape') {\r\n\t\t\t\t\t\t\tcloseSuggest();\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t});\r\n\t\t\t\t\t// mousedown so it fires before the input loses focus\r\n\t\t\t\t\tsuggest.addEventListener('mousedown', function(e) {\r\n\t\t\t\t\t\tvar li = e.target.closest('[data-team]');\r\n\t\t\t\t\t\tif (!li) return;\r\n\t\t\t\t\t\te.preventDefault();\r\n\t\t\t\t\t\tpick(li.dataset.team);\r\n\t\t\t\t\t});\r\n\t\t\t\t\tinput.addEventListener('blur', function() {\r\n\t\t\t\t\t\tcloseSuggest();\r\n\t\t\t\t\t\tloadTeam(input.value);\r\n\t\t\t\t\t});\r\n\r\n\t\t\t\t\t// ── Team list ──\r\n\t\t\t\t\tteams.addEventListener('click', function(e) {\r\n\t\t\t\t\t\tvar btn = e.target.closest('[data-pit-team]');\r\n\t\t\t\t\t\tif (!btn) return;\r\n\t\t\t\t\t\tpick(btn.dataset.pitTeam);\r\n\t\t\t\t\t});\r\n\t\t\t\t\t// The class lives on the htmx container, so it survives list refreshes\r\n\t\t\t\t\thide.addEventListener('change', function() {\r\n\t\t\t\t\t\tteams.classList.toggle('hide-scouted', hide.checked);\r\n\t\t\t\t\t});\r\n\r\n\t\t\t\t\t// ── After saving, start fresh for the next team ──\r\n\t\t\t\t\tform.addEventListener('htmx:afterRequest', function(e) {\r\n\t\t\t\t\t\tif (e.detail.elt !== form || !e.detail.successful) return;\r\n\t\t\t\t\t\tform.reset();\r\n\t\t\t\t\t\tcurrentTeam = null;\r\n\t\t\t\t\t\tsetNew();\r\n\t\t\t\t\t});\r\n\t\t\t\t})();\r\n\t\t\t</script></main>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"text-[#A1887F] hover:text-[#5D4037] font-bold\">← Home</a></div><script>\r\n\t\t\t\t(function() {\r\n\t\t\t\t\tvar teams = document.getElementById('pit-teams');\r\n\t\t\t\t\tvar hide = document.getElementById('pit-hide-scouted');\r\n\t\t\t\t\tvar form = document.getElementById('pit-form');\r\n\t\t\t\t\tvar input = document.getElementById('pit-team-number');\r\n\t\t\t\t\tvar suggest = document.getElementById('pit-team-suggest');\r\n\t\t\t\t\tvar summary = document.getElementById('pit-summary');\r\n\t\t\t\t\tvar status = document.getElementById('pit-edit-status');\r\n\t\t\t\t\tvar submit = document.getElementById('pit-submit');\r\n\r\n\t\t\t\t\tvar currentTeam = null;   // team whose notes state is loaded\r\n\t\t\t\t\tvar loadedSummary = null; // existing notes put in the text box, if any\r\n\t\t\t\t\tvar loadSeq = 0;\r\n\t\t\t\t\tvar highlighted = -1;\r\n\r\n\t\t\t\t\t// ── Existing notes ──\r\n\t\t\t\t\tfunction setStatus(html) {\r\n\t\t\t\t\t\tstatus.innerHTML = html;\r\n\t\t\t\t\t\tstatus.classList.toggle('hidden', html === '');\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction setEditing(team, text) {\r\n\t\t\t\t\t\tsummary.value = text;\r\n\t\t\t\t\t\tloadedSummary = text;\r\n\t\t\t\t\t\tsetStatus('✎ Editing existing notes for team ' + team);\r\n\t\t\t\t\t\tsubmit.textContent = 'Update Pit Scouting';\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction setNew() {\r\n\t\t\t\t\t\tloadedSummary = null;\r\n\t\t\t\t\t\tsetStatus('');\r\n\t\t\t\t\t\tsubmit.textContent = 'Save Pit Scouting';\r\n\t\t\t\t\t}\r\n\t\t\t\t\t// True if the text box holds something the scout typed that isn't saved anywhere\r\n\t\t\t\t\tfunction hasUnsavedText() {\r\n\t\t\t\t\t\treturn summary.value.trim() !== '' && summary.value !== (loadedSummary || '');\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\tfunction loadTeam(team) {\r\n\t\t\t\t\t\tteam = (team || '').trim();\r\n\t\t\t\t\t\tif (team === currentTeam) return;\r\n\t\t\t\t\t\tcurrentTeam = team;\r\n\t\t\t\t\t\tvar seq = ++loadSeq;\r\n\t\t\t\t\t\tif (team === '') {\r\n\t\t\t\t\t\t\tif (!hasUnsavedText()) summary.value = '';\r\n\t\t\t\t\t\t\tsetNew();\r\n\t\t\t\t\t\t\treturn;\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t\tfetch('/api/pit-note?team_number=' + encodeURIComponent(team))\r\n\t\t\t\t\t\t\t.then(function(r) { return r.json(); })\r\n\t\t\t\t\t\t\t.then(function(note) {\r\n\t\t\t\t\t\t\t\tif (seq !== loadSeq) return; // a newer team was picked\r\n\t\t\t\t\t\t\t\tif (!note.exists) {\r\n\t\t\t\t\t\t\t\t\tif (!hasUnsavedText()) summary.value = '';\r\n\t\t\t\t\t\t\t\t\tsetNew();\r\n\t\t\t\t\t\t\t\t\treturn;\r\n\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t\tif (!hasUnsavedText()) {\r\n\t\t\t\t\t\t\t\t\tsetEditing(team, note.summary);\r\n\t\t\t\t\t\t\t\t\treturn;\r\n\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t\t// Don't clobber what they typed; let them choose\r\n\t\t\t\t\t\t\t\tsetStatus('Team ' + team + ' already has notes. Saving will replace them. ' +\r\n\t\t\t\t\t\t\t\t\t'<button type=\"button\" id=\"pit-load-existing\" class=\"underline\">Load existing notes</button>');\r\n\t\t\t\t\t\t\t\tsubmit.textContent = 'Update Pit Scouting';\r\n\t\t\t\t\t\t\t\tloadedSummary = null;\r\n\t\t\t\t\t\t\t\tdocument.getElementById('pit-load-existing').onclick = function() {\r\n\t\t\t\t\t\t\t\t\tsetEditing(team, note.summary);\r\n\t\t\t\t\t\t\t\t\tsummary.focus();\r\n\t\t\t\t\t\t\t\t};\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\t// ── Type-ahead ──\r\n\t\t\t\t\tfunction eventTeams() {\r\n\t\t\t\t\t\treturn Array.prototype.map.call(teams.querySelectorAll('[data-pit-team]'), function(b) {\r\n\t\t\t\t\t\t\treturn { number: b.dataset.pitTeam, scouted: b.hasAttribute('data-scouted') };\r\n\t\t\t\t\t\t});\r\n\t\t\t\t\t}\r\n\t\t\t\t\t// ── Map highlight ──\r\n\t\t\t\t\tfunction clearHighlight() {\r\n\t\t\t\t\t\tArray.prototype.forEach.call(teams.querySelectorAll('.pit-highlight'), function(b) {\r\n\t\t\t\t\t\t\tb.classList.remove('pit-highlight');\r\n\t\t\t\t\t\t});\r\n\t\t\t\t\t}\r\n\t\t\t\t\t// Highlights the team on the map and centers it inside the map box only;\r\n\t\t\t\t\t// the page never scrolls, so the scout can keep typing.\r\n\t\t\t\t\tfunction highlightTeam(team) {\r\n\t\t\t\t\t\tclearHighlight();\r\n\t\t\t\t\t\tvar btn = teams.querySelector('[data-pit-team=\"' + team + '\"]');\r\n\t\t\t\t\t\tif (!btn || !btn.parentElement || btn.parentElement.tagName !== 'DIV' || !btn.style.left) return;\r\n\t\t\t\t\t\tbtn.classList.add('pit-highlight');\r\n\t\t\t\t\t\tvar box = teams.firstElementChild;\r\n\t\t\t\t\t\tif (box && box.scrollWidth > 0) {\r\n\t\t\t\t\t\t\tvar b = btn.getBoundingClientRect(), c = box.getBoundingClientRect();\r\n\t\t\t\t\t\t\tbox.scrollTo({\r\n\t\t\t\t\t\t\t\tleft: box.scrollLeft + (b.left - c.left) - c.width / 2 + b.width / 2,\r\n\t\t\t\t\t\t\t\ttop: box.scrollTop + (b.top - c.top) - c.height / 2 + b.height / 2,\r\n\t\t\t\t\t\t\t\tbehavior: 'smooth'\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction closeSuggest() {\r\n\t\t\t\t\t\tsuggest.classList.add('hidden');\r\n\t\t\t\t\t\tinput.setAttribute('aria-expanded', 'false');\r\n\t\t\t\t\t\thighlighted = -1;\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction renderSuggest() {\r\n\t\t\t\t\t\tvar q = input.value.trim();\r\n\t\t\t\t\t\tif (q === '') { closeSuggest(); return; }\r\n\t\t\t\t\t\tvar all = eventTeams();\r\n\t\t\t\t\t\tvar starts = all.filter(function(t) { return t.number.indexOf(q) === 0; });\r\n\t\t\t\t\t\tvar contains = all.filter(function(t) { return t.number.indexOf(q) > 0; });\r\n\t\t\t\t\t\tvar list = starts.concat(contains).slice(0, 8);\r\n\t\t\t\t\t\tif (list.length === 0 || (list.length === 1 && list[0].number === q)) { closeSuggest(); return; }\r\n\t\t\t\t\t\thighlighted = 0;\r\n\t\t\t\t\t\tsuggest.innerHTML = '';\r\n\t\t\t\t\t\tlist.forEach(function(t, i) {\r\n\t\t\t\t\t\t\tvar li = document.createElement('li');\r\n\t\t\t\t\t\t\tli.setAttribute('role', 'option');\r\n\t\t\t\t\t\t\tli.dataset.team = t.number;\r\n\t\t\t\t\t\t\tli.className = 'suggest-item flex justify-between items-center px-3 py-2 cursor-pointer font-bold text-[#5D4037]';\r\n\t\t\t\t\t\t\tli.innerHTML = '<span></span>' + (t.scouted ? '<span class=\"text-xs font-bold text-[#A1887F]\">scouted · edit</span>' : '');\r\n\t\t\t\t\t\t\tli.firstChild.textContent = t.number;\r\n\t\t\t\t\t\t\tsuggest.appendChild(li);\r\n\t\t\t\t\t\t});\r\n\t\t\t\t\t\tpaintHighlight();\r\n\t\t\t\t\t\tsuggest.classList.remove('hidden');\r\n\t\t\t\t\t\tinput.setAttribute('aria-expanded', 'true');\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction paintHighlight() {\r\n\t\t\t\t\t\tArray.prototype.forEach.call(suggest.children, function(li, i) {\r\n\t\t\t\t\t\t\tli.classList.toggle('bg-[#F2E8D5]', i === highlighted);\r\n\t\t\t\t\t\t\tli.setAttribute('aria-selected', i === highlighted ? 'true' : 'false');\r\n\t\t\t\t\t\t});\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction pick(team) {\r\n\t\t\t\t\t\tinput.value = team;\r\n\t\t\t\t\t\tcloseSuggest();\r\n\t\t\t\t\t\tloadTeam(team);\r\n\t\t\t\t\t\thighlightTeam(team);\r\n\t\t\t\t\t\tsummary.focus();\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\tinput.addEventListener('input', function() {\r\n\t\t\t\t\t\tinput.value = input.value.replace(/[^0-9]/g, '');\r\n\t\t\t\t\t\trenderSuggest();\r\n\t\t\t\t\t\tvar q = input.value.trim();\r\n\t\t\t\t\t\t// Highlight as soon as the typed number (or the top suggestion) is a real team\r\n\t\t\t\t\t\tvar match = q && eventTeams().filter(function(t) { return t.number === q; })[0];\r\n\t\t\t\t\t\tif (!match && q) match = eventTeams().filter(function(t) { return t.number.indexOf(q) === 0; })[0];\r\n\t\t\t\t\t\tif (match) highlightTeam(match.number); else clearHighlight();\r\n\t\t\t\t\t});\r\n\t\t\t\t\tinput.addEventListener('keydown', function(e) {\r\n\t\t\t\t\t\tvar open = !suggest.classList.contains('hidden');\r\n\t\t\t\t\t\tif (e.key === 'ArrowDown' && open) {\r\n\t\t\t\t\t\t\te.preventDefault();\r\n\t\t\t\t\t\t\thighlighted = Math.min(highlighted + 1, suggest.children.length - 1);\r\n\t\t\t\t\t\t\tpaintHighlight();\r\n\t\t\t\t\t\t} else if (e.key === 'ArrowUp' && open) {\r\n\t\t\t\t\t\t\te.preventDefault();\r\n\t\t\t\t\t\t\thighlighted = Math.max(highlighted - 1, 0);\r\n\t\t\t\t\t\t\tpaintHighlight();\r\n\t\t\t\t\t\t} else if (e.key === 'Enter') {\r\n\t\t\t\t\t\t\te.preventDefault(); // never submit from the team box\r\n\t\t\t\t\t\t\tif (open && highlighted >= 0) pick(suggest.children[highlighted].dataset.team);\r\n\t\t\t\t\t\t\telse pick(input.value);\r\n\t\t\t\t\t\t\thighlightTeam(input.value.trim());\r\n\t\t\t\t\t\t} else if (e.key === 'Escape') {\r\n\t\t\t\t\t\t\tcloseSuggest();\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t});\r\n\t\t\t\t\t// mousedown so it fires before the input loses focus\r\n\t\t\t\t\tsuggest.addEventListener('mousedown', function(e) {\r\n\t\t\t\t\t\tvar li = e.target.closest('[data-team]');\r\n\t\t\t\t\t\tif (!li) return;\r\n\t\t\t\t\t\te.preventDefault();\r\n\t\t\t\t\t\tpick(li.dataset.team);\r\n\t\t\t\t\t\thighlightTeam(li.dataset.team);\r\n\t\t\t\t\t});\r\n\t\t\t\t\tinput.addEventListener('blur', function() {\r\n\t\t\t\t\t\tcloseSuggest();\r\n\t\t\t\t\t\tloadTeam(input.value);\r\n\t\t\t\t\t});\r\n\r\n\t\t\t\t\t// ── Team list ──\r\n\t\t\t\t\tteams.addEventListener('click', function(e) {\r\n\t\t\t\t\t\tvar btn = e.target.closest('[data-pit-team]');\r\n\t\t\t\t\t\tif (!btn) return;\r\n\t\t\t\t\t\tpick(btn.dataset.pitTeam);\r\n\t\t\t\t\t});\r\n\t\t\t\t\t// The class lives on the htmx container, so it survives list refreshes\r\n\t\t\t\t\thide.addEventListener('change', function() {\r\n\t\t\t\t\t\tteams.classList.toggle('hide-scouted', hide.checked);\r\n\t\t\t\t\t});\r\n\r\n\t\t\t\t\t// ── After saving, start fresh for the next team ──\r\n\t\t\t\t\tform.addEventListener('htmx:afterRequest', function(e) {\r\n\t\t\t\t\t\tif (e.detail.elt !== form || !e.detail.successful) return;\r\n\t\t\t\t\t\tform.reset();\r\n\t\t\t\t\t\tcurrentTeam = null;\r\n\t\t\t\t\t\tsetNew();\r\n\t\t\t\t\t});\r\n\t\t\t\t})();\r\n\t\t\t</script></main>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -169,7 +169,7 @@ func PitTeamList(teams []PitTeam, errMsg string) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 275, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 311, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -185,89 +185,306 @@ func PitTeamList(teams []PitTeam, errMsg string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"flex flex-wrap content-start gap-2 max-h-72 md:max-h-[36rem] overflow-y-auto bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl p-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"max-h-[32rem] overflow-auto bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl p-2 space-y-3\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			for _, t := range teams {
-				if t.Scouted {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<button type=\"button\" data-pit-team=\"")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					var templ_7745c5c3_Var9 string
-					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 282, Col: 51}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" data-scouted class=\"px-4 py-3 rounded-lg text-base font-bold line-through text-stone-400 bg-stone-100 border border-stone-200\">")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					var templ_7745c5c3_Var10 string
-					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 284, Col: 16}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</button>")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<button type=\"button\" data-pit-team=\"")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					var templ_7745c5c3_Var11 string
-					templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 287, Col: 51}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"px-4 py-3 rounded-lg text-base font-bold text-[#5D4037] bg-[#FFFBF5] border border-[#D2B48C] hover:bg-[#D2B48C] transition\">")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					var templ_7745c5c3_Var12 string
-					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 289, Col: 16}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</button>")
+			if len(mapTeamsFor(teams, "pit-map1.webp")) > 0 {
+				templ_7745c5c3_Err = pitMapBlock("pit-map1.webp", mapTeamsFor(teams, "pit-map1.webp")).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			if len(mapTeamsFor(teams, "pit-map2.webp")) > 0 {
+				templ_7745c5c3_Err = pitMapBlock("pit-map2.webp", mapTeamsFor(teams, "pit-map2.webp")).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			if len(unmappedPitTeams(teams)) > 0 {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div><p class=\"text-xs font-bold uppercase text-[#A1887F] mb-1\">Not on the map</p><div class=\"flex flex-wrap content-start gap-2\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				for _, t := range unmappedPitTeams(teams) {
+					templ_7745c5c3_Err = pitTeamButton(t).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div></div>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</div><p class=\"text-xs text-[#A1887F] ml-2 mt-1\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</div><p class=\"text-xs text-[#A1887F] ml-2 mt-1\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var13 string
-			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d of %d scouted", countScouted(teams), len(teams)))
+			var templ_7745c5c3_Var9 string
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d of %d scouted", countScouted(teams), len(teams)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 295, Col: 69}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 334, Col: 69}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, " · tap a team to fill it in</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, " · tap a team to fill it in</p>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		return nil
+	})
+}
+
+func pitMapBlock(image string, teams []pitMapTeam) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var10 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var10 == nil {
+			templ_7745c5c3_Var10 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<div class=\"relative min-w-[700px] w-full rounded-lg border border-[#D2B48C] overflow-hidden\" style=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var11 string
+		templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("aspect-ratio: %.4f", 1/pitMapImageAspect[image]))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 340, Col: 164}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\"><img src=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var12 string
+		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs("/static/" + image)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 341, Col: 31}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"absolute inset-0 w-full h-full object-contain\" alt=\"Pit map\"> ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		for _, t := range teams {
+			templ_7745c5c3_Err = pitMapHotspot(t).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func pitMapHotspot(t pitMapTeam) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var13 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var13 == nil {
+			templ_7745c5c3_Var13 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		if t.Scouted {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<button type=\"button\" data-pit-team=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var14 string
+			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 350, Col: 48}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" data-scouted style=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var15 string
+			templ_7745c5c3_Var15, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(hotspotStyle(t.Pos))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 351, Col: 30}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "\" class=\"absolute rounded-sm bg-[#8D6E63]/75 border border-[#5D4037] text-[#F2E8D5] text-xs font-black flex items-center justify-center\">✓</button>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		} else {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<button type=\"button\" data-pit-team=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var16 string
+			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 356, Col: 48}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "\" style=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var17 string
+			templ_7745c5c3_Var17, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(hotspotStyle(t.Pos))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 357, Col: 30}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "\" class=\"absolute rounded-sm bg-[#D2B48C]/45 border border-[#D2B48C] hover:bg-[#D2B48C]/75 hover:border-[#8D6E63] active:bg-[#D2B48C] transition\" aria-label=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var18 string
+			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs("Team " + t.Number)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 359, Col: 34}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\"></button>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		return nil
+	})
+}
+
+func pitTeamButton(t PitTeam) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var19 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var19 == nil {
+			templ_7745c5c3_Var19 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		if t.Scouted {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<button type=\"button\" data-pit-team=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var20 string
+			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 365, Col: 48}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\" data-scouted class=\"px-4 py-3 rounded-lg text-base font-bold line-through text-stone-400 bg-stone-100 border border-stone-200\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var21 string
+			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 367, Col: 13}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</button>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		} else {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<button type=\"button\" data-pit-team=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var22 string
+			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 370, Col: 48}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "\" class=\"px-4 py-3 rounded-lg text-base font-bold text-[#5D4037] bg-[#FFFBF5] border border-[#D2B48C] hover:bg-[#D2B48C] transition\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var23 string
+			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 372, Col: 13}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
