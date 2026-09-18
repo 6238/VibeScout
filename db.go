@@ -73,4 +73,12 @@ func initDB() {
 
 	// Idempotent migration: scouters are identified by name (scouter_id is legacy)
 	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN scouter_name TEXT DEFAULT ''`)
+
+	// Idempotent migration: structured match checklist. has_checklist marks rows
+	// saved from the checklist UI, so older rows' defaults aren't read as "no".
+	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN has_checklist INTEGER DEFAULT 0`)
+	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN broke INTEGER DEFAULT 0`)
+	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN played_defense INTEGER DEFAULT 0`)
+	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN was_defended INTEGER DEFAULT 0`)
+	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN auto_type TEXT DEFAULT ''`)
 }

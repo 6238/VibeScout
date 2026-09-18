@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"crypto/sha256"
+	"database/sql"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -45,8 +46,50 @@ type ScoutSubmission struct {
 }
 
 type TeamScoutData struct {
-	TeamNumber string `json:"team_number"`
-	Notes      string `json:"notes"`
+	TeamNumber    string `json:"team_number"`
+	Notes         string `json:"notes"`
+	HasChecklist  bool   `json:"has_checklist"` // only one-robot mode sends a checklist
+	Broke         bool   `json:"broke"`
+	PlayedDefense bool   `json:"played_defense"`
+	WasDefended   bool   `json:"was_defended"`
+	AutoType      string `json:"auto_type"`
+}
+
+// hasScoutDataSQL matches submissions with something in them: written notes or
+// a checklist.
+const hasScoutDataSQL = `(TRIM(notes) != '' OR COALESCE(has_checklist, 0) = 1)`
+
+// scoutNoteColumns selects a submission's notes plus its checklist, for scanScoutNote.
+const scoutNoteColumns = `notes, COALESCE(has_checklist, 0), COALESCE(broke, 0), COALESCE(played_defense, 0), COALESCE(was_defended, 0), COALESCE(auto_type, '')`
+
+// scanScoutNote scans scoutNoteColumns and returns the text Gemini sees for one
+// submission. Rows without a checklist return just their notes, so older cached
+// analyses stay valid.
+func scanScoutNote(rows *sql.Rows) (string, error) {
+	var notes, autoType string
+	var hasChecklist, broke, playedDefense, wasDefended bool
+	if err := rows.Scan(&notes, &hasChecklist, &broke, &playedDefense, &wasDefended, &autoType); err != nil {
+		return "", err
+	}
+	if !hasChecklist {
+		return notes, nil
+	}
+	yesNo := func(b bool) string {
+		if b {
+			return "yes"
+		}
+		return "no"
+	}
+	auto := strings.TrimSpace(autoType)
+	if auto == "" {
+		auto = "not recorded"
+	}
+	checklist := fmt.Sprintf("[Auto: %s; Broke: %s; Played defense: %s; Was defended: %s]",
+		auto, yesNo(broke), yesNo(playedDefense), yesNo(wasDefended))
+	if strings.TrimSpace(notes) == "" {
+		return checklist, nil
+	}
+	return notes + " " + checklist, nil
 }
 
 const ourTeam = templates.OurTeam
@@ -75,6 +118,7 @@ func main() {
 	http.HandleFunc("/field-scout", fieldScoutHandler)
 	http.HandleFunc("/scout", scoutHandler)
 	http.HandleFunc("/api/match-teams", apiMatchTeamsHandler)
+	http.HandleFunc("/api/match-alliances", apiMatchAlliancesHandler)
 	http.HandleFunc("/api/save-scout", saveScoutDataHandler)
 	http.HandleFunc("/pit-scout", pitScoutPageHandler)
 	http.HandleFunc("/api/save-pit-scout", savePitScoutHandler)
@@ -132,7 +176,7 @@ func fieldScoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	mode := r.URL.Query().Get("mode")
 	if mode != "one" {
-		mode = "all"
+		mode = "three"
 	}
 
 	templ.Handler(templates.FieldScout(templates.FieldScoutData{
@@ -221,7 +265,8 @@ func scoutHandler(w http.ResponseWriter, r *http.Request) {
 	eventKey := r.URL.Query().Get("event_key")
 	matchNum, _ := strconv.Atoi(r.URL.Query().Get("match_num"))
 	scouterName := normalizeScouterName(r.URL.Query().Get("scouter"))
-	pickedTeam := r.URL.Query().Get("team") // set in one-robot mode
+	pickedTeam := r.URL.Query().Get("team")         // set in one-robot mode
+	pickedAlliance := r.URL.Query().Get("alliance") // set in three-robot mode
 
 	matches, err := getMatchesCached(eventKey)
 	if err != nil {
@@ -259,14 +304,47 @@ func scoutHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		teams = picked
+	} else if pickedAlliance != "" {
+		var picked []templates.ScoutTeam
+		for _, t := range teams {
+			if t.Alliance == pickedAlliance {
+				picked = append(picked, t)
+			}
+		}
+		if len(picked) == 0 {
+			http.Error(w, fmt.Sprintf("Alliance %q is not in match %d", pickedAlliance, matchNum), 404)
+			return
+		}
+		teams = picked
 	}
 
 	for i := range teams {
-		db.QueryRow(`SELECT COUNT(*) FROM scout_submissions WHERE event_key = ? AND team_number = ? AND TRIM(notes) != ''`,
+		db.QueryRow(`SELECT COUNT(*) FROM scout_submissions WHERE event_key = ? AND team_number = ? AND `+hasScoutDataSQL,
 			eventKey, teams[i].Number).Scan(&teams[i].DataCount)
 	}
 
 	templates.ScoutPage(eventKey, strconv.Itoa(matchNum), scouterName, pickedTeam != "", teams).Render(r.Context(), w)
+}
+
+// scoutingCoverage returns how many different matches a team has been scouted in
+// at the event, and how many of its quals come before matchNum.
+func scoutingCoverage(eventKey string, matches []Match, matchNum int, team string) (scouted, playedBefore int) {
+	db.QueryRow(`SELECT COUNT(DISTINCT match_num) FROM scout_submissions
+		WHERE event_key = ? AND team_number = ? AND `+hasScoutDataSQL, eventKey, team).Scan(&scouted)
+
+	key := "frc" + team
+	for _, m := range matches {
+		if m.CompLevel != "qm" || m.MatchNumber >= matchNum {
+			continue
+		}
+		for _, k := range append(append([]string{}, m.Alliances.Red.TeamKeys...), m.Alliances.Blue.TeamKeys...) {
+			if k == key {
+				playedBefore++
+				break
+			}
+		}
+	}
+	return scouted, playedBefore
 }
 
 func findQualMatch(matches []Match, matchNum int) (Match, bool) {
@@ -322,6 +400,8 @@ func apiMatchTeamsHandler(w http.ResponseWriter, r *http.Request) {
 		for _, t := range stripFRC(keys) {
 			p := templates.PickTeam{Number: t, Alliance: alliance, IsUs: t == ourTeam}
 			if !p.IsUs {
+				p.Scouted, p.PlayedBefore = scoutingCoverage(eventKey, matches, matchNum, t)
+				p.NeedsData = p.Scouted*2 < p.PlayedBefore
 				p.NextWithUs = nextQualWith(matches, matchNum, t, ourTeam)
 				if p.NextWithUs != 0 && (soonest == 0 || p.NextWithUs < soonest) {
 					soonest = p.NextWithUs
@@ -339,6 +419,26 @@ func apiMatchTeamsHandler(w http.ResponseWriter, r *http.Request) {
 	templates.MatchTeamPicker(picks, matchNum, "").Render(r.Context(), w)
 }
 
+// apiMatchAlliancesHandler renders the three-robot picker for a match: the red
+// and blue alliance's team numbers.
+func apiMatchAlliancesHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey := r.URL.Query().Get("event_key")
+	matchNum, _ := strconv.Atoi(r.URL.Query().Get("match_num"))
+
+	matches, err := getMatchesCached(eventKey)
+	if err != nil {
+		templates.AlliancePicker(nil, nil, matchNum, "Couldn't load the match schedule.").Render(r.Context(), w)
+		return
+	}
+	m, found := findQualMatch(matches, matchNum)
+	if !found {
+		templates.AlliancePicker(nil, nil, matchNum, fmt.Sprintf("Match %d isn't in the schedule.", matchNum)).Render(r.Context(), w)
+		return
+	}
+
+	templates.AlliancePicker(stripFRC(m.Alliances.Red.TeamKeys), stripFRC(m.Alliances.Blue.TeamKeys), matchNum, "").Render(r.Context(), w)
+}
+
 func saveScoutDataHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
@@ -354,9 +454,11 @@ func saveScoutDataHandler(w http.ResponseWriter, r *http.Request) {
 	scouterName := canonicalScouterName(sub.ScouterName)
 	for _, teamData := range sub.Teams {
 		db.Exec(`
-			INSERT INTO scout_submissions (event_key, match_num, scouter_name, team_number, notes)
-			VALUES (?, ?, ?, ?, ?)`,
-			sub.EventKey, sub.MatchNum, scouterName, teamData.TeamNumber, teamData.Notes)
+			INSERT INTO scout_submissions (event_key, match_num, scouter_name, team_number, notes,
+				has_checklist, broke, played_defense, was_defended, auto_type)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			sub.EventKey, sub.MatchNum, scouterName, teamData.TeamNumber, teamData.Notes,
+			teamData.HasChecklist, teamData.Broke, teamData.PlayedDefense, teamData.WasDefended, strings.TrimSpace(teamData.AutoType))
 
 		// Bust team analysis cache
 		db.Exec(`DELETE FROM analysis_cache WHERE event_key = ? AND team_number = ?`,
@@ -577,13 +679,32 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 		card = templates.TeamAnalysisCard{
 			EventKey:   eventKey,
 			TeamNumber: teamNum,
-			Summary:    "Error generating analysis: " + err.Error(),
+			Error:      "Error generating analysis: " + err.Error(),
 		}
 	}
 
-	db.QueryRow(`SELECT EXISTS(SELECT 1 FROM scout_submissions WHERE event_key = ? AND team_number = ? AND TRIM(notes) != '')`,
+	db.QueryRow(`SELECT EXISTS(SELECT 1 FROM scout_submissions WHERE event_key = ? AND team_number = ? AND `+hasScoutDataSQL+`)`,
 		eventKey, teamNum).Scan(&card.HasNotes)
 	db.QueryRow(`SELECT EXISTS(SELECT 1 FROM pit_scouting WHERE team_number = ?)`, teamNum).Scan(&card.HasPitNotes)
+
+	card.EPA, card.HasEPA = teamTotalEPA(teamNum)
+
+	if rankings, err := getEventRankingsCached(eventKey); err == nil {
+		card.Rank, card.HasRank = rankings[teamNum]
+	} else {
+		log.Printf("rankings for %s at %s: %v", teamNum, eventKey, err)
+	}
+
+	if matches, err := getMatchesCached(eventKey); err == nil {
+		for _, m := range latestPlayedMatches(matches, teamNum, 2) {
+			card.RecentMatches = append(card.RecentMatches, templates.MatchLink{
+				Label: m.ShortLabel(),
+				URL:   "https://www.thebluealliance.com/match/" + m.Key,
+			})
+		}
+	} else {
+		log.Printf("recent matches for %s at %s: %v", teamNum, eventKey, err)
+	}
 
 	templates.SingleTeamAnalysisCard(card).Render(r.Context(), w)
 }
@@ -597,7 +718,9 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := db.Query(`
-		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(ai_generated, 0) FROM scout_submissions
+		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(ai_generated, 0),
+			COALESCE(has_checklist, 0), COALESCE(broke, 0), COALESCE(played_defense, 0), COALESCE(was_defended, 0), COALESCE(auto_type, '')
+		FROM scout_submissions
 		WHERE event_key = ? AND team_number = ?
 		ORDER BY match_num ASC`, eventKey, teamNum)
 	if err != nil {
@@ -609,7 +732,8 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 	var notes []templates.TeamNote
 	for rows.Next() {
 		var n templates.TeamNote
-		rows.Scan(&n.MatchNum, &n.Notes, &n.ScouterName, &n.AIGenerated)
+		rows.Scan(&n.MatchNum, &n.Notes, &n.ScouterName, &n.AIGenerated,
+			&n.HasChecklist, &n.Broke, &n.PlayedDefense, &n.WasDefended, &n.AutoType)
 		notes = append(notes, n)
 	}
 
@@ -663,8 +787,9 @@ func apiSearchTeamsHandler(w http.ResponseWriter, r *http.Request) {
 		WHERE event_key = ? AND (
 			team_number LIKE ? ESCAPE '\'
 			OR notes LIKE ? ESCAPE '\'
+			OR auto_type LIKE ? ESCAPE '\'
 			OR team_number IN (SELECT team_number FROM pit_scouting WHERE summary LIKE ? ESCAPE '\')
-		)`, eventKey, like, like, like)
+		)`, eventKey, like, like, like, like)
 	if err != nil {
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
@@ -684,15 +809,24 @@ func apiSearchTeamsHandler(w http.ResponseWriter, r *http.Request) {
 
 // teamAnalysisJSON is the structured response Gemini returns for team analysis.
 type teamAnalysisJSON struct {
-	Summary     string `json:"summary"`
-	Scoring     int    `json:"scoring"`
-	Reliability int    `json:"reliability"`
-	Defense     int    `json:"defense"` // 0 = N/A
+	Verdict        string `json:"verdict"` // Elite Pick, Strong Pick, Average, Below Average, Avoid
+	Shooting       string `json:"shooting"`
+	Driving        string `json:"driving"`
+	Failures       string `json:"failures"`
+	Auto           string `json:"auto"`
+	Recommendation string `json:"recommendation"`
+	Scoring        int    `json:"scoring"`
+	Reliability    int    `json:"reliability"`
+	Defense        int    `json:"defense"` // 0 = N/A
 }
+
+// analysisPromptVersion is mixed into the cache key so edits to the prompt's
+// output shape invalidate previously cached analyses.
+const analysisPromptVersion = "v4"
 
 func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard, error) {
 	rows, err := db.Query(`
-		SELECT notes FROM scout_submissions
+		SELECT `+scoutNoteColumns+` FROM scout_submissions
 		WHERE event_key = ? AND team_number = ?
 		ORDER BY match_num ASC`, eventKey, teamNum)
 	if err != nil {
@@ -700,15 +834,14 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 	}
 	var notesList []string
 	for rows.Next() {
-		var n string
-		rows.Scan(&n)
+		n, _ := scanScoutNote(rows)
 		notesList = append(notesList, n)
 	}
 	rows.Close()
 
 	combined := strings.Join(notesList, "\n")
 	pitNotes := pitNotesFor(teamNum)
-	hashInput := combined
+	hashInput := analysisPromptVersion + "\n" + combined
 	if pitNotes != "" {
 		hashInput += "\n[pit]\n" + pitNotes
 	}
@@ -725,13 +858,18 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 		var result teamAnalysisJSON
 		if jsonErr := json.Unmarshal([]byte(cachedJSON), &result); jsonErr == nil {
 			return templates.TeamAnalysisCard{
-				EventKey:    eventKey,
-				TeamNumber:  teamNum,
-				Summary:     result.Summary,
-				Scoring:     result.Scoring,
-				Reliability: result.Reliability,
-				Defense:     result.Defense,
-				FromCache:   true,
+				EventKey:       eventKey,
+				TeamNumber:     teamNum,
+				Verdict:        result.Verdict,
+				Shooting:       result.Shooting,
+				Driving:        result.Driving,
+				Failures:       result.Failures,
+				Auto:           result.Auto,
+				Recommendation: result.Recommendation,
+				Scoring:        result.Scoring,
+				Reliability:    result.Reliability,
+				Defense:        result.Defense,
+				FromCache:      true,
 			}, nil
 		}
 		// If JSON parse fails, fall through to regenerate
@@ -753,13 +891,18 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 		eventKey, teamNum, string(resultJSON), hash)
 
 	return templates.TeamAnalysisCard{
-		EventKey:    eventKey,
-		TeamNumber:  teamNum,
-		Summary:     result.Summary,
-		Scoring:     result.Scoring,
-		Reliability: result.Reliability,
-		Defense:     result.Defense,
-		FromCache:   false,
+		EventKey:       eventKey,
+		TeamNumber:     teamNum,
+		Verdict:        result.Verdict,
+		Shooting:       result.Shooting,
+		Driving:        result.Driving,
+		Failures:       result.Failures,
+		Auto:           result.Auto,
+		Recommendation: result.Recommendation,
+		Scoring:        result.Scoring,
+		Reliability:    result.Reliability,
+		Defense:        result.Defense,
+		FromCache:      false,
 	}, nil
 }
 
@@ -872,13 +1015,12 @@ func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.Mat
 			continue
 		}
 		rows, _ := db.Query(`
-			SELECT notes FROM scout_submissions
+			SELECT `+scoutNoteColumns+` FROM scout_submissions
 			WHERE event_key = ? AND team_number = ?
 			ORDER BY match_num ASC`, eventKey, t)
 		var notes []string
 		for rows.Next() {
-			var n string
-			rows.Scan(&n)
+			n, _ := scanScoutNote(rows)
 			notes = append(notes, n)
 		}
 		rows.Close()
@@ -952,26 +1094,80 @@ func stripFRC(keys []string) []string {
 // ── Statbotics EPA ────────────────────────────────────────────────────────────
 
 var (
-	epaCache   = map[string]string{}
-	epaCacheMu sync.RWMutex
-	httpClient = &http.Client{Timeout: 5 * time.Second}
+	epaCache    = map[string]map[string]float64{}
+	epaFailedAt = map[string]time.Time{}
+	epaCacheMu  sync.RWMutex
+	httpClient  = &http.Client{Timeout: 5 * time.Second}
 )
 
+// fetchStatboticsEPA returns the team's current-season EPA breakdown as text for
+// Gemini prompts, or "unavailable".
 func fetchStatboticsEPA(teamNum string) string {
+	breakdown, ok := statboticsEPABreakdown(teamNum)
+	if !ok {
+		return "unavailable"
+	}
+
+	keys := make([]string, 0, len(breakdown))
+	for k := range breakdown {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var lines []string
+	for _, k := range keys {
+		lines = append(lines, fmt.Sprintf("  %s: %.2f", k, breakdown[k]))
+	}
+	return strings.Join(lines, "\n")
+}
+
+// teamTotalEPA returns the team's current-season total points EPA.
+func teamTotalEPA(teamNum string) (float64, bool) {
+	breakdown, ok := statboticsEPABreakdown(teamNum)
+	if !ok {
+		return 0, false
+	}
+	total, ok := breakdown["total_points"]
+	return total, ok
+}
+
+// statboticsEPABreakdown fetches (and caches) the team's current-season EPA breakdown.
+func statboticsEPABreakdown(teamNum string) (map[string]float64, bool) {
 	epaCacheMu.RLock()
 	if v, ok := epaCache[teamNum]; ok {
 		epaCacheMu.RUnlock()
-		return v
+		return v, true
 	}
+	failedAt, failed := epaFailedAt[teamNum]
 	epaCacheMu.RUnlock()
+	// Don't retry a failed lookup on every card load while Statbotics is down
+	if failed && time.Since(failedAt) < 2*time.Minute {
+		return nil, false
+	}
 
+	breakdown, ok := fetchEPABreakdown(teamNum)
+	epaCacheMu.Lock()
+	if ok {
+		epaCache[teamNum] = breakdown
+		delete(epaFailedAt, teamNum)
+	} else {
+		epaFailedAt[teamNum] = time.Now()
+	}
+	epaCacheMu.Unlock()
+	return breakdown, ok
+}
+
+func fetchEPABreakdown(teamNum string) (map[string]float64, bool) {
 	year := time.Now().Year()
 	url := fmt.Sprintf("https://api.statbotics.io/v3/team_year/%s/%d", teamNum, year)
 	resp, err := httpClient.Get(url)
-	if err != nil || resp.StatusCode != 200 {
-		return "unavailable"
+	if err != nil {
+		return nil, false
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, false
+	}
 
 	var data struct {
 		EPA struct {
@@ -979,26 +1175,9 @@ func fetchStatboticsEPA(teamNum string) string {
 		} `json:"epa"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil || len(data.EPA.Breakdown) == 0 {
-		return "unavailable"
+		return nil, false
 	}
-
-	keys := make([]string, 0, len(data.EPA.Breakdown))
-	for k := range data.EPA.Breakdown {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	var lines []string
-	for _, k := range keys {
-		lines = append(lines, fmt.Sprintf("  %s: %.2f", k, data.EPA.Breakdown[k]))
-	}
-	result := strings.Join(lines, "\n")
-
-	epaCacheMu.Lock()
-	epaCache[teamNum] = result
-	epaCacheMu.Unlock()
-
-	return result
+	return data.EPA.Breakdown, true
 }
 
 // ── Gemini helpers ────────────────────────────────────────────────────────────

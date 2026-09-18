@@ -2,12 +2,13 @@ package templates
 
 import "strconv"
 
-templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTeam) {
+templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []ScoutTeam) {
 	@Layout("Vibe Scout | Match " + match) {
 		<style>
 			.page-transition { animation: slideIn 0.3s ease-out; }
 			@keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 			.section-card { background: rgba(255,251,245,0.95); border: 2px solid #D2B48C; border-radius: 1.5rem; }
+			.field-tag.active { background-color: #5D4037; color: #fff; border-color: #5D4037; }
 		</style>
 
 		<main class="p-3 pb-36 page-transition">
@@ -17,23 +18,21 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 					<p class="text-xs font-bold text-[#A1887F] uppercase">Match { match } • { scouterName }</p>
 					<h1 class="text-lg font-black text-[#5D4037] uppercase truncate">{ event }</h1>
 				</div>
-				if oneRobot {
-					<div class={ "px-4 py-1 rounded-xl font-black text-sm border-2",
-						templ.KV("bg-red-100 border-red-400 text-red-700", teams[0].Alliance == "Red"),
-						templ.KV("bg-blue-100 border-blue-400 text-blue-700", teams[0].Alliance == "Blue") }>
+				<div class={ "px-4 py-1 rounded-xl font-black text-sm border-2",
+					templ.KV("bg-red-100 border-red-400 text-red-700", teams[0].Alliance == "Red"),
+					templ.KV("bg-blue-100 border-blue-400 text-blue-700", teams[0].Alliance == "Blue") }>
+					if singleTeam {
 						{ teams[0].Alliance }
-					</div>
-				} else {
-					<div class="px-4 py-1 rounded-xl font-black text-sm border-2 bg-[#FFFBF5] border-[#D2B48C] text-[#5D4037]">
-						All 6
-					</div>
-				}
+					} else {
+						{ teams[0].Alliance + " Alliance" }
+					}
+				</div>
 			</div>
 
 			<!-- Notes Section -->
 			<div class="max-w-4xl mx-auto mb-5 section-card p-4">
 				<h2 class="text-lg font-black text-[#5D4037] uppercase mb-4 text-center">Notes</h2>
-				<div class={ "grid gap-4", templ.KV("grid-cols-3", !oneRobot), templ.KV("max-w-xl mx-auto", oneRobot) }>
+				<div class={ "grid", templ.KV("grid-cols-1 sm:grid-cols-3 gap-4", !singleTeam), templ.KV("gap-6 max-w-3xl mx-auto", singleTeam) }>
 					for _, team := range teams {
 						<div data-team-card={ team.Number }>
 							<label class={ "block text-sm font-black mb-2 text-center",
@@ -42,21 +41,35 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 								Team { team.Number }
 								<span class="ml-1 text-xs font-bold text-[#8D6E63]">({ strconv.Itoa(team.DataCount) } pts)</span>
 							</label>
-							<textarea
-								name={ "notes_" + team.Number }
-								if oneRobot {
-									rows="16"
-								} else {
-									rows="10"
-								}
-								class={ "w-full p-3 text-sm bg-white border-2 rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]",
-									templ.KV("border-red-300", team.Alliance == "Red"),
-									templ.KV("border-blue-300", team.Alliance == "Blue") }
-								placeholder="Observations..."></textarea>
-							<p class="mt-1 text-xs text-center text-[#A1887F]">Notes are saved when you press Next Match</p>
+							<div class="flex flex-wrap gap-1.5 mb-2">
+								@fieldTagButton("Broke")
+								@fieldTagButton("Played Defense")
+								@fieldTagButton("Was Defended")
+								@fieldTagButton("Passing")
+								@fieldTagButton("No Pieces")
+								@fieldTagButton("Missed Shots")
+							</div>
+							if singleTeam {
+								<textarea
+									name={ "notes_" + team.Number }
+									rows="14"
+									class={ "w-full p-3 text-sm bg-white border-2 rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]",
+										templ.KV("border-red-300", team.Alliance == "Red"),
+										templ.KV("border-blue-300", team.Alliance == "Blue") }
+									placeholder="Observations..."></textarea>
+							} else {
+								<textarea
+									name={ "notes_" + team.Number }
+									rows="12"
+									class={ "w-full p-3 text-sm bg-white border-2 rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]",
+										templ.KV("border-red-300", team.Alliance == "Red"),
+										templ.KV("border-blue-300", team.Alliance == "Blue") }
+									placeholder="Observations..."></textarea>
+							}
 						</div>
 					}
 				</div>
+				<p class="mt-3 text-xs text-center text-[#A1887F]">Notes are saved when you press Next Match</p>
 			</div>
 
 			<!-- Submit -->
@@ -68,6 +81,15 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 		</main>
 
 		<script>
+			// Quick-tag buttons just toggle selected state; they stay out of the visible
+			// notes textarea and get merged into the notes sent to the server on submit
+			// (see nextMatch), so Gemini sees them without cluttering the scout's view.
+			document.addEventListener('click', function(e) {
+				const btn = e.target.closest('[data-tag-btn]');
+				if (!btn) return;
+				btn.classList.toggle('active');
+			});
+
 			async function nextMatch() {
 				const params = new URLSearchParams(window.location.search);
 				const eventKey = params.get('event_key') || '';
@@ -76,10 +98,14 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 				const pickedTeam = params.get('team');
 
 				const teamCards = document.querySelectorAll('[data-team-card]');
-				const teams = Array.from(teamCards).map(card => ({
-					team_number: card.getAttribute('data-team-card'),
-					notes: card.querySelector('textarea')?.value || ''
-				}));
+				const teams = Array.from(teamCards).map(card => {
+					const tags = Array.from(card.querySelectorAll('[data-tag-btn].active')).map(b => b.dataset.tag);
+					const notes = card.querySelector('textarea')?.value || '';
+					return {
+						team_number: card.getAttribute('data-team-card'),
+						notes: tags.length ? '[' + tags.join('] [') + '] ' + notes : notes
+					};
+				});
 
 				const submission = {
 					event_key: eventKey,
@@ -96,15 +122,11 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 					});
 
 					if (resp.ok) {
+						// Both modes pick a team/alliance each match, so always return to
+						// Field Scouting to pick again for the next one.
 						const next = new URLSearchParams({ event_key: eventKey, match_num: matchNum + 1, scouter: scouter });
-						if (pickedTeam) {
-							// One-robot mode: back to Field Scouting to pick a team for the next match
-							next.set('mode', 'one');
-							window.location.href = '/field-scout?' + next;
-						} else {
-							next.set('mode', 'all');
-							window.location.href = '/scout?' + next;
-						}
+						next.set('mode', pickedTeam ? 'one' : 'three');
+						window.location.href = '/field-scout?' + next;
 					} else {
 						alert('Failed to save scout data.');
 					}
@@ -114,4 +136,14 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 			}
 		</script>
 	}
+}
+
+// fieldTagButton is a toggleable pill button; selected tags are merged into
+// the notes sent to the server on submit (see nextMatch in ScoutPage), kept
+// out of the visible textarea.
+templ fieldTagButton(tag string) {
+	<button type="button" data-tag-btn data-tag={ tag }
+		class="field-tag text-sm font-bold px-3.5 py-2 rounded-full border border-[#D2B48C] bg-white text-[#8D6E63] hover:bg-[#F2E8D5] transition">
+		{ tag }
+	</button>
 }

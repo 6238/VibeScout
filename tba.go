@@ -64,7 +64,9 @@ func decodeTBAList[T any](resp *http.Response, dest *[]T) error {
 type Match struct {
 	Key         string `json:"key"`
 	MatchNumber int    `json:"match_number"`
+	SetNumber   int    `json:"set_number"`
 	CompLevel   string `json:"comp_level"`
+	ActualTime  int64  `json:"actual_time"` // 0 until the match is played
 	Alliances   struct {
 		Red  Alliance `json:"red"`
 		Blue Alliance `json:"blue"`
@@ -73,6 +75,62 @@ type Match struct {
 
 type Alliance struct {
 	TeamKeys []string `json:"team_keys"`
+	Score    *int     `json:"score"` // nil or -1 until the match is played
+}
+
+// Played reports whether TBA has results for the match.
+func (m Match) Played() bool {
+	s := m.Alliances.Red.Score
+	return m.ActualTime > 0 || (s != nil && *s >= 0)
+}
+
+// ShortLabel is a compact name for the match, e.g. "Q12", "SF3-1", "F2".
+func (m Match) ShortLabel() string {
+	switch m.CompLevel {
+	case "qm":
+		return fmt.Sprintf("Q%d", m.MatchNumber)
+	case "f":
+		return fmt.Sprintf("F%d", m.MatchNumber)
+	default:
+		return fmt.Sprintf("%s%d-%d", strings.ToUpper(m.CompLevel), m.SetNumber, m.MatchNumber)
+	}
+}
+
+var compLevelOrder = map[string]int{"qm": 0, "ef": 1, "qf": 2, "sf": 3, "f": 4}
+
+// latestPlayedMatches returns up to n of the team's played matches at the event,
+// most recent first.
+func latestPlayedMatches(matches []Match, teamNum string, n int) []Match {
+	key := "frc" + teamNum
+	var played []Match
+	for _, m := range matches {
+		if !m.Played() {
+			continue
+		}
+		for _, k := range append(append([]string{}, m.Alliances.Red.TeamKeys...), m.Alliances.Blue.TeamKeys...) {
+			if k == key {
+				played = append(played, m)
+				break
+			}
+		}
+	}
+	sort.Slice(played, func(i, j int) bool {
+		a, b := played[i], played[j]
+		if a.ActualTime != b.ActualTime && a.ActualTime > 0 && b.ActualTime > 0 {
+			return a.ActualTime > b.ActualTime
+		}
+		if a.CompLevel != b.CompLevel {
+			return compLevelOrder[a.CompLevel] > compLevelOrder[b.CompLevel]
+		}
+		if a.SetNumber != b.SetNumber {
+			return a.SetNumber > b.SetNumber
+		}
+		return a.MatchNumber > b.MatchNumber
+	})
+	if len(played) > n {
+		played = played[:n]
+	}
+	return played
 }
 
 // Cache variables
@@ -161,6 +219,52 @@ func getEventTeamsCached(eventKey string) ([]string, error) {
 	eventTeamsCache[eventKey] = teams
 	eventTeamsTimestamp[eventKey] = time.Now()
 	return teams, nil
+}
+
+var (
+	rankingsCache     = make(map[string]map[string]int)
+	rankingsTimestamp = make(map[string]time.Time)
+	rankingsMutex     sync.Mutex
+)
+
+// getEventRankingsCached returns the event's current rankings as a map of team
+// number (without "frc") to rank.
+func getEventRankingsCached(eventKey string) (map[string]int, error) {
+	rankingsMutex.Lock()
+	defer rankingsMutex.Unlock()
+
+	if r, ok := rankingsCache[eventKey]; ok && time.Since(rankingsTimestamp[eventKey]) < 10*time.Minute {
+		return r, nil
+	}
+
+	resp, err := tbaDo(fmt.Sprintf("/event/%s/rankings", eventKey))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, fmt.Errorf("tba %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	var data struct {
+		Rankings []struct {
+			TeamKey string `json:"team_key"`
+			Rank    int    `json:"rank"`
+		} `json:"rankings"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	ranks := make(map[string]int, len(data.Rankings))
+	for _, r := range data.Rankings {
+		ranks[strings.TrimPrefix(r.TeamKey, "frc")] = r.Rank
+	}
+
+	rankingsCache[eventKey] = ranks
+	rankingsTimestamp[eventKey] = time.Now()
+	return ranks, nil
 }
 
 func sortTeamNumbers(teams []string) {
