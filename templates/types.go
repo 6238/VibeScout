@@ -92,7 +92,7 @@ type FieldScoutData struct {
 	MatchNum    int
 	ScouterName string   // prefilled when returning from a match
 	Scouters    []string // past scouter names for the type-ahead
-	Mode        string   // "all" (6 robots) or "one" (pick a robot)
+	Mode        string   // "three" (pick an alliance) or "one" (pick a robot)
 }
 
 type PickTeam struct {

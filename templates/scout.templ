@@ -2,17 +2,20 @@ package templates
 
 import "strconv"
 
-templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTeam) {
+templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []ScoutTeam) {
 	@Layout("Vibe Scout | Match " + match) {
 		<style>
 			.page-transition { animation: slideIn 0.3s ease-out; }
 			@keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 			.section-card { background: rgba(255,251,245,0.95); border: 2px solid #D2B48C; border-radius: 1.5rem; }
+			.field-tag.active { background-color: #5D4037; color: #fff; border-color: #5D4037; }
 			#voice-bar.is-listening { box-shadow: 0 0 0 3px rgba(93,64,55,0.2); }
 			#voice-bar:not(.is-listening) #voice-dot { background: #D2B48C; }
 			#voice-bar.is-listening #voice-dot { animation: voicePulse 1.2s ease-in-out infinite; }
 			@keyframes voicePulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.85); } }
-			[data-team-card].is-talking-about { box-shadow: 0 0 0 4px #5D4037; border-radius: 1rem; }
+			[data-team-card] { border: 3px solid transparent; border-radius: 1.25rem; transition: border-color 0.15s, box-shadow 0.15s; }
+			[data-team-card][data-alliance="Red"].is-talking-about { border-color: #b91c1c; box-shadow: 0 0 0 6px rgba(185,28,28,0.28); }
+			[data-team-card][data-alliance="Blue"].is-talking-about { border-color: #1d4ed8; box-shadow: 0 0 0 6px rgba(29,78,216,0.28); }
 		</style>
 
 		<main class="p-3 pb-36 page-transition">
@@ -22,17 +25,15 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 					<p class="text-xs font-bold text-[#A1887F] uppercase">Match { match } • { scouterName }</p>
 					<h1 class="text-lg font-black text-[#5D4037] uppercase truncate">{ event }</h1>
 				</div>
-				if oneRobot {
-					<div class={ "px-4 py-1 rounded-xl font-black text-sm border-2",
-						templ.KV("bg-red-100 border-red-400 text-red-700", teams[0].Alliance == "Red"),
-						templ.KV("bg-blue-100 border-blue-400 text-blue-700", teams[0].Alliance == "Blue") }>
+				<div class={ "px-4 py-1 rounded-xl font-black text-sm border-2",
+					templ.KV("bg-red-100 border-red-400 text-red-700", teams[0].Alliance == "Red"),
+					templ.KV("bg-blue-100 border-blue-400 text-blue-700", teams[0].Alliance == "Blue") }>
+					if singleTeam {
 						{ teams[0].Alliance }
-					</div>
-				} else {
-					<div class="px-4 py-1 rounded-xl font-black text-sm border-2 bg-[#FFFBF5] border-[#D2B48C] text-[#5D4037]">
-						All 6
-					</div>
-				}
+					} else {
+						{ teams[0].Alliance + " Alliance" }
+					}
+				</div>
 			</div>
 
 			<!-- Voice notes -->
@@ -44,53 +45,70 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 					</button>
 					<div class="flex-1 min-w-[12rem]">
 						<p id="voice-status" class="text-sm font-bold text-[#5D4037]">Mic off — tap to dictate notes.</p>
-						<p id="voice-talking" class="invisible mt-1 text-xs font-bold uppercase tracking-wide text-[#A1887F]">
-							Talking about
-							<span id="voice-talking-team" class="text-base font-black tracking-normal">—</span>
-						</p>
+						if !singleTeam {
+							<p id="voice-talking" class="invisible mt-1 text-xs font-bold uppercase tracking-wide text-[#A1887F]">
+								Talking about
+								<span id="voice-talking-team" class="text-base font-black tracking-normal">—</span>
+							</p>
+						}
 					</div>
 					<div class="flex items-center gap-2 text-[#A1887F]">
 						<span id="voice-dot" class="inline-block w-3 h-3 rounded-full bg-red-500"></span>
 						<span class="text-xs font-black uppercase tracking-widest">Live</span>
 					</div>
 				</div>
-				<p id="voice-caption" class="mt-3 min-h-[3rem] p-3 text-sm bg-[#FFFBF5] border-2 border-[#E0CDA8] rounded-xl text-[#5D4037]">Say “team 1234 …” and notes will land on that robot.</p>
+				<p id="voice-caption" class="mt-3 min-h-[3rem] p-3 text-sm bg-[#FFFBF5] border-2 border-[#E0CDA8] rounded-xl text-[#5D4037]">
+					if singleTeam {
+						Talk, or type in the notes box.
+					} else {
+						Tap a notes box, then talk. Saying “team 1234” also switches.
+					}
+				</p>
 			</div>
 
 			<!-- Notes Section -->
 			<div class="max-w-4xl mx-auto mb-5 section-card p-4">
 				<h2 class="text-lg font-black text-[#5D4037] uppercase mb-4 text-center">Notes</h2>
-				<div class={ "grid", templ.KV("grid-cols-3 gap-4", !oneRobot), templ.KV("gap-6 max-w-3xl mx-auto", oneRobot) }>
+				<div class={ "grid", templ.KV("grid-cols-1 sm:grid-cols-3 gap-4", !singleTeam), templ.KV("gap-6 max-w-3xl mx-auto", singleTeam) }>
 					for _, team := range teams {
-						<div data-team-card={ team.Number } data-alliance={ team.Alliance } class="p-1">
+						<div data-team-card={ team.Number } data-alliance={ team.Alliance }
+							class={ "p-2", templ.KV("cursor-pointer", !singleTeam) }>
 							<label class={ "block text-sm font-black mb-2 text-center",
 								templ.KV("text-red-700", team.Alliance == "Red"),
 								templ.KV("text-blue-700", team.Alliance == "Blue") }>
 								Team { team.Number }
 								<span class="ml-1 text-xs font-bold text-[#8D6E63]">({ strconv.Itoa(team.DataCount) } pts)</span>
 							</label>
+							<div class="flex flex-wrap gap-1.5 mb-2">
+								@fieldTagButton("Broke")
+								@fieldTagButton("Played Defense")
+								@fieldTagButton("Was Defended")
+							</div>
 							<div data-team-cats class="mb-2 space-y-1 text-xs"></div>
-							if oneRobot {
+							if singleTeam {
 								<textarea
 									name={ "notes_" + team.Number }
 									rows="14"
-									class={ "w-full h-full p-3 text-sm bg-white border-2 rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]",
+									class={ "w-full p-3 text-sm bg-white border-2 rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]",
 										templ.KV("border-red-300", team.Alliance == "Red"),
 										templ.KV("border-blue-300", team.Alliance == "Blue") }
 									placeholder="Observations..."></textarea>
 							} else {
 								<textarea
 									name={ "notes_" + team.Number }
-									rows="8"
+									rows="12"
 									class={ "w-full p-3 text-sm bg-white border-2 rounded-xl resize-none focus:outline-none focus:border-[#8D6E63]",
 										templ.KV("border-red-300", team.Alliance == "Red"),
 										templ.KV("border-blue-300", team.Alliance == "Blue") }
 									placeholder="Observations..."></textarea>
 							}
-							<p class="mt-1 text-xs text-center text-[#A1887F]">Voice notes sort here live. Review before saving.</p>
+							if !singleTeam {
+								<p class="mt-1 text-xs text-center text-[#A1887F]">Tap this box to talk about this team</p>
+							}
 						</div>
 					}
 				</div>
+				<p class="mt-3 text-xs text-center text-[#A1887F]">Notes are saved when you press Next Match</p>
 			</div>
 
 			<!-- Submit -->
@@ -119,8 +137,17 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 			</div>
 		</main>
 
-		@templ.JSONScript("scout-config", ScoutPageConfig{Teams: teams, OneRobot: oneRobot})
+		@templ.JSONScript("scout-config", ScoutPageConfig{Teams: teams, OneRobot: singleTeam})
 		<script>
+			// Quick-tag buttons just toggle selected state; they stay out of the visible
+			// notes textarea and get merged into the notes sent to the server on submit
+			// (see nextMatch), so Gemini sees them without cluttering the scout's view.
+			document.addEventListener('click', function(e) {
+				const btn = e.target.closest('[data-tag-btn]');
+				if (!btn) return;
+				btn.classList.toggle('active');
+			});
+
 			async function nextMatch() {
 				if (window.voiceScout && window.voiceScout.used()) {
 					await window.voiceScout.openReview();
@@ -139,19 +166,12 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 
 				const teamCards = document.querySelectorAll('[data-team-card]');
 				const teams = Array.from(teamCards).map(card => {
-					const team = {
+					const tags = Array.from(card.querySelectorAll('[data-tag-btn].active')).map(b => b.dataset.tag);
+					const notes = card.querySelector('textarea')?.value || '';
+					return {
 						team_number: card.getAttribute('data-team-card'),
-						notes: card.querySelector('textarea')?.value || ''
+						notes: tags.length ? '[' + tags.join('] [') + '] ' + notes : notes
 					};
-					// The checklist only exists in one-robot mode
-					if (card.querySelector('[data-checklist]')) {
-						team.has_checklist = true;
-						team.broke = card.querySelector('[data-field=broke]').checked;
-						team.played_defense = card.querySelector('[data-field=played_defense]').checked;
-						team.was_defended = card.querySelector('[data-field=was_defended]').checked;
-						team.auto_type = card.querySelector('[data-field=auto_type]').value;
-					}
-					return team;
 				});
 
 				const submission = {
@@ -169,15 +189,11 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 					});
 
 					if (resp.ok) {
+						// Both modes pick a team/alliance each match, so always return to
+						// Field Scouting to pick again for the next one.
 						const next = new URLSearchParams({ event_key: eventKey, match_num: matchNum + 1, scouter: scouter });
-						if (pickedTeam) {
-							// One-robot mode: back to Field Scouting to pick a team for the next match
-							next.set('mode', 'one');
-							window.location.href = '/field-scout?' + next;
-						} else {
-							next.set('mode', 'all');
-							window.location.href = '/scout?' + next;
-						}
+						next.set('mode', pickedTeam ? 'one' : 'three');
+						window.location.href = '/field-scout?' + next;
 					} else {
 						alert('Failed to save scout data.');
 					}
@@ -191,16 +207,12 @@ templ ScoutPage(event, match, scouterName string, oneRobot bool, teams []ScoutTe
 	}
 }
 
-// checklistSwitch is a yes/no toggle for one checklist question.
-templ checklistSwitch(team string, field string, label string) {
-	<label class="flex items-center justify-between gap-2 cursor-pointer select-none">
-		<span class="text-sm font-bold text-[#5D4037]">{ label }</span>
-		<span class="relative inline-flex items-center">
-			<input type="checkbox" data-field={ field } id={ field + "_" + team } class="sr-only peer"/>
-			<span class="w-12 h-7 rounded-full bg-stone-300 transition peer-checked:bg-[#5D4037] peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]"></span>
-			<span class="absolute left-1 top-1 w-5 h-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
-			<span class="absolute -left-9 text-xs font-bold text-[#A1887F] peer-checked:hidden">No</span>
-			<span class="absolute -left-9 text-xs font-bold text-[#5D4037] hidden peer-checked:inline">Yes</span>
-		</span>
-	</label>
+// fieldTagButton is a toggleable pill button; selected tags are merged into
+// the notes sent to the server on submit (see nextMatch in ScoutPage), kept
+// out of the visible textarea.
+templ fieldTagButton(tag string) {
+	<button type="button" data-tag-btn data-tag={ tag }
+		class="field-tag text-sm font-bold px-3.5 py-2 rounded-full border border-[#D2B48C] bg-white text-[#8D6E63] hover:bg-[#F2E8D5] transition">
+		{ tag }
+	</button>
 }

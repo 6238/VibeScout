@@ -11,6 +11,10 @@ import templruntime "github.com/a-h/templ/runtime"
 import "fmt"
 
 var pitScoutQuestions = []string{
+	"Robot archetype: scorer, defender, feeder/support, or all-around?",
+	"Preferred alliance role: offense, defense, or feeding?",
+	"What alliance partner archetype complements them best?",
+	"Backup plan if their main strategy gets countered or defended?",
 	"Driver safety: would they run you over?",
 	"Biggest robot problem this season?",
 	"2 matches back to back (battery swap only)? 3?",
@@ -60,14 +64,14 @@ func PitScoutPage(eventKey string, eventName string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<style>\n\t\t\t#pit-teams.hide-scouted [data-scouted] { display: none; }\n\t\t</style> <main class=\"flex flex-col items-center justify-center min-h-screen px-3 py-6\"><div class=\"w-full max-w-md md:max-w-4xl bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-4 md:p-6 shadow-xl\"><h1 class=\"text-2xl font-black text-[#5D4037] mb-1 text-center tracking-tight uppercase\">Pit Scouting</h1><p class=\"text-sm font-bold text-[#A1887F] mb-3 text-center\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<style>\r\n\t\t\t#pit-teams.hide-scouted [data-scouted] { display: none; }\r\n\t\t</style> <main class=\"flex flex-col items-center justify-center min-h-screen px-3 py-6\"><div class=\"w-full max-w-md md:max-w-4xl bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-4 md:p-6 shadow-xl\"><h1 class=\"text-2xl font-black text-[#5D4037] mb-1 text-center tracking-tight uppercase\">Pit Scouting</h1><p class=\"text-sm font-bold text-[#A1887F] mb-3 text-center\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(eventName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 30, Col: 76}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 34, Col: 76}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -80,7 +84,7 @@ func PitScoutPage(eventKey string, eventName string) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(eventKey)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 31, Col: 73}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 35, Col: 73}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -98,7 +102,7 @@ func PitScoutPage(eventKey string, eventName string) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(q)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 56, Col: 17}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 60, Col: 17}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -109,20 +113,20 @@ func PitScoutPage(eventKey string, eventName string) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</ol><textarea id=\"pit-summary\" name=\"summary\" rows=\"8\" required placeholder=\"Summary of their answers...\" class=\"w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700\"></textarea></div><button id=\"pit-submit\" type=\"submit\" class=\"w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-4 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]\">Save Pit Scouting</button></form><div id=\"pit-result\" class=\"mt-3 text-center font-bold text-[#5D4037]\"></div></div><div><div class=\"flex justify-between items-center ml-2 mb-1\"><label class=\"text-xs font-bold uppercase text-[#A1887F]\">Teams</label> <label class=\"flex items-center gap-1.5 text-xs font-bold text-[#8D6E63] cursor-pointer select-none\"><input id=\"pit-hide-scouted\" type=\"checkbox\" class=\"accent-[#8D6E63]\"> Hide scouted</label></div><div id=\"pit-teams\" hx-get=\"/api/pit-teams\" hx-include=\"#pit-event\" hx-trigger=\"load, pitSaved from:body\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div></div></div></div><div class=\"mt-4 text-center\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</ol><textarea id=\"pit-summary\" name=\"summary\" rows=\"8\" required placeholder=\"Summary of their answers...\" class=\"w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700\"></textarea></div><button id=\"pit-submit\" type=\"submit\" class=\"w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-4 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]\">Save Pit Scouting</button></form><div id=\"pit-result\" class=\"mt-3 text-center font-bold text-[#5D4037]\"></div></div><div><div class=\"flex justify-between items-center ml-2 mb-1\"><label class=\"text-xs font-bold uppercase text-[#A1887F]\">Teams</label> <label class=\"flex items-center gap-2 text-sm font-bold text-[#8D6E63] cursor-pointer select-none\"><input id=\"pit-hide-scouted\" type=\"checkbox\" class=\"w-5 h-5 accent-[#8D6E63]\"> Hide scouted</label></div><div id=\"pit-teams\" hx-get=\"/api/pit-teams\" hx-include=\"#pit-event\" hx-trigger=\"load, pitSaved from:body\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div></div></div></div><div class=\"mt-4 text-center\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var6 templ.SafeURL
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/?event_key=" + eventKey))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 90, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 94, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"text-[#A1887F] hover:text-[#5D4037] font-bold\">← Home</a></div><script>\n\t\t\t\t(function() {\n\t\t\t\t\tvar teams = document.getElementById('pit-teams');\n\t\t\t\t\tvar hide = document.getElementById('pit-hide-scouted');\n\t\t\t\t\tvar form = document.getElementById('pit-form');\n\t\t\t\t\tvar input = document.getElementById('pit-team-number');\n\t\t\t\t\tvar suggest = document.getElementById('pit-team-suggest');\n\t\t\t\t\tvar summary = document.getElementById('pit-summary');\n\t\t\t\t\tvar status = document.getElementById('pit-edit-status');\n\t\t\t\t\tvar submit = document.getElementById('pit-submit');\n\n\t\t\t\t\tvar currentTeam = null;   // team whose notes state is loaded\n\t\t\t\t\tvar loadedSummary = null; // existing notes put in the text box, if any\n\t\t\t\t\tvar loadSeq = 0;\n\t\t\t\t\tvar highlighted = -1;\n\n\t\t\t\t\t// ── Existing notes ──\n\t\t\t\t\tfunction setStatus(html) {\n\t\t\t\t\t\tstatus.innerHTML = html;\n\t\t\t\t\t\tstatus.classList.toggle('hidden', html === '');\n\t\t\t\t\t}\n\t\t\t\t\tfunction setEditing(team, text) {\n\t\t\t\t\t\tsummary.value = text;\n\t\t\t\t\t\tloadedSummary = text;\n\t\t\t\t\t\tsetStatus('✎ Editing existing notes for team ' + team);\n\t\t\t\t\t\tsubmit.textContent = 'Update Pit Scouting';\n\t\t\t\t\t}\n\t\t\t\t\tfunction setNew() {\n\t\t\t\t\t\tloadedSummary = null;\n\t\t\t\t\t\tsetStatus('');\n\t\t\t\t\t\tsubmit.textContent = 'Save Pit Scouting';\n\t\t\t\t\t}\n\t\t\t\t\t// True if the text box holds something the scout typed that isn't saved anywhere\n\t\t\t\t\tfunction hasUnsavedText() {\n\t\t\t\t\t\treturn summary.value.trim() !== '' && summary.value !== (loadedSummary || '');\n\t\t\t\t\t}\n\n\t\t\t\t\tfunction loadTeam(team) {\n\t\t\t\t\t\tteam = (team || '').trim();\n\t\t\t\t\t\tif (team === currentTeam) return;\n\t\t\t\t\t\tcurrentTeam = team;\n\t\t\t\t\t\tvar seq = ++loadSeq;\n\t\t\t\t\t\tif (team === '') {\n\t\t\t\t\t\t\tif (!hasUnsavedText()) summary.value = '';\n\t\t\t\t\t\t\tsetNew();\n\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t}\n\t\t\t\t\t\tfetch('/api/pit-note?team_number=' + encodeURIComponent(team))\n\t\t\t\t\t\t\t.then(function(r) { return r.json(); })\n\t\t\t\t\t\t\t.then(function(note) {\n\t\t\t\t\t\t\t\tif (seq !== loadSeq) return; // a newer team was picked\n\t\t\t\t\t\t\t\tif (!note.exists) {\n\t\t\t\t\t\t\t\t\tif (!hasUnsavedText()) summary.value = '';\n\t\t\t\t\t\t\t\t\tsetNew();\n\t\t\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\tif (!hasUnsavedText()) {\n\t\t\t\t\t\t\t\t\tsetEditing(team, note.summary);\n\t\t\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t// Don't clobber what they typed; let them choose\n\t\t\t\t\t\t\t\tsetStatus('Team ' + team + ' already has notes. Saving will replace them. ' +\n\t\t\t\t\t\t\t\t\t'<button type=\"button\" id=\"pit-load-existing\" class=\"underline\">Load existing notes</button>');\n\t\t\t\t\t\t\t\tsubmit.textContent = 'Update Pit Scouting';\n\t\t\t\t\t\t\t\tloadedSummary = null;\n\t\t\t\t\t\t\t\tdocument.getElementById('pit-load-existing').onclick = function() {\n\t\t\t\t\t\t\t\t\tsetEditing(team, note.summary);\n\t\t\t\t\t\t\t\t\tsummary.focus();\n\t\t\t\t\t\t\t\t};\n\t\t\t\t\t\t\t});\n\t\t\t\t\t}\n\n\t\t\t\t\t// ── Type-ahead ──\n\t\t\t\t\tfunction eventTeams() {\n\t\t\t\t\t\treturn Array.prototype.map.call(teams.querySelectorAll('[data-pit-team]'), function(b) {\n\t\t\t\t\t\t\treturn { number: b.dataset.pitTeam, scouted: b.hasAttribute('data-scouted') };\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\tfunction closeSuggest() {\n\t\t\t\t\t\tsuggest.classList.add('hidden');\n\t\t\t\t\t\tinput.setAttribute('aria-expanded', 'false');\n\t\t\t\t\t\thighlighted = -1;\n\t\t\t\t\t}\n\t\t\t\t\tfunction renderSuggest() {\n\t\t\t\t\t\tvar q = input.value.trim();\n\t\t\t\t\t\tif (q === '') { closeSuggest(); return; }\n\t\t\t\t\t\tvar all = eventTeams();\n\t\t\t\t\t\tvar starts = all.filter(function(t) { return t.number.indexOf(q) === 0; });\n\t\t\t\t\t\tvar contains = all.filter(function(t) { return t.number.indexOf(q) > 0; });\n\t\t\t\t\t\tvar list = starts.concat(contains).slice(0, 8);\n\t\t\t\t\t\tif (list.length === 0 || (list.length === 1 && list[0].number === q)) { closeSuggest(); return; }\n\t\t\t\t\t\thighlighted = 0;\n\t\t\t\t\t\tsuggest.innerHTML = '';\n\t\t\t\t\t\tlist.forEach(function(t, i) {\n\t\t\t\t\t\t\tvar li = document.createElement('li');\n\t\t\t\t\t\t\tli.setAttribute('role', 'option');\n\t\t\t\t\t\t\tli.dataset.team = t.number;\n\t\t\t\t\t\t\tli.className = 'suggest-item flex justify-between items-center px-3 py-2 cursor-pointer font-bold text-[#5D4037]';\n\t\t\t\t\t\t\tli.innerHTML = '<span></span>' + (t.scouted ? '<span class=\"text-xs font-bold text-[#A1887F]\">scouted · edit</span>' : '');\n\t\t\t\t\t\t\tli.firstChild.textContent = t.number;\n\t\t\t\t\t\t\tsuggest.appendChild(li);\n\t\t\t\t\t\t});\n\t\t\t\t\t\tpaintHighlight();\n\t\t\t\t\t\tsuggest.classList.remove('hidden');\n\t\t\t\t\t\tinput.setAttribute('aria-expanded', 'true');\n\t\t\t\t\t}\n\t\t\t\t\tfunction paintHighlight() {\n\t\t\t\t\t\tArray.prototype.forEach.call(suggest.children, function(li, i) {\n\t\t\t\t\t\t\tli.classList.toggle('bg-[#F2E8D5]', i === highlighted);\n\t\t\t\t\t\t\tli.setAttribute('aria-selected', i === highlighted ? 'true' : 'false');\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\tfunction pick(team) {\n\t\t\t\t\t\tinput.value = team;\n\t\t\t\t\t\tcloseSuggest();\n\t\t\t\t\t\tloadTeam(team);\n\t\t\t\t\t\tsummary.focus();\n\t\t\t\t\t}\n\n\t\t\t\t\tinput.addEventListener('input', function() {\n\t\t\t\t\t\tinput.value = input.value.replace(/[^0-9]/g, '');\n\t\t\t\t\t\trenderSuggest();\n\t\t\t\t\t});\n\t\t\t\t\tinput.addEventListener('keydown', function(e) {\n\t\t\t\t\t\tvar open = !suggest.classList.contains('hidden');\n\t\t\t\t\t\tif (e.key === 'ArrowDown' && open) {\n\t\t\t\t\t\t\te.preventDefault();\n\t\t\t\t\t\t\thighlighted = Math.min(highlighted + 1, suggest.children.length - 1);\n\t\t\t\t\t\t\tpaintHighlight();\n\t\t\t\t\t\t} else if (e.key === 'ArrowUp' && open) {\n\t\t\t\t\t\t\te.preventDefault();\n\t\t\t\t\t\t\thighlighted = Math.max(highlighted - 1, 0);\n\t\t\t\t\t\t\tpaintHighlight();\n\t\t\t\t\t\t} else if (e.key === 'Enter') {\n\t\t\t\t\t\t\te.preventDefault(); // never submit from the team box\n\t\t\t\t\t\t\tif (open && highlighted >= 0) pick(suggest.children[highlighted].dataset.team);\n\t\t\t\t\t\t\telse pick(input.value);\n\t\t\t\t\t\t} else if (e.key === 'Escape') {\n\t\t\t\t\t\t\tcloseSuggest();\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t\t// mousedown so it fires before the input loses focus\n\t\t\t\t\tsuggest.addEventListener('mousedown', function(e) {\n\t\t\t\t\t\tvar li = e.target.closest('[data-team]');\n\t\t\t\t\t\tif (!li) return;\n\t\t\t\t\t\te.preventDefault();\n\t\t\t\t\t\tpick(li.dataset.team);\n\t\t\t\t\t});\n\t\t\t\t\tinput.addEventListener('blur', function() {\n\t\t\t\t\t\tcloseSuggest();\n\t\t\t\t\t\tloadTeam(input.value);\n\t\t\t\t\t});\n\n\t\t\t\t\t// ── Team list ──\n\t\t\t\t\tteams.addEventListener('click', function(e) {\n\t\t\t\t\t\tvar btn = e.target.closest('[data-pit-team]');\n\t\t\t\t\t\tif (!btn) return;\n\t\t\t\t\t\tpick(btn.dataset.pitTeam);\n\t\t\t\t\t});\n\t\t\t\t\t// The class lives on the htmx container, so it survives list refreshes\n\t\t\t\t\thide.addEventListener('change', function() {\n\t\t\t\t\t\tteams.classList.toggle('hide-scouted', hide.checked);\n\t\t\t\t\t});\n\n\t\t\t\t\t// ── After saving, start fresh for the next team ──\n\t\t\t\t\tform.addEventListener('htmx:afterRequest', function(e) {\n\t\t\t\t\t\tif (e.detail.elt !== form || !e.detail.successful) return;\n\t\t\t\t\t\tform.reset();\n\t\t\t\t\t\tcurrentTeam = null;\n\t\t\t\t\t\tsetNew();\n\t\t\t\t\t});\n\t\t\t\t})();\n\t\t\t</script></main>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"text-[#A1887F] hover:text-[#5D4037] font-bold\">← Home</a></div><script>\r\n\t\t\t\t(function() {\r\n\t\t\t\t\tvar teams = document.getElementById('pit-teams');\r\n\t\t\t\t\tvar hide = document.getElementById('pit-hide-scouted');\r\n\t\t\t\t\tvar form = document.getElementById('pit-form');\r\n\t\t\t\t\tvar input = document.getElementById('pit-team-number');\r\n\t\t\t\t\tvar suggest = document.getElementById('pit-team-suggest');\r\n\t\t\t\t\tvar summary = document.getElementById('pit-summary');\r\n\t\t\t\t\tvar status = document.getElementById('pit-edit-status');\r\n\t\t\t\t\tvar submit = document.getElementById('pit-submit');\r\n\r\n\t\t\t\t\tvar currentTeam = null;   // team whose notes state is loaded\r\n\t\t\t\t\tvar loadedSummary = null; // existing notes put in the text box, if any\r\n\t\t\t\t\tvar loadSeq = 0;\r\n\t\t\t\t\tvar highlighted = -1;\r\n\r\n\t\t\t\t\t// ── Existing notes ──\r\n\t\t\t\t\tfunction setStatus(html) {\r\n\t\t\t\t\t\tstatus.innerHTML = html;\r\n\t\t\t\t\t\tstatus.classList.toggle('hidden', html === '');\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction setEditing(team, text) {\r\n\t\t\t\t\t\tsummary.value = text;\r\n\t\t\t\t\t\tloadedSummary = text;\r\n\t\t\t\t\t\tsetStatus('✎ Editing existing notes for team ' + team);\r\n\t\t\t\t\t\tsubmit.textContent = 'Update Pit Scouting';\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction setNew() {\r\n\t\t\t\t\t\tloadedSummary = null;\r\n\t\t\t\t\t\tsetStatus('');\r\n\t\t\t\t\t\tsubmit.textContent = 'Save Pit Scouting';\r\n\t\t\t\t\t}\r\n\t\t\t\t\t// True if the text box holds something the scout typed that isn't saved anywhere\r\n\t\t\t\t\tfunction hasUnsavedText() {\r\n\t\t\t\t\t\treturn summary.value.trim() !== '' && summary.value !== (loadedSummary || '');\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\tfunction loadTeam(team) {\r\n\t\t\t\t\t\tteam = (team || '').trim();\r\n\t\t\t\t\t\tif (team === currentTeam) return;\r\n\t\t\t\t\t\tcurrentTeam = team;\r\n\t\t\t\t\t\tvar seq = ++loadSeq;\r\n\t\t\t\t\t\tif (team === '') {\r\n\t\t\t\t\t\t\tif (!hasUnsavedText()) summary.value = '';\r\n\t\t\t\t\t\t\tsetNew();\r\n\t\t\t\t\t\t\treturn;\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t\tfetch('/api/pit-note?team_number=' + encodeURIComponent(team))\r\n\t\t\t\t\t\t\t.then(function(r) { return r.json(); })\r\n\t\t\t\t\t\t\t.then(function(note) {\r\n\t\t\t\t\t\t\t\tif (seq !== loadSeq) return; // a newer team was picked\r\n\t\t\t\t\t\t\t\tif (!note.exists) {\r\n\t\t\t\t\t\t\t\t\tif (!hasUnsavedText()) summary.value = '';\r\n\t\t\t\t\t\t\t\t\tsetNew();\r\n\t\t\t\t\t\t\t\t\treturn;\r\n\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t\tif (!hasUnsavedText()) {\r\n\t\t\t\t\t\t\t\t\tsetEditing(team, note.summary);\r\n\t\t\t\t\t\t\t\t\treturn;\r\n\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t\t// Don't clobber what they typed; let them choose\r\n\t\t\t\t\t\t\t\tsetStatus('Team ' + team + ' already has notes. Saving will replace them. ' +\r\n\t\t\t\t\t\t\t\t\t'<button type=\"button\" id=\"pit-load-existing\" class=\"underline\">Load existing notes</button>');\r\n\t\t\t\t\t\t\t\tsubmit.textContent = 'Update Pit Scouting';\r\n\t\t\t\t\t\t\t\tloadedSummary = null;\r\n\t\t\t\t\t\t\t\tdocument.getElementById('pit-load-existing').onclick = function() {\r\n\t\t\t\t\t\t\t\t\tsetEditing(team, note.summary);\r\n\t\t\t\t\t\t\t\t\tsummary.focus();\r\n\t\t\t\t\t\t\t\t};\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\t// ── Type-ahead ──\r\n\t\t\t\t\tfunction eventTeams() {\r\n\t\t\t\t\t\treturn Array.prototype.map.call(teams.querySelectorAll('[data-pit-team]'), function(b) {\r\n\t\t\t\t\t\t\treturn { number: b.dataset.pitTeam, scouted: b.hasAttribute('data-scouted') };\r\n\t\t\t\t\t\t});\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction closeSuggest() {\r\n\t\t\t\t\t\tsuggest.classList.add('hidden');\r\n\t\t\t\t\t\tinput.setAttribute('aria-expanded', 'false');\r\n\t\t\t\t\t\thighlighted = -1;\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction renderSuggest() {\r\n\t\t\t\t\t\tvar q = input.value.trim();\r\n\t\t\t\t\t\tif (q === '') { closeSuggest(); return; }\r\n\t\t\t\t\t\tvar all = eventTeams();\r\n\t\t\t\t\t\tvar starts = all.filter(function(t) { return t.number.indexOf(q) === 0; });\r\n\t\t\t\t\t\tvar contains = all.filter(function(t) { return t.number.indexOf(q) > 0; });\r\n\t\t\t\t\t\tvar list = starts.concat(contains).slice(0, 8);\r\n\t\t\t\t\t\tif (list.length === 0 || (list.length === 1 && list[0].number === q)) { closeSuggest(); return; }\r\n\t\t\t\t\t\thighlighted = 0;\r\n\t\t\t\t\t\tsuggest.innerHTML = '';\r\n\t\t\t\t\t\tlist.forEach(function(t, i) {\r\n\t\t\t\t\t\t\tvar li = document.createElement('li');\r\n\t\t\t\t\t\t\tli.setAttribute('role', 'option');\r\n\t\t\t\t\t\t\tli.dataset.team = t.number;\r\n\t\t\t\t\t\t\tli.className = 'suggest-item flex justify-between items-center px-3 py-2 cursor-pointer font-bold text-[#5D4037]';\r\n\t\t\t\t\t\t\tli.innerHTML = '<span></span>' + (t.scouted ? '<span class=\"text-xs font-bold text-[#A1887F]\">scouted · edit</span>' : '');\r\n\t\t\t\t\t\t\tli.firstChild.textContent = t.number;\r\n\t\t\t\t\t\t\tsuggest.appendChild(li);\r\n\t\t\t\t\t\t});\r\n\t\t\t\t\t\tpaintHighlight();\r\n\t\t\t\t\t\tsuggest.classList.remove('hidden');\r\n\t\t\t\t\t\tinput.setAttribute('aria-expanded', 'true');\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction paintHighlight() {\r\n\t\t\t\t\t\tArray.prototype.forEach.call(suggest.children, function(li, i) {\r\n\t\t\t\t\t\t\tli.classList.toggle('bg-[#F2E8D5]', i === highlighted);\r\n\t\t\t\t\t\t\tli.setAttribute('aria-selected', i === highlighted ? 'true' : 'false');\r\n\t\t\t\t\t\t});\r\n\t\t\t\t\t}\r\n\t\t\t\t\tfunction pick(team) {\r\n\t\t\t\t\t\tinput.value = team;\r\n\t\t\t\t\t\tcloseSuggest();\r\n\t\t\t\t\t\tloadTeam(team);\r\n\t\t\t\t\t\tsummary.focus();\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\tinput.addEventListener('input', function() {\r\n\t\t\t\t\t\tinput.value = input.value.replace(/[^0-9]/g, '');\r\n\t\t\t\t\t\trenderSuggest();\r\n\t\t\t\t\t});\r\n\t\t\t\t\tinput.addEventListener('keydown', function(e) {\r\n\t\t\t\t\t\tvar open = !suggest.classList.contains('hidden');\r\n\t\t\t\t\t\tif (e.key === 'ArrowDown' && open) {\r\n\t\t\t\t\t\t\te.preventDefault();\r\n\t\t\t\t\t\t\thighlighted = Math.min(highlighted + 1, suggest.children.length - 1);\r\n\t\t\t\t\t\t\tpaintHighlight();\r\n\t\t\t\t\t\t} else if (e.key === 'ArrowUp' && open) {\r\n\t\t\t\t\t\t\te.preventDefault();\r\n\t\t\t\t\t\t\thighlighted = Math.max(highlighted - 1, 0);\r\n\t\t\t\t\t\t\tpaintHighlight();\r\n\t\t\t\t\t\t} else if (e.key === 'Enter') {\r\n\t\t\t\t\t\t\te.preventDefault(); // never submit from the team box\r\n\t\t\t\t\t\t\tif (open && highlighted >= 0) pick(suggest.children[highlighted].dataset.team);\r\n\t\t\t\t\t\t\telse pick(input.value);\r\n\t\t\t\t\t\t} else if (e.key === 'Escape') {\r\n\t\t\t\t\t\t\tcloseSuggest();\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t});\r\n\t\t\t\t\t// mousedown so it fires before the input loses focus\r\n\t\t\t\t\tsuggest.addEventListener('mousedown', function(e) {\r\n\t\t\t\t\t\tvar li = e.target.closest('[data-team]');\r\n\t\t\t\t\t\tif (!li) return;\r\n\t\t\t\t\t\te.preventDefault();\r\n\t\t\t\t\t\tpick(li.dataset.team);\r\n\t\t\t\t\t});\r\n\t\t\t\t\tinput.addEventListener('blur', function() {\r\n\t\t\t\t\t\tcloseSuggest();\r\n\t\t\t\t\t\tloadTeam(input.value);\r\n\t\t\t\t\t});\r\n\r\n\t\t\t\t\t// ── Team list ──\r\n\t\t\t\t\tteams.addEventListener('click', function(e) {\r\n\t\t\t\t\t\tvar btn = e.target.closest('[data-pit-team]');\r\n\t\t\t\t\t\tif (!btn) return;\r\n\t\t\t\t\t\tpick(btn.dataset.pitTeam);\r\n\t\t\t\t\t});\r\n\t\t\t\t\t// The class lives on the htmx container, so it survives list refreshes\r\n\t\t\t\t\thide.addEventListener('change', function() {\r\n\t\t\t\t\t\tteams.classList.toggle('hide-scouted', hide.checked);\r\n\t\t\t\t\t});\r\n\r\n\t\t\t\t\t// ── After saving, start fresh for the next team ──\r\n\t\t\t\t\tform.addEventListener('htmx:afterRequest', function(e) {\r\n\t\t\t\t\t\tif (e.detail.elt !== form || !e.detail.successful) return;\r\n\t\t\t\t\t\tform.reset();\r\n\t\t\t\t\t\tcurrentTeam = null;\r\n\t\t\t\t\t\tsetNew();\r\n\t\t\t\t\t});\r\n\t\t\t\t})();\r\n\t\t\t</script></main>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -165,7 +169,7 @@ func PitTeamList(teams []PitTeam, errMsg string) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 271, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 275, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -181,7 +185,7 @@ func PitTeamList(teams []PitTeam, errMsg string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"flex flex-wrap content-start gap-1.5 max-h-60 md:max-h-[36rem] overflow-y-auto bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl p-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"flex flex-wrap content-start gap-2 max-h-72 md:max-h-[36rem] overflow-y-auto bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl p-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -194,20 +198,20 @@ func PitTeamList(teams []PitTeam, errMsg string) templ.Component {
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 278, Col: 51}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 282, Col: 51}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" data-scouted class=\"px-2.5 py-1 rounded-lg text-sm font-bold line-through text-stone-400 bg-stone-100 border border-stone-200\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" data-scouted class=\"px-4 py-3 rounded-lg text-base font-bold line-through text-stone-400 bg-stone-100 border border-stone-200\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var10 string
 					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 280, Col: 16}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 284, Col: 16}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 					if templ_7745c5c3_Err != nil {
@@ -225,20 +229,20 @@ func PitTeamList(teams []PitTeam, errMsg string) templ.Component {
 					var templ_7745c5c3_Var11 string
 					templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 283, Col: 51}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 287, Col: 51}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"px-2.5 py-1 rounded-lg text-sm font-bold text-[#5D4037] bg-[#FFFBF5] border border-[#D2B48C] hover:bg-[#D2B48C] transition\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"px-4 py-3 rounded-lg text-base font-bold text-[#5D4037] bg-[#FFFBF5] border border-[#D2B48C] hover:bg-[#D2B48C] transition\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var12 string
 					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 285, Col: 16}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 289, Col: 16}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 					if templ_7745c5c3_Err != nil {
@@ -257,7 +261,7 @@ func PitTeamList(teams []PitTeam, errMsg string) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d of %d scouted", countScouted(teams), len(teams)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 291, Col: 69}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 295, Col: 69}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
