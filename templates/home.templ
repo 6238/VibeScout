@@ -71,16 +71,16 @@ templ FieldScout(data FieldScoutData) {
                         <div class="grid grid-cols-2 gap-3">
                             <label class="mode-option">
                                 <input type="radio" name="mode" value="three" class="sr-only peer" checked?={ data.Mode == "three" }/>
-                                <span class="block p-3 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]">
-                                    <span class="block font-black uppercase tracking-wide">3 Robot</span>
-                                    <span class="block text-xs opacity-80">pick an alliance</span>
+                                <span class="block p-4 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]">
+                                    <span class="block font-black text-lg uppercase tracking-wide">3 Robot</span>
+                                    <span class="block text-sm opacity-80">pick an alliance</span>
                                 </span>
                             </label>
                             <label class="mode-option">
                                 <input type="radio" name="mode" value="one" class="sr-only peer" checked?={ data.Mode == "one" }/>
-                                <span class="block p-3 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]">
-                                    <span class="block font-black uppercase tracking-wide">1 Robot</span>
-                                    <span class="block text-xs opacity-80">pick a team</span>
+                                <span class="block p-4 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]">
+                                    <span class="block font-black text-lg uppercase tracking-wide">1 Robot</span>
+                                    <span class="block text-sm opacity-80">pick a team</span>
                                 </span>
                             </label>
                         </div>
@@ -227,7 +227,7 @@ templ MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) {
         <div class="grid grid-cols-3 gap-2">
             for _, t := range teams {
                 <button type="submit" name="team" value={ t.Number } disabled?={ t.IsUs }
-                    class={ "relative p-3 rounded-xl border-2 border-b-4 font-black text-lg transition active:scale-95 disabled:opacity-50 disabled:active:scale-100",
+                    class={ "relative p-4 rounded-xl border-2 border-b-4 font-black text-xl transition active:scale-95 disabled:opacity-50 disabled:active:scale-100",
                         templ.KV("bg-red-50 border-red-300 text-red-800", t.Alliance == "Red" && !t.Soonest && !t.NeedsData),
                         templ.KV("bg-blue-50 border-blue-300 text-blue-800", t.Alliance == "Blue" && !t.Soonest && !t.NeedsData),
                         templ.KV("bg-yellow-100 border-yellow-400 text-[#4E342E]", t.NeedsData && !t.Soonest),
@@ -280,10 +280,10 @@ templ AlliancePicker(redTeams, blueTeams []string, matchNum int, errMsg string) 
 
 templ allianceButton(alliance string, teamNums []string) {
     <button type="submit" name="alliance" value={ alliance }
-        class={ "p-4 rounded-xl border-2 border-b-4 font-black transition active:scale-95",
+        class={ "p-5 rounded-xl border-2 border-b-4 font-black text-lg transition active:scale-95",
             templ.KV("bg-red-50 border-red-300 text-red-800", alliance == "Red"),
             templ.KV("bg-blue-50 border-blue-300 text-blue-800", alliance == "Blue") }>
         <span class="block uppercase tracking-wide">{ alliance }</span>
-        <span class="block text-sm font-bold opacity-80 mt-1">{ strings.Join(teamNums, " · ") }</span>
+        <span class="block text-base font-bold opacity-80 mt-1">{ strings.Join(teamNums, " · ") }</span>
     </button>
 }

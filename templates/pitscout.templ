@@ -74,8 +74,8 @@ templ PitScoutPage(eventKey string, eventName string) {
 					<div>
 						<div class="flex justify-between items-center ml-2 mb-1">
 							<label class="text-xs font-bold uppercase text-[#A1887F]">Teams</label>
-							<label class="flex items-center gap-1.5 text-xs font-bold text-[#8D6E63] cursor-pointer select-none">
-								<input id="pit-hide-scouted" type="checkbox" class="accent-[#8D6E63]"/>
+							<label class="flex items-center gap-2 text-sm font-bold text-[#8D6E63] cursor-pointer select-none">
+								<input id="pit-hide-scouted" type="checkbox" class="w-5 h-5 accent-[#8D6E63]"/>
 								Hide scouted
 							</label>
 						</div>
@@ -276,16 +276,16 @@ templ PitTeamList(teams []PitTeam, errMsg string) {
 	} else if len(teams) == 0 {
 		<p class="text-sm text-[#A1887F] ml-2">No teams listed for this event yet.</p>
 	} else {
-		<div class="flex flex-wrap content-start gap-1.5 max-h-60 md:max-h-[36rem] overflow-y-auto bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl p-2">
+		<div class="flex flex-wrap content-start gap-2 max-h-72 md:max-h-[36rem] overflow-y-auto bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl p-2">
 			for _, t := range teams {
 				if t.Scouted {
 					<button type="button" data-pit-team={ t.Number } data-scouted
-						class="px-2.5 py-1 rounded-lg text-sm font-bold line-through text-stone-400 bg-stone-100 border border-stone-200">
+						class="px-4 py-3 rounded-lg text-base font-bold line-through text-stone-400 bg-stone-100 border border-stone-200">
 						{ t.Number }
 					</button>
 				} else {
 					<button type="button" data-pit-team={ t.Number }
-						class="px-2.5 py-1 rounded-lg text-sm font-bold text-[#5D4037] bg-[#FFFBF5] border border-[#D2B48C] hover:bg-[#D2B48C] transition">
+						class="px-4 py-3 rounded-lg text-base font-bold text-[#5D4037] bg-[#FFFBF5] border border-[#D2B48C] hover:bg-[#D2B48C] transition">
 						{ t.Number }
 					</button>
 				}

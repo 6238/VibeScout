@@ -209,7 +209,7 @@ func FieldScout(data FieldScoutData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "> <span class=\"block p-3 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]\"><span class=\"block font-black uppercase tracking-wide\">3 Robot</span> <span class=\"block text-xs opacity-80\">pick an alliance</span></span></label> <label class=\"mode-option\"><input type=\"radio\" name=\"mode\" value=\"one\" class=\"sr-only peer\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "> <span class=\"block p-4 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]\"><span class=\"block font-black text-lg uppercase tracking-wide\">3 Robot</span> <span class=\"block text-sm opacity-80\">pick an alliance</span></span></label> <label class=\"mode-option\"><input type=\"radio\" name=\"mode\" value=\"one\" class=\"sr-only peer\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -219,7 +219,7 @@ func FieldScout(data FieldScoutData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "> <span class=\"block p-3 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]\"><span class=\"block font-black uppercase tracking-wide\">1 Robot</span> <span class=\"block text-xs opacity-80\">pick a team</span></span></label></div></div><!-- Three-robot mode: each alliance button submits the form with its alliance --><div id=\"field-alliance-picker\" class=\"hidden text-left\" hx-get=\"/api/match-alliances\" hx-include=\"#field-event, #field-match\" hx-trigger=\"load, input changed delay:400ms from:#field-match\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div><!-- One-robot mode: each team button submits the form with its team --><div id=\"field-team-picker\" class=\"hidden text-left\" hx-get=\"/api/match-teams\" hx-include=\"#field-event, #field-match\" hx-trigger=\"load, input changed delay:400ms from:#field-match\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div></form></div><div class=\"mt-6 text-center\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "> <span class=\"block p-4 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]\"><span class=\"block font-black text-lg uppercase tracking-wide\">1 Robot</span> <span class=\"block text-sm opacity-80\">pick a team</span></span></label></div></div><!-- Three-robot mode: each alliance button submits the form with its alliance --><div id=\"field-alliance-picker\" class=\"hidden text-left\" hx-get=\"/api/match-alliances\" hx-include=\"#field-event, #field-match\" hx-trigger=\"load, input changed delay:400ms from:#field-match\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div><!-- One-robot mode: each team button submits the form with its team --><div id=\"field-team-picker\" class=\"hidden text-left\" hx-get=\"/api/match-teams\" hx-include=\"#field-event, #field-match\" hx-trigger=\"load, input changed delay:400ms from:#field-match\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div></form></div><div class=\"mt-6 text-center\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -308,7 +308,7 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 				return templ_7745c5c3_Err
 			}
 			for _, t := range teams {
-				var templ_7745c5c3_Var15 = []any{"relative p-3 rounded-xl border-2 border-b-4 font-black text-lg transition active:scale-95 disabled:opacity-50 disabled:active:scale-100",
+				var templ_7745c5c3_Var15 = []any{"relative p-4 rounded-xl border-2 border-b-4 font-black text-xl transition active:scale-95 disabled:opacity-50 disabled:active:scale-100",
 					templ.KV("bg-red-50 border-red-300 text-red-800", t.Alliance == "Red" && !t.Soonest && !t.NeedsData),
 					templ.KV("bg-blue-50 border-blue-300 text-blue-800", t.Alliance == "Blue" && !t.Soonest && !t.NeedsData),
 					templ.KV("bg-yellow-100 border-yellow-400 text-[#4E342E]", t.NeedsData && !t.Soonest),
@@ -569,7 +569,7 @@ func allianceButton(alliance string, teamNums []string) templ.Component {
 			templ_7745c5c3_Var28 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		var templ_7745c5c3_Var29 = []any{"p-4 rounded-xl border-2 border-b-4 font-black transition active:scale-95",
+		var templ_7745c5c3_Var29 = []any{"p-5 rounded-xl border-2 border-b-4 font-black text-lg transition active:scale-95",
 			templ.KV("bg-red-50 border-red-300 text-red-800", alliance == "Red"),
 			templ.KV("bg-blue-50 border-blue-300 text-blue-800", alliance == "Blue")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var29...)
@@ -615,14 +615,14 @@ func allianceButton(alliance string, teamNums []string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "</span> <span class=\"block text-sm font-bold opacity-80 mt-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "</span> <span class=\"block text-base font-bold opacity-80 mt-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var33 string
 		templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(strings.Join(teamNums, " · "))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 287, Col: 94}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 287, Col: 96}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 		if templ_7745c5c3_Err != nil {

@@ -113,7 +113,7 @@ func PitScoutPage(eventKey string, eventName string) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</ol><textarea id=\"pit-summary\" name=\"summary\" rows=\"8\" required placeholder=\"Summary of their answers...\" class=\"w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700\"></textarea></div><button id=\"pit-submit\" type=\"submit\" class=\"w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-4 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]\">Save Pit Scouting</button></form><div id=\"pit-result\" class=\"mt-3 text-center font-bold text-[#5D4037]\"></div></div><div><div class=\"flex justify-between items-center ml-2 mb-1\"><label class=\"text-xs font-bold uppercase text-[#A1887F]\">Teams</label> <label class=\"flex items-center gap-1.5 text-xs font-bold text-[#8D6E63] cursor-pointer select-none\"><input id=\"pit-hide-scouted\" type=\"checkbox\" class=\"accent-[#8D6E63]\"> Hide scouted</label></div><div id=\"pit-teams\" hx-get=\"/api/pit-teams\" hx-include=\"#pit-event\" hx-trigger=\"load, pitSaved from:body\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div></div></div></div><div class=\"mt-4 text-center\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</ol><textarea id=\"pit-summary\" name=\"summary\" rows=\"8\" required placeholder=\"Summary of their answers...\" class=\"w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700\"></textarea></div><button id=\"pit-submit\" type=\"submit\" class=\"w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-4 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]\">Save Pit Scouting</button></form><div id=\"pit-result\" class=\"mt-3 text-center font-bold text-[#5D4037]\"></div></div><div><div class=\"flex justify-between items-center ml-2 mb-1\"><label class=\"text-xs font-bold uppercase text-[#A1887F]\">Teams</label> <label class=\"flex items-center gap-2 text-sm font-bold text-[#8D6E63] cursor-pointer select-none\"><input id=\"pit-hide-scouted\" type=\"checkbox\" class=\"w-5 h-5 accent-[#8D6E63]\"> Hide scouted</label></div><div id=\"pit-teams\" hx-get=\"/api/pit-teams\" hx-include=\"#pit-event\" hx-trigger=\"load, pitSaved from:body\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div></div></div></div><div class=\"mt-4 text-center\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -185,7 +185,7 @@ func PitTeamList(teams []PitTeam, errMsg string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"flex flex-wrap content-start gap-1.5 max-h-60 md:max-h-[36rem] overflow-y-auto bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl p-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"flex flex-wrap content-start gap-2 max-h-72 md:max-h-[36rem] overflow-y-auto bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl p-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -204,7 +204,7 @@ func PitTeamList(teams []PitTeam, errMsg string) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" data-scouted class=\"px-2.5 py-1 rounded-lg text-sm font-bold line-through text-stone-400 bg-stone-100 border border-stone-200\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" data-scouted class=\"px-4 py-3 rounded-lg text-base font-bold line-through text-stone-400 bg-stone-100 border border-stone-200\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -235,7 +235,7 @@ func PitTeamList(teams []PitTeam, errMsg string) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"px-2.5 py-1 rounded-lg text-sm font-bold text-[#5D4037] bg-[#FFFBF5] border border-[#D2B48C] hover:bg-[#D2B48C] transition\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"px-4 py-3 rounded-lg text-base font-bold text-[#5D4037] bg-[#FFFBF5] border border-[#D2B48C] hover:bg-[#D2B48C] transition\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
