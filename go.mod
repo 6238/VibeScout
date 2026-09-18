@@ -5,12 +5,13 @@ go 1.25.7
 require (
 	github.com/a-h/templ v0.3.977
 	github.com/glebarez/go-sqlite v1.22.0
+	github.com/gorilla/websocket v1.5.3
+	github.com/joho/godotenv v1.5.1
 )
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.5.0 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	golang.org/x/sys v0.34.0 // indirect
