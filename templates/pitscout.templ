@@ -27,6 +27,12 @@ templ PitScoutPage(eventKey string, eventName string) {
 	@Layout("Vibe Scout | Pit Scouting") {
 		<style>
 			#pit-teams.hide-scouted [data-scouted] { display: none; }
+			#pit-teams .pit-highlight {
+				background-color: rgba(250, 204, 21, 0.55) !important;
+				border-color: #CA8A04 !important;
+				outline: 3px solid #FACC15;
+				z-index: 5;
+			}
 		</style>
 		<main class="flex flex-col items-center justify-center min-h-screen px-3 py-6">
 			<div class="w-full max-w-md md:max-w-4xl bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-4 md:p-6 shadow-xl">
@@ -34,58 +40,59 @@ templ PitScoutPage(eventKey string, eventName string) {
 				<p class="text-sm font-bold text-[#A1887F] mb-3 text-center">{ eventName }</p>
 				<input type="hidden" id="pit-event" name="event_key" value={ eventKey }/>
 
-				<!-- Form first so the team list sits below it on mobile and beside it on desktop -->
-				<div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_16rem] md:gap-6">
-					<div>
-						<form id="pit-form" class="space-y-3"
-							hx-post="/api/save-pit-scout"
-							hx-target="#pit-result"
-							hx-swap="innerHTML">
-							<div>
-								<label for="pit-team-number" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Team #</label>
-								<div class="relative">
-									<input id="pit-team-number" type="text" name="team_number" inputmode="numeric" pattern="[0-9]+" placeholder="Start typing a team number" required
-										autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="pit-team-suggest" aria-expanded="false"
-										class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold"/>
-									<ul id="pit-team-suggest" role="listbox"
-										class="hidden absolute z-10 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl shadow-lg"></ul>
-								</div>
-								<div id="pit-edit-status" class="hidden mt-2 ml-2 text-sm font-bold text-[#8D6E63]"></div>
+				<!-- Form first, then the team map(s) full-width below it -->
+				<div>
+					<form id="pit-form" class="space-y-3"
+						hx-post="/api/save-pit-scout"
+						hx-include="#pit-event"
+						hx-target="#pit-result"
+						hx-swap="innerHTML">
+						<div>
+							<label for="pit-team-number" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Team #</label>
+							<div class="relative">
+								<input id="pit-team-number" type="text" name="team_number" inputmode="numeric" pattern="[0-9]+" placeholder="Search a team number" required
+									autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="pit-team-suggest" aria-expanded="false"
+									class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold"/>
+								<ul id="pit-team-suggest" role="listbox"
+									class="hidden absolute z-10 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl shadow-lg"></ul>
 							</div>
+							<div id="pit-team-error" class="hidden mt-2 ml-2 text-sm font-bold text-red-700"></div>
+							<div id="pit-edit-status" class="hidden mt-2 ml-2 text-sm font-bold text-[#8D6E63]"></div>
+						</div>
 
-							<div>
-								<label for="pit-summary" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Ask about</label>
-								<ol class="list-decimal list-inside text-base leading-snug text-[#5D4037] bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl px-3 py-2 mb-2 space-y-1">
-									for _, q := range pitScoutQuestions {
-										<li>{ q }</li>
-									}
-								</ol>
-								<textarea id="pit-summary" name="summary" rows="8" required placeholder="Summary of their answers..."
-									class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700"></textarea>
-							</div>
+						<div>
+							<label for="pit-summary" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Ask about</label>
+							<ol class="list-decimal list-inside text-base leading-snug text-[#5D4037] bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl px-3 py-2 mb-2 space-y-1">
+								for _, q := range pitScoutQuestions {
+									<li>{ q }</li>
+								}
+							</ol>
+							<textarea id="pit-summary" name="summary" rows="8" required placeholder="Summary of their answers..."
+								class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700"></textarea>
+						</div>
 
-							<button id="pit-submit" type="submit" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-4 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
-								Save Pit Scouting
-							</button>
-						</form>
-						<div id="pit-result" class="mt-3 text-center font-bold text-[#5D4037]"></div>
+						<button id="pit-submit" type="submit" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-4 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
+							Save Pit Scouting
+						</button>
+					</form>
+					<div id="pit-result" class="mt-3 text-center font-bold text-[#5D4037]"></div>
+				</div>
+
+				<div class="mt-5">
+					<div class="flex justify-between items-center ml-2 mb-1">
+						<label class="text-xs font-bold uppercase text-[#A1887F]">Teams</label>
+						<label class="flex items-center gap-2 text-sm font-bold text-[#8D6E63] cursor-pointer select-none">
+							<input id="pit-hide-scouted" type="checkbox" class="w-5 h-5 accent-[#8D6E63]"/>
+							Hide scouted
+						</label>
 					</div>
-
-					<div>
-						<div class="flex justify-between items-center ml-2 mb-1">
-							<label class="text-xs font-bold uppercase text-[#A1887F]">Teams</label>
-							<label class="flex items-center gap-2 text-sm font-bold text-[#8D6E63] cursor-pointer select-none">
-								<input id="pit-hide-scouted" type="checkbox" class="w-5 h-5 accent-[#8D6E63]"/>
-								Hide scouted
-							</label>
-						</div>
-						<div id="pit-teams"
-							hx-get="/api/pit-teams"
-							hx-include="#pit-event"
-							hx-trigger="load, pitSaved from:body"
-							hx-swap="innerHTML">
-							<p class="text-sm text-[#A1887F] ml-2">Loading teams...</p>
-						</div>
+					<p class="text-xs text-[#A1887F] ml-2 mb-2">Scroll/pinch to find a pit, then tap its number.</p>
+					<div id="pit-teams"
+						hx-get="/api/pit-teams"
+						hx-include="#pit-event"
+						hx-trigger="load, pitSaved from:body"
+						hx-swap="innerHTML">
+						<p class="text-sm text-[#A1887F] ml-2">Loading teams...</p>
 					</div>
 				</div>
 			</div>
@@ -130,8 +137,24 @@ templ PitScoutPage(eventKey string, eventName string) {
 						return summary.value.trim() !== '' && summary.value !== (loadedSummary || '');
 					}
 
+					// ── Only teams on this event's list can be searched or scouted ──
+					var teamError = document.getElementById('pit-team-error');
+					function isEventTeam(n) {
+						return eventTeams().some(function(t) { return t.number === n; });
+					}
+					// True once the list has loaded and nothing in it matches what was typed
+					function noSuchTeam(q) {
+						var all = eventTeams();
+						return q !== '' && all.length > 0 && !all.some(function(t) { return t.number.indexOf(q) !== -1; });
+					}
+					function showTeamError(q) {
+						teamError.textContent = q ? 'Team ' + q + " isn't on this event's team list." : '';
+						teamError.classList.toggle('hidden', !q);
+					}
+
 					function loadTeam(team) {
 						team = (team || '').trim();
+						if (team !== '' && eventTeams().length && !isEventTeam(team)) team = '';
 						if (team === currentTeam) return;
 						currentTeam = team;
 						var seq = ++loadSeq;
@@ -171,6 +194,29 @@ templ PitScoutPage(eventKey string, eventName string) {
 							return { number: b.dataset.pitTeam, scouted: b.hasAttribute('data-scouted') };
 						});
 					}
+					// ── Map highlight ──
+					function clearHighlight() {
+						Array.prototype.forEach.call(teams.querySelectorAll('.pit-highlight'), function(b) {
+							b.classList.remove('pit-highlight');
+						});
+					}
+					// Highlights the team on the map and centers it inside the map box only;
+					// the page never scrolls, so the scout can keep typing.
+					function highlightTeam(team) {
+						clearHighlight();
+						var btn = teams.querySelector('[data-pit-team="' + team + '"]');
+						if (!btn || !btn.parentElement || btn.parentElement.tagName !== 'DIV' || !btn.style.left) return;
+						btn.classList.add('pit-highlight');
+						var box = teams.firstElementChild;
+						if (box && box.scrollWidth > 0) {
+							var b = btn.getBoundingClientRect(), c = box.getBoundingClientRect();
+							box.scrollTo({
+								left: box.scrollLeft + (b.left - c.left) - c.width / 2 + b.width / 2,
+								top: box.scrollTop + (b.top - c.top) - c.height / 2 + b.height / 2,
+								behavior: 'smooth'
+							});
+						}
+					}
 					function closeSuggest() {
 						suggest.classList.add('hidden');
 						input.setAttribute('aria-expanded', 'false');
@@ -208,13 +254,27 @@ templ PitScoutPage(eventKey string, eventName string) {
 					function pick(team) {
 						input.value = team;
 						closeSuggest();
+						if (team !== '' && eventTeams().length && !isEventTeam(team)) {
+							showTeamError(team);
+							clearHighlight();
+							loadTeam('');
+							return;
+						}
+						showTeamError('');
 						loadTeam(team);
+						highlightTeam(team);
 						summary.focus();
 					}
 
 					input.addEventListener('input', function() {
 						input.value = input.value.replace(/[^0-9]/g, '');
 						renderSuggest();
+						var q = input.value.trim();
+						showTeamError(noSuchTeam(q) ? q : '');
+						// Highlight as soon as the typed number (or the top suggestion) is a real team
+						var match = q && eventTeams().filter(function(t) { return t.number === q; })[0];
+						if (!match && q) match = eventTeams().filter(function(t) { return t.number.indexOf(q) === 0; })[0];
+						if (match) highlightTeam(match.number); else clearHighlight();
 					});
 					input.addEventListener('keydown', function(e) {
 						var open = !suggest.classList.contains('hidden');
@@ -230,6 +290,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 							e.preventDefault(); // never submit from the team box
 							if (open && highlighted >= 0) pick(suggest.children[highlighted].dataset.team);
 							else pick(input.value);
+							highlightTeam(input.value.trim());
 						} else if (e.key === 'Escape') {
 							closeSuggest();
 						}
@@ -240,6 +301,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 						if (!li) return;
 						e.preventDefault();
 						pick(li.dataset.team);
+						highlightTeam(li.dataset.team);
 					});
 					input.addEventListener('blur', function() {
 						closeSuggest();
@@ -258,9 +320,23 @@ templ PitScoutPage(eventKey string, eventName string) {
 					});
 
 					// ── After saving, start fresh for the next team ──
+					// Only teams on the event list can be scouted; reject others before sending
+					form.addEventListener('htmx:beforeRequest', function(e) {
+						if (e.detail.elt !== form) return;
+						var list = eventTeams();
+						var n = input.value.trim();
+						if (list.length && !list.some(function(t) { return t.number === n; })) {
+							e.preventDefault();
+							document.getElementById('pit-result').innerHTML =
+								'<span class="text-red-700">Team ' + n.replace(/[^0-9]/g, '') + ' isn\'t on this event\'s team list, so it can\'t be pit scouted.</span>';
+						}
+					});
 					form.addEventListener('htmx:afterRequest', function(e) {
 						if (e.detail.elt !== form || !e.detail.successful) return;
+						// A rejected team comes back 200 without the pitSaved trigger; keep the form as is
+						if (e.detail.xhr.getResponseHeader('HX-Trigger') !== 'pitSaved') return;
 						form.reset();
+						showTeamError('');
 						currentTeam = null;
 						setNew();
 					});
@@ -276,24 +352,65 @@ templ PitTeamList(teams []PitTeam, errMsg string) {
 	} else if len(teams) == 0 {
 		<p class="text-sm text-[#A1887F] ml-2">No teams listed for this event yet.</p>
 	} else {
-		<div class="flex flex-wrap content-start gap-2 max-h-72 md:max-h-[36rem] overflow-y-auto bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl p-2">
-			for _, t := range teams {
-				if t.Scouted {
-					<button type="button" data-pit-team={ t.Number } data-scouted
-						class="px-4 py-3 rounded-lg text-base font-bold line-through text-stone-400 bg-stone-100 border border-stone-200">
-						{ t.Number }
-					</button>
-				} else {
-					<button type="button" data-pit-team={ t.Number }
-						class="px-4 py-3 rounded-lg text-base font-bold text-[#5D4037] bg-[#FFFBF5] border border-[#D2B48C] hover:bg-[#D2B48C] transition">
-						{ t.Number }
-					</button>
-				}
+		<div class="max-h-[32rem] overflow-auto bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl p-2 space-y-3">
+			if len(mapTeamsFor(teams, "pit-map1.webp")) > 0 {
+				@pitMapBlock("pit-map1.webp", mapTeamsFor(teams, "pit-map1.webp"))
+			}
+			if len(mapTeamsFor(teams, "pit-map2.webp")) > 0 {
+				@pitMapBlock("pit-map2.webp", mapTeamsFor(teams, "pit-map2.webp"))
+			}
+			if len(unmappedPitTeams(teams)) > 0 {
+				<div>
+					<p class="text-xs font-bold uppercase text-[#A1887F] mb-1">Not on the map</p>
+					<div class="flex flex-wrap content-start gap-2">
+						for _, t := range unmappedPitTeams(teams) {
+							@pitTeamButton(t)
+						}
+					</div>
+				</div>
 			}
 		</div>
 		<p class="text-xs text-[#A1887F] ml-2 mt-1">
 			{ fmt.Sprintf("%d of %d scouted", countScouted(teams), len(teams)) } · tap a team to fill it in
 		</p>
+	}
+}
+
+templ pitMapBlock(image string, teams []pitMapTeam) {
+	<div class="relative min-w-[700px] w-full rounded-lg border border-[#D2B48C] overflow-hidden" style={ fmt.Sprintf("aspect-ratio: %.4f", 1/pitMapImageAspect[image]) }>
+		<img src={ "/static/" + image } class="absolute inset-0 w-full h-full object-contain" alt="Pit map"/>
+		for _, t := range teams {
+			@pitMapHotspot(t)
+		}
+	</div>
+}
+
+templ pitMapHotspot(t pitMapTeam) {
+	if t.Scouted {
+		<button type="button" data-pit-team={ t.Number } data-scouted
+			style={ hotspotStyle(t.Pos) }
+			class="absolute rounded-sm bg-[#8D6E63]/75 border border-[#5D4037] text-[#F2E8D5] text-xs font-black flex items-center justify-center">
+			✓
+		</button>
+	} else {
+		<button type="button" data-pit-team={ t.Number }
+			style={ hotspotStyle(t.Pos) }
+			class="absolute rounded-sm bg-[#D2B48C]/45 border border-[#D2B48C] hover:bg-[#D2B48C]/75 hover:border-[#8D6E63] active:bg-[#D2B48C] transition"
+			aria-label={ "Team " + t.Number }></button>
+	}
+}
+
+templ pitTeamButton(t PitTeam) {
+	if t.Scouted {
+		<button type="button" data-pit-team={ t.Number } data-scouted
+			class="px-4 py-3 rounded-lg text-base font-bold line-through text-stone-400 bg-stone-100 border border-stone-200">
+			{ t.Number }
+		</button>
+	} else {
+		<button type="button" data-pit-team={ t.Number }
+			class="px-4 py-3 rounded-lg text-base font-bold text-[#5D4037] bg-[#FFFBF5] border border-[#D2B48C] hover:bg-[#D2B48C] transition">
+			{ t.Number }
+		</button>
 	}
 }
 
