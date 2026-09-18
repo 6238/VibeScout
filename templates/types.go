@@ -107,8 +107,13 @@ type PickTeam struct {
 	NeedsData    bool
 }
 
+type ScoutPageConfig struct {
+	Teams    []ScoutTeam `json:"teams"`
+	OneRobot bool        `json:"one_robot"`
+}
+
 type ScoutTeam struct {
-	Number    string
-	Alliance  string // "Red" or "Blue"
-	DataCount int
+	Number    string `json:"number"`
+	Alliance  string `json:"alliance"` // "Red" or "Blue"
+	DataCount int    `json:"data_count"`
 }
