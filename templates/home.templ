@@ -90,7 +90,7 @@ templ FieldScout(data FieldScoutData) {
                     <div id="field-alliance-picker" class="hidden text-left"
                         hx-get="/api/match-alliances"
                         hx-include="#field-event, #field-match"
-                        hx-trigger="load, input changed delay:400ms from:#field-match"
+                        hx-trigger="load, input delay:400ms from:#field-match"
                         hx-swap="innerHTML">
                         <p class="text-sm text-[#A1887F] ml-2">Loading teams...</p>
                     </div>
@@ -99,7 +99,7 @@ templ FieldScout(data FieldScoutData) {
                     <div id="field-team-picker" class="hidden text-left"
                         hx-get="/api/match-teams"
                         hx-include="#field-event, #field-match"
-                        hx-trigger="load, input changed delay:400ms from:#field-match"
+                        hx-trigger="load, input delay:400ms from:#field-match"
                         hx-swap="innerHTML">
                         <p class="text-sm text-[#A1887F] ml-2">Loading teams...</p>
                     </div>
