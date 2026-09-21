@@ -9,4 +9,6 @@ Our team EPA (Statbotics):
 Scouted match data, pit scouting interviews (where available), and EPA statistics on other teams in this match:
 {{.NotesContext}}
 
+Scouting notes are a small, uneven sample; EPA is measured over every match a team has played. Where a team has few or no notes, lean on its EPA and say the read is thin instead of guessing. Do not write a team off, or call it a threat, on the strength of one or two notes.
+
 Provide a concise match strategy for Team {{.TeamNum}} (3-5 bullet points covering: recommended role, key threats from opponents, coordination with partners, and any specific tactical notes).

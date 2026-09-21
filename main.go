@@ -130,6 +130,7 @@ func main() {
 	http.HandleFunc("/analysis", geminiAnalysisPageHandler)
 	http.HandleFunc("/api/run-analysis", apiRunAnalysisHandler)
 	http.HandleFunc("/api/analyze-team", apiAnalyzeTeamHandler)
+	http.HandleFunc("/api/next-match", apiNextMatchHandler)
 	http.HandleFunc("/api/team-notes", apiTeamNotesHandler)
 	http.HandleFunc("/api/team-pit-notes", apiTeamPitNotesHandler)
 	http.HandleFunc("/api/search-teams", apiSearchTeamsHandler)
@@ -690,6 +691,9 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 		eventKey, teamNum).Scan(&card.HasNotes)
 	db.QueryRow(`SELECT EXISTS(SELECT 1 FROM pit_scouting WHERE team_number = ?)`, teamNum).Scan(&card.HasPitNotes)
 
+	// Cards in the next-match section share team numbers with the full list, so
+	// their element ids carry a prefix to stay unique.
+	card.Section = r.URL.Query().Get("section")
 	card.EPA, card.HasEPA = teamTotalEPA(teamNum)
 	addTrustInfo(&card)
 
@@ -711,6 +715,77 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templates.SingleTeamAnalysisCard(card).Render(r.Context(), w)
+}
+
+// nextQualFor returns our team's first unplayed qual match.
+func nextQualFor(matches []Match, team string) (Match, bool) {
+	key := "frc" + team
+	var next Match
+	found := false
+	for _, m := range matches {
+		if m.CompLevel != "qm" || m.Played() || (found && m.MatchNumber >= next.MatchNumber) {
+			continue
+		}
+		for _, k := range append(append([]string{}, m.Alliances.Red.TeamKeys...), m.Alliances.Blue.TeamKeys...) {
+			if k == key {
+				next, found = m, true
+				break
+			}
+		}
+	}
+	return next, found
+}
+
+// apiNextMatchHandler renders the next-match section: our next qual, the
+// strategy for it, and (via the page) a summary card for each team in it.
+func apiNextMatchHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey := r.URL.Query().Get("event_key")
+	if eventKey == "" || eventKey == "none" {
+		http.Error(w, "event_key required", http.StatusBadRequest)
+		return
+	}
+
+	data := templates.NextMatchData{EventKey: eventKey}
+	matches, err := getMatchesCached(eventKey)
+	if err != nil {
+		log.Printf("next match at %s: %v", eventKey, err)
+		data.PlanError = "Couldn't load the match schedule."
+		templates.NextMatchSection(data).Render(r.Context(), w)
+		return
+	}
+
+	m, ok := nextQualFor(matches, ourTeam)
+	if !ok {
+		templates.NextMatchSection(data).Render(r.Context(), w)
+		return
+	}
+
+	data.Found = true
+	data.MatchNum = m.MatchNumber
+	data.Label = m.ShortLabel()
+
+	red, blue := stripFRC(m.Alliances.Red.TeamKeys), stripFRC(m.Alliances.Blue.TeamKeys)
+	ours, theirs := red, blue
+	for _, t := range blue {
+		if t == ourTeam {
+			ours, theirs = blue, red
+		}
+	}
+	for _, t := range ours {
+		if t != ourTeam {
+			data.Partners = append(data.Partners, t)
+		}
+	}
+	data.Opponents = theirs
+
+	plan, err := getOrGenerateMatchPlan(eventKey, ourTeam, m)
+	if err != nil {
+		data.PlanError = "Error generating strategy: " + err.Error()
+	} else {
+		data.Plan = plan
+	}
+
+	templates.NextMatchSection(data).Render(r.Context(), w)
 }
 
 func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
@@ -995,6 +1070,10 @@ func apiMatchPlanHandler(w http.ResponseWriter, r *http.Request) {
 	templates.MatchPlannerResults([]templates.MatchPlanCard{card}, teamNumber).Render(r.Context(), w)
 }
 
+// matchPlanPromptVersion is mixed into the cache key so edits to the match plan
+// prompt invalidate previously cached strategies.
+const matchPlanPromptVersion = "v2"
+
 func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.MatchPlanCard, error) {
 	frcTeam := "frc" + teamNumber
 	redTeams := stripFRC(m.Alliances.Red.TeamKeys)
@@ -1041,7 +1120,7 @@ func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.Mat
 
 	combinedNotes := strings.Join(noteParts, "\n")
 	notesContext := strings.Join(contextParts, "\n\n")
-	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(combinedNotes)))
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(matchPlanPromptVersion+"\n"+combinedNotes)))
 
 	// Check cache
 	var cachedStrategy, cachedHash string

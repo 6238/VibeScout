@@ -40,10 +40,27 @@ func lowDataTitle(lowData bool) string {
 	return ""
 }
 
+// panelID is the element id for a card's notes panels. Cards in the next-match
+// section share team numbers with the full list, so the section is part of the id.
+func panelID(card TeamAnalysisCard, kind string) string {
+	return card.Section + kind + "-" + card.TeamNumber
+}
+
 templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 	@Layout("Vibe Scout | AI Analysis") {
 		<main class="container mx-auto px-4 py-8">
 			<div class="max-w-4xl mx-auto">
+				<div
+					id="next-match"
+					hx-get={ "/api/next-match?event_key=" + data.EventKey }
+					hx-trigger="load"
+					hx-swap="innerHTML"
+					class="mb-6">
+					<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl text-center text-[#A1887F] font-bold animate-pulse">
+						Loading next match...
+					</div>
+				</div>
+
 				<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl mb-6">
 					<h1 class="text-3xl font-black text-[#5D4037] mb-1 text-center tracking-tight uppercase">AI Analysis</h1>
 					<p class="text-sm font-bold text-[#A1887F] mb-4 text-center">{ data.EventName }</p>
@@ -164,6 +181,66 @@ templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 			</div>
 		</main>
 	}
+}
+
+templ NextMatchSection(d NextMatchData) {
+	if d.MatchNum == 0 {
+		<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl text-center">
+			<h2 class="text-xl font-black text-[#5D4037] uppercase tracking-tight">Next Match</h2>
+			if d.PlanError != "" {
+				<p class="text-sm text-red-600 mt-2">{ d.PlanError }</p>
+			} else {
+				<p class="text-sm text-[#A1887F] mt-2">{ "Team " + OurTeam + " has no unplayed qualification matches on the schedule." }</p>
+			}
+		</div>
+	} else {
+		<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl space-y-4">
+			<div class="flex flex-wrap justify-between items-baseline gap-2">
+				<h2 class="text-2xl font-black text-[#5D4037] uppercase tracking-tight">{ "Next Match: " + d.Label }</h2>
+				<span class="text-sm font-bold text-[#A1887F]">{ "We're on " + d.Plan.OurAlliance }</span>
+			</div>
+
+			<div class="bg-white rounded-xl p-4 border border-[#D2B48C]">
+				<p class="text-xs font-bold text-[#A1887F] uppercase mb-2">Strategy</p>
+				if d.PlanError != "" {
+					<p class="text-sm text-red-600">{ d.PlanError }</p>
+				} else {
+					<p class="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap">{ d.Plan.Strategy }</p>
+				}
+			</div>
+
+			<div>
+				<h3 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest mb-2">Partners</h3>
+				<div class="space-y-4">
+					for _, t := range d.Partners {
+						@nextMatchSlot(d.EventKey, t)
+					}
+				</div>
+			</div>
+			<div>
+				<h3 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest mb-2">Opponents</h3>
+				<div class="space-y-4">
+					for _, t := range d.Opponents {
+						@nextMatchSlot(d.EventKey, t)
+					}
+				</div>
+			</div>
+		</div>
+	}
+}
+
+// nextMatchSlot is a placeholder that loads one team's summary card. It has no
+// data-team-slot, so it doesn't count toward the full-list progress bar.
+templ nextMatchSlot(eventKey string, team string) {
+	<div
+		hx-get={ "/api/analyze-team?section=next-&event_key=" + eventKey + "&team_number=" + team }
+		hx-trigger="load"
+		hx-swap="outerHTML"
+		class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md animate-pulse">
+		<div class="h-6 w-28 bg-[#D2B48C44] rounded mb-3"></div>
+		<div class="h-4 bg-[#D2B48C44] rounded w-full mb-2"></div>
+		<div class="h-4 bg-[#D2B48C44] rounded w-3/4"></div>
+	</div>
 }
 
 templ GeminiAnalysisProgressContainer(teams []string, eventKey string) {
@@ -298,7 +375,7 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 					<button
 						class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap bg-[#F2E8D5] text-[#8D6E63] border border-[#D2B48C] hover:bg-[#D2B48C] transition"
 						hx-get={ "/api/team-notes?event_key=" + card.EventKey + "&team_number=" + card.TeamNumber }
-						hx-target={ "#notes-" + card.TeamNumber }
+						hx-target={ "#" + panelID(card, "notes") }
 						hx-swap="innerHTML"
 						hx-on::before-request="var t = event.detail.target; if (t.innerHTML.trim() !== '') { t.innerHTML = ''; event.preventDefault(); }">
 						View Notes
@@ -308,7 +385,7 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 					<button
 						class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap bg-[#F2E8D5] text-[#8D6E63] border border-[#D2B48C] hover:bg-[#D2B48C] transition"
 						hx-get={ "/api/team-pit-notes?team_number=" + card.TeamNumber }
-						hx-target={ "#pit-notes-" + card.TeamNumber }
+						hx-target={ "#" + panelID(card, "pit-notes") }
 						hx-swap="innerHTML"
 						hx-on::before-request="var t = event.detail.target; if (t.innerHTML.trim() !== '') { t.innerHTML = ''; event.preventDefault(); }">
 						Pit Notes
@@ -367,8 +444,8 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 		}
 
 		<!-- Notes (loaded on demand) -->
-		<div id={ "notes-" + card.TeamNumber }></div>
-		<div id={ "pit-notes-" + card.TeamNumber }></div>
+		<div id={ panelID(card, "notes") }></div>
+		<div id={ panelID(card, "pit-notes") }></div>
 	</div>
 }
 

@@ -8,7 +8,20 @@ type GeminiAnalysisPageData struct {
 	EventName string
 }
 
+// NextMatchData is the "next match" section at the top of the analysis page.
+type NextMatchData struct {
+	EventKey  string
+	Found     bool // our team has an unplayed qual match
+	Label     string
+	MatchNum  int
+	Plan      MatchPlanCard
+	PlanError string
+	Partners  []string // our alliance, excluding us
+	Opponents []string
+}
+
 type TeamAnalysisCard struct {
+	Section        string // id prefix for cards shown in more than one place on the page
 	EventKey       string
 	TeamNumber     string
 	Verdict        string // one of: Elite Pick, Strong Pick, Average, Below Average, Avoid
