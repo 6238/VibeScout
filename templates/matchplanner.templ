@@ -51,7 +51,8 @@ templ MatchPlannerPage(data MatchPlannerPageData) {
 			</div>
 
 			<div class="text-center mt-6 flex gap-6 justify-center">
-				<a href={ templ.SafeURL("/analysis?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">← AI Analysis</a>
+				<a href={ templ.SafeURL("/next-match?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">← Next Match</a>
+				<a href={ templ.SafeURL("/pick-list?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Pick List</a>
 				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Home</a>
 			</div>
 		</main>

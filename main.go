@@ -127,7 +127,16 @@ func main() {
 	http.HandleFunc("/api/save-pit-scout", savePitScoutHandler)
 	http.HandleFunc("/api/pit-teams", apiPitTeamsHandler)
 	http.HandleFunc("/api/pit-note", apiPitNoteHandler)
-	http.HandleFunc("/analysis", geminiAnalysisPageHandler)
+	http.HandleFunc("/next-match", nextMatchPageHandler)
+	http.HandleFunc("/pick-list", pickListPageHandler)
+	// The pick list used to be the "AI Analysis" page; keep old links working.
+	http.HandleFunc("/analysis", func(w http.ResponseWriter, r *http.Request) {
+		target := "/pick-list"
+		if r.URL.RawQuery != "" {
+			target += "?" + r.URL.RawQuery
+		}
+		http.Redirect(w, r, target, http.StatusFound)
+	})
 	http.HandleFunc("/api/run-analysis", apiRunAnalysisHandler)
 	http.HandleFunc("/api/analyze-team", apiAnalyzeTeamHandler)
 	http.HandleFunc("/api/next-match", apiNextMatchHandler)
@@ -626,17 +635,22 @@ func currentEventMap() (map[string]string, error) {
 
 // ── Analysis ──────────────────────────────────────────────────────────────────
 
-func geminiAnalysisPageHandler(w http.ResponseWriter, r *http.Request) {
+func pickListPageHandler(w http.ResponseWriter, r *http.Request) {
 	eventKey, ok := requireEvent(w, r)
 	if !ok {
 		return
 	}
+	data := templates.EventPageData{EventKey: eventKey, EventName: eventNameFor(eventKey)}
+	templ.Handler(templates.PickListPage(data)).ServeHTTP(w, r)
+}
 
-	data := templates.GeminiAnalysisPageData{
-		EventKey:  eventKey,
-		EventName: eventNameFor(eventKey),
+func nextMatchPageHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey, ok := requireEvent(w, r)
+	if !ok {
+		return
 	}
-	templ.Handler(templates.GeminiAnalysisPage(data)).ServeHTTP(w, r)
+	data := templates.EventPageData{EventKey: eventKey, EventName: eventNameFor(eventKey)}
+	templ.Handler(templates.NextMatchPage(data)).ServeHTTP(w, r)
 }
 
 func apiRunAnalysisHandler(w http.ResponseWriter, r *http.Request) {

@@ -61,10 +61,13 @@ func panelID(card TeamAnalysisCard, kind string) string {
 	return card.Section + kind + "-" + card.TeamNumber
 }
 
-templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
-	@Layout("Vibe Scout | AI Analysis") {
+// NextMatchPage is our next qualification match: the win chance, the plan and a
+// summary of each team in it. The content loads from /api/next-match.
+templ NextMatchPage(data EventPageData) {
+	@Layout("Vibe Scout | Next Match") {
 		<main class="container mx-auto px-4 py-8">
 			<div class="max-w-4xl mx-auto">
+				<p class="text-sm font-bold text-[#A1887F] mb-3 text-center">{ data.EventName }</p>
 				<div
 					id="next-match"
 					hx-get={ "/api/next-match?event_key=" + data.EventKey }
@@ -75,9 +78,25 @@ templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 						Loading next match...
 					</div>
 				</div>
+			</div>
 
+			<div class="text-center mt-6 flex flex-wrap gap-x-6 gap-y-2 justify-center">
+				<a href={ templ.SafeURL("/pick-list?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Pick List →</a>
+				<a href={ templ.SafeURL("/match-planner?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Plan a different match →</a>
+				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">← Back to Home</a>
+			</div>
+		</main>
+	}
+}
+
+// PickListPage is the ranked list of every team with its summary card, for
+// deciding who to pick.
+templ PickListPage(data EventPageData) {
+	@Layout("Vibe Scout | Pick List") {
+		<main class="container mx-auto px-4 py-8">
+			<div class="max-w-4xl mx-auto">
 				<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl mb-6">
-					<h1 class="text-3xl font-black text-[#5D4037] mb-1 text-center tracking-tight uppercase">AI Analysis</h1>
+					<h1 class="text-3xl font-black text-[#5D4037] mb-1 text-center tracking-tight uppercase">Pick List</h1>
 					<p class="text-sm font-bold text-[#A1887F] mb-4 text-center">{ data.EventName }</p>
 
 					<form
@@ -191,7 +210,7 @@ templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 			</script>
 
 			<div class="text-center mt-6 flex gap-6 justify-center">
-				<a href={ templ.SafeURL("/match-planner?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Match Planner →</a>
+				<a href={ templ.SafeURL("/next-match?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Next Match →</a>
 				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">← Back to Home</a>
 			</div>
 		</main>

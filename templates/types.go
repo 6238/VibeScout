@@ -3,7 +3,8 @@ package templates
 // OurTeam is the team this scouting app belongs to.
 const OurTeam = "6238"
 
-type GeminiAnalysisPageData struct {
+// EventPageData is what the Next Match and Pick List pages need: the event.
+type EventPageData struct {
 	EventKey  string
 	EventName string
 }
