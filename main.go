@@ -691,6 +691,7 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 	db.QueryRow(`SELECT EXISTS(SELECT 1 FROM pit_scouting WHERE team_number = ?)`, teamNum).Scan(&card.HasPitNotes)
 
 	card.EPA, card.HasEPA = teamTotalEPA(teamNum)
+	addTrustInfo(&card)
 
 	if rankings, err := getEventRankingsCached(eventKey); err == nil {
 		card.Rank, card.HasRank = rankings[teamNum]
@@ -825,7 +826,7 @@ type teamAnalysisJSON struct {
 
 // analysisPromptVersion is mixed into the cache key so edits to the prompt's
 // output shape invalidate previously cached analyses.
-const analysisPromptVersion = "v4"
+const analysisPromptVersion = "v5"
 
 func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard, error) {
 	rows, err := db.Query(`
@@ -878,7 +879,7 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 		// If JSON parse fails, fall through to regenerate
 	}
 
-	result, err := callGeminiTeamAnalysis(teamNum, eventKey, combined, pitNotes)
+	result, err := callGeminiTeamAnalysis(teamNum, eventKey, combined, pitNotes, scoutStatsFor(eventKey, teamNum))
 	if err != nil {
 		return templates.TeamAnalysisCard{}, err
 	}
@@ -1250,9 +1251,10 @@ type teamAnalysisPromptData struct {
 	Notes        string
 	PitNotes     string
 	EPABreakdown string
+	Stats        string
 }
 
-func callGeminiTeamAnalysis(teamNum, eventKey, notes, pitNotes string) (teamAnalysisJSON, error) {
+func callGeminiTeamAnalysis(teamNum, eventKey, notes, pitNotes string, stats scoutStats) (teamAnalysisJSON, error) {
 	tmpl, err := template.New("team_analysis").Parse(teamAnalysisPromptTmpl)
 	if err != nil {
 		return teamAnalysisJSON{}, fmt.Errorf("failed to parse team analysis prompt: %w", err)
@@ -1264,6 +1266,7 @@ func callGeminiTeamAnalysis(teamNum, eventKey, notes, pitNotes string) (teamAnal
 		Notes:        notes,
 		PitNotes:     pitNotes,
 		EPABreakdown: fetchStatboticsEPA(teamNum),
+		Stats:        stats.promptText(),
 	}); err != nil {
 		return teamAnalysisJSON{}, fmt.Errorf("failed to render team analysis prompt: %w", err)
 	}

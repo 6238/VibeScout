@@ -24,6 +24,22 @@ func verdictClasses(verdict string) string {
 	}
 }
 
+// sortEPA is the card's EPA as a string for the page's sort control, or "" when
+// unknown so those cards sort last.
+func sortEPA(card TeamAnalysisCard) string {
+	if !card.HasEPA {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", card.EPA)
+}
+
+func lowDataTitle(lowData bool) string {
+	if lowData {
+		return "Based on too few scouted matches to trust. Lean on EPA."
+	}
+	return ""
+}
+
 templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 	@Layout("Vibe Scout | AI Analysis") {
 		<main class="container mx-auto px-4 py-8">
@@ -47,6 +63,18 @@ templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 						<input id="team-search" type="search" autocomplete="off" placeholder="Team # or keyword in scout / pit notes"
 							class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700"/>
 						<p id="team-search-status" class="text-xs text-[#A1887F] ml-2 mt-1"></p>
+					</div>
+
+					<div class="mt-4">
+						<label for="team-sort" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Sort Teams</label>
+						<select id="team-sort" class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
+							<option value="epa">EPA (best first)</option>
+							<option value="team">Team number</option>
+							<option value="reliability">Reliability (scouted)</option>
+							<option value="scoring">Scoring (scouted)</option>
+							<option value="matches">Matches scouted</option>
+						</select>
+						<p class="text-xs text-[#A1887F] ml-2 mt-1">EPA is measured over every match. Scouted ratings are only as good as the number of matches scouted.</p>
 					</div>
 				</div>
 
@@ -96,8 +124,37 @@ templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 						clearTimeout(timer);
 						timer = setTimeout(search, 250);
 					});
-					// Keep the filter applied as team cards load in
-					document.body.addEventListener('htmx:afterSettle', applyFilter);
+					var sortSel = document.getElementById('team-sort');
+					function num(el, key) {
+						var v = parseFloat(el.dataset[key]);
+						return isNaN(v) ? null : v;
+					}
+					function applySort() {
+						var list = document.querySelector('#analysis-results .space-y-4');
+						if (!list) return;
+						var key = sortSel.value;
+						var items = Array.prototype.slice.call(list.children);
+						// Cards still loading have no data yet, so they stay at the end.
+						var loaded = items.filter(function(el) { return !el.dataset.teamSlot; });
+						var pending = items.filter(function(el) { return el.dataset.teamSlot; });
+						loaded.sort(function(a, b) {
+							var av = num(a, key);
+							var bv = num(b, key);
+							if (av === null && bv === null) return num(a, 'team') - num(b, 'team');
+							if (av === null) return 1;
+							if (bv === null) return -1;
+							if (av === bv) return num(a, 'team') - num(b, 'team');
+							return key === 'team' ? av - bv : bv - av;
+						});
+						loaded.concat(pending).forEach(function(el) { list.appendChild(el); });
+					}
+					sortSel.addEventListener('change', applySort);
+
+					// Keep the filter and sort applied as team cards load in
+					document.body.addEventListener('htmx:afterSettle', function() {
+						applyFilter();
+						applySort();
+					});
 				})();
 			</script>
 
@@ -174,19 +231,43 @@ templ GeminiAnalysisProgressContainer(teams []string, eventKey string) {
 }
 
 templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
-	<div data-team={ card.TeamNumber } class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md">
+	<div
+		data-team={ card.TeamNumber }
+		data-epa={ sortEPA(card) }
+		data-matches={ strconv.Itoa(card.Matches) }
+		data-scoring={ strconv.Itoa(card.Scoring) }
+		data-reliability={ strconv.Itoa(card.Reliability) }
+		class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md">
 		<!-- Header row -->
 		<div class="flex flex-wrap justify-between items-center gap-2 mb-4">
-			<div class="flex items-baseline gap-2">
+			<div class="flex flex-wrap items-baseline gap-2">
 				<h2 class="text-xl font-black text-[#5D4037] whitespace-nowrap">Team { card.TeamNumber }</h2>
-				if card.Verdict != "" {
-					<span class={ "text-xs font-black px-3 py-1 rounded-full uppercase tracking-wide whitespace-nowrap", verdictClasses(card.Verdict) }>
-						{ card.Verdict }
-					</span>
-				}
 				if card.HasEPA {
 					<span class="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-[#5D4037] text-white" title="Statbotics total points EPA this season">
 						{ fmt.Sprintf("EPA %.1f", card.EPA) }
+					</span>
+				}
+				if card.HasEPAPct {
+					<span class="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-[#F2E8D5] text-[#5D4037] border border-[#8D6E63]" title="Where this team's EPA ranks among the teams at this event">
+						{ fmt.Sprintf("EPA top %d%%", card.EPATopPct) }
+					</span>
+				}
+				if card.Matches > 0 {
+					<span class={ "text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap border",
+						templ.KV("bg-amber-100 text-amber-700 border-amber-300", card.LowData),
+						templ.KV("bg-green-100 text-green-700 border-green-300", !card.LowData) }
+						title="Matches our scouts recorded for this team. The scouting read below rests on these.">
+						{ fmt.Sprintf("%d scouted", card.Matches) }
+					</span>
+				}
+				if card.LowData {
+					<span class="text-xs font-black px-3 py-1 rounded-full uppercase tracking-wide whitespace-nowrap bg-stone-100 text-stone-600 border border-stone-300" title="Fewer than 3 scouted matches, so no verdict is shown. Use EPA.">
+						Low data
+					</span>
+				} else if card.Verdict != "" {
+					<span class={ "text-xs font-black px-3 py-1 rounded-full uppercase tracking-wide whitespace-nowrap", verdictClasses(card.Verdict) }
+						title="The AI's read of our scouting notes only. It is not a rating of the team.">
+						{ "Notes: " + card.Verdict }
 					</span>
 				}
 				if card.HasRank {
@@ -236,8 +317,20 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 			</div>
 		</div>
 
+		if card.Disagreement != "" {
+			<p class="text-xs font-bold text-amber-800 bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 mb-3">
+				⚠ { card.Disagreement }
+			</p>
+		}
+		if card.ChecklistN > 0 {
+			<p class="text-xs font-bold text-[#8D6E63] mb-3">
+				{ fmt.Sprintf("Checklist (%d matches): broke %d · played defense %d · was defended %d", card.ChecklistN, card.BrokeN, card.DefenseN, card.WasDefendedN) }
+			</p>
+		}
+
 		<!-- Score bars -->
-		<div class="grid grid-cols-3 gap-3 mb-4">
+		<div class={ "grid grid-cols-3 gap-3 mb-4", templ.KV("opacity-50", card.LowData) }
+			title={ lowDataTitle(card.LowData) }>
 			@scoreBar("Scoring", card.Scoring, "#D2B48C", "#8D6E63")
 			@scoreBar("Reliability", card.Reliability, "#A8D5A2", "#4CAF50")
 			@defenseBar(card.Defense)
