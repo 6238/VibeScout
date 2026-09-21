@@ -21,6 +21,8 @@ OUR JOBS:
 EXPECT FROM THEM:
 (one line per opponent: what they will most likely do this match, and the evidence, in the same sentence)
 
+IF IT GOES WELL: a predicted score range for our alliance if we carry out this plan, then one sign of success the drivers and scouts can see during the match, in one or two lines.
+
 IF IT GOES WRONG: one trigger and one switch, in one line.
 
 Rules:
@@ -33,4 +35,6 @@ Rules:
 - Use the forecast only to decide how much risk to take: if we are favored, keep it safe; if we are behind, we need the higher-variance play.
 - Do not mention field sides, start positions, or locations on the field. We have no data on them.
 - Do not repeat a team's raw numbers back at length; give the reason in a few words.
-- Keep the whole plan under 170 words.
+- The predicted score in IF IT GOES WELL must be anchored on the numbers above: start from the forecast's predicted score for us, or from our alliance's combined EPA if there is no forecast, and say that baseline. Give a range, and only go above the baseline by a small amount, and only when the plan removes a specific weakness the data shows (for example, a partner's reliability problem is covered). Never give a number the data doesn't support.
+- The sign of success must be something a scout or driver can watch for in the match, tied to a specific robot and to what its record says it can do (for example, a count of notes by the end of auto that matches its notes). It must not be vague, such as "we are scoring well".
+- Keep the whole plan under 210 words.

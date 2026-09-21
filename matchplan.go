@@ -91,14 +91,22 @@ func lineup(eventKey, label string, teams []string) string {
 	sort.SliceStable(entries, func(i, j int) bool { return entries[i].epa > entries[j].epa })
 
 	parts := make([]string, 0, len(entries))
+	var total float64
+	allKnown := true
 	for _, e := range entries {
 		if e.ok {
 			parts = append(parts, fmt.Sprintf("%s (EPA %.0f)", e.team, e.epa))
+			total += e.epa
 		} else {
 			parts = append(parts, e.team+" (EPA unknown)")
+			allKnown = false
 		}
 	}
-	return label + " by EPA, highest first: " + strings.Join(parts, ", ")
+	text := label + " by EPA, highest first: " + strings.Join(parts, ", ")
+	if allKnown {
+		text += fmt.Sprintf(". Combined EPA: %.0f", total)
+	}
+	return text
 }
 
 // matchPlanContext gathers what the model knows about all six teams, including
