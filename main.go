@@ -1097,7 +1097,7 @@ func apiMatchPlanHandler(w http.ResponseWriter, r *http.Request) {
 
 // matchPlanPromptVersion is mixed into the cache key so edits to the match plan
 // prompt invalidate previously cached strategies.
-const matchPlanPromptVersion = "v3"
+const matchPlanPromptVersion = "v5"
 
 func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.MatchPlanCard, error) {
 	frcTeam := "frc" + teamNumber
@@ -1112,40 +1112,15 @@ func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.Mat
 		}
 	}
 
-	// Collect notes for all 5 other teams, build hash
-	allTeams := append(redTeams, blueTeams...)
-	sort.Strings(allTeams)
-
-	var noteParts []string    // for hash (scouting notes only)
-	var contextParts []string // for prompt (notes + EPA)
-	for _, t := range allTeams {
-		if t == teamNumber {
-			continue
-		}
-		rows, _ := db.Query(`
-			SELECT `+scoutNoteColumns+` FROM scout_submissions
-			WHERE event_key = ? AND team_number = ?
-			ORDER BY match_num ASC`, eventKey, t)
-		var notes []string
-		for rows.Next() {
-			n, _ := scanScoutNote(rows)
-			notes = append(notes, n)
-		}
-		rows.Close()
-		noteLine := fmt.Sprintf("Team %s: %s", t, strings.Join(notes, " | "))
-		teamContext := fmt.Sprintf("Team %s:\n  EPA:\n%s\n  Notes: %s",
-			t, fetchStatboticsEPA(eventKey, t), strings.Join(notes, " | "))
-		if pitNotes := pitNotesFor(t); pitNotes != "" {
-			noteLine += " [pit] " + pitNotes
-			teamContext += "\n  Pit scouting interview: " + pitNotes
-		}
-		noteParts = append(noteParts, noteLine)
-		contextParts = append(contextParts, teamContext)
+	// Everything the model sees about all six teams, including our own robot. The
+	// cache key covers all of it, so the plan regenerates when any of it changes.
+	ourSide, theirSide := redTeams, blueTeams
+	if ourAlliance == "Blue" {
+		ourSide, theirSide = blueTeams, redTeams
 	}
-
-	combinedNotes := strings.Join(noteParts, "\n")
-	notesContext := strings.Join(contextParts, "\n\n")
-	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(matchPlanPromptVersion+"\n"+combinedNotes)))
+	notesContext, lineups := matchPlanContext(eventKey, teamNumber, ourSide, theirSide)
+	forecast := forecastText(m, ourAlliance == "Red")
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(matchPlanPromptVersion+"\n"+lineups+"\n"+forecast+"\n"+notesContext)))
 
 	// Check cache
 	var cachedStrategy, cachedHash string
@@ -1165,7 +1140,7 @@ func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.Mat
 		}, nil
 	}
 
-	strategy, err := callGeminiMatchPlan(teamNumber, eventKey, m.MatchNumber, ourAlliance, redTeams, blueTeams, notesContext)
+	strategy, err := callGeminiMatchPlan(teamNumber, eventKey, m.MatchNumber, ourAlliance, redTeams, blueTeams, notesContext, lineups, forecast)
 	if err != nil {
 		return templates.MatchPlanCard{}, err
 	}
@@ -1412,11 +1387,12 @@ type matchPlanPromptData struct {
 	OpponentAlliance string
 	Partners         string
 	Opponents        string
-	OurEPA           string
+	Forecast         string
+	Lineups          string
 	NotesContext     string
 }
 
-func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance string, redTeams, blueTeams []string, notesContext string) (string, error) {
+func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance string, redTeams, blueTeams []string, notesContext, lineups, forecast string) (string, error) {
 	alliancePartners := redTeams
 	opponents := blueTeams
 	if ourAlliance == "Blue" {
@@ -1449,7 +1425,8 @@ func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance str
 		OpponentAlliance: opponentAlliance,
 		Partners:         strings.Join(partners, ", "),
 		Opponents:        strings.Join(opponents, ", "),
-		OurEPA:           fetchStatboticsEPA(eventKey, teamNum),
+		Forecast:         forecast,
+		Lineups:          lineups,
 		NotesContext:     notesContext,
 	}); err != nil {
 		return "", fmt.Errorf("failed to render match plan prompt: %w", err)
