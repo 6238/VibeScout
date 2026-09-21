@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -96,6 +97,10 @@ var (
 // match. Predictions shift as teams play, so successes expire after 5 minutes
 // and failures are retried after 2.
 func statboticsMatchPrediction(matchKey string) (matchPrediction, bool) {
+	if strings.HasPrefix(matchKey, testEventKey+"_") {
+		return demoMatchPrediction(matchKey)
+	}
+
 	predMu.Lock()
 	if p, ok := predCache[matchKey]; ok && time.Since(predFetched[matchKey]) < 5*time.Minute {
 		predMu.Unlock()
@@ -185,7 +190,7 @@ func eventEPAPercentiles(eventKey string) map[string]float64 {
 		go func() {
 			defer wg.Done()
 			for t := range jobs {
-				if epa, ok := teamTotalEPA(t); ok {
+				if epa, ok := teamTotalEPA(eventKey, t); ok {
 					results <- result{t, epa}
 				}
 			}

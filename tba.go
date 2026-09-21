@@ -230,6 +230,10 @@ var (
 // getEventRankingsCached returns the event's current rankings as a map of team
 // number (without "frc") to rank.
 func getEventRankingsCached(eventKey string) (map[string]int, error) {
+	if eventKey == testEventKey {
+		return demoRankings(), nil
+	}
+
 	rankingsMutex.Lock()
 	defer rankingsMutex.Unlock()
 

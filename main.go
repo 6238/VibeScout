@@ -706,7 +706,7 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 	// Cards in the next-match section share team numbers with the full list, so
 	// their element ids carry a prefix to stay unique.
 	card.Section = r.URL.Query().Get("section")
-	card.EPA, card.HasEPA = teamTotalEPA(teamNum)
+	card.EPA, card.HasEPA = teamTotalEPA(eventKey, teamNum)
 	addTrustInfo(&card)
 
 	if rankings, err := getEventRankingsCached(eventKey); err == nil {
@@ -715,7 +715,8 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("rankings for %s at %s: %v", teamNum, eventKey, err)
 	}
 
-	if matches, err := getMatchesCached(eventKey); err == nil {
+	// The test event's matches don't exist on TBA, so links to them would be dead.
+	if matches, err := getMatchesCached(eventKey); err == nil && eventKey != testEventKey {
 		for _, m := range latestPlayedMatches(matches, teamNum, 2) {
 			card.RecentMatches = append(card.RecentMatches, templates.MatchLink{
 				Label: m.ShortLabel(),
@@ -1133,7 +1134,7 @@ func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.Mat
 		rows.Close()
 		noteLine := fmt.Sprintf("Team %s: %s", t, strings.Join(notes, " | "))
 		teamContext := fmt.Sprintf("Team %s:\n  EPA:\n%s\n  Notes: %s",
-			t, fetchStatboticsEPA(t), strings.Join(notes, " | "))
+			t, fetchStatboticsEPA(eventKey, t), strings.Join(notes, " | "))
 		if pitNotes := pitNotesFor(t); pitNotes != "" {
 			noteLine += " [pit] " + pitNotes
 			teamContext += "\n  Pit scouting interview: " + pitNotes
@@ -1207,10 +1208,20 @@ var (
 	httpClient  = &http.Client{Timeout: 5 * time.Second}
 )
 
+// epaBreakdown returns a team's EPA breakdown for the given event. The test
+// event uses made-up numbers (see seed.go); every other event uses Statbotics.
+func epaBreakdown(eventKey, teamNum string) (map[string]float64, bool) {
+	if eventKey == testEventKey {
+		b, ok := demoEPA[teamNum]
+		return b, ok
+	}
+	return statboticsEPABreakdown(teamNum)
+}
+
 // fetchStatboticsEPA returns the team's current-season EPA breakdown as text for
 // Gemini prompts, or "unavailable".
-func fetchStatboticsEPA(teamNum string) string {
-	breakdown, ok := statboticsEPABreakdown(teamNum)
+func fetchStatboticsEPA(eventKey, teamNum string) string {
+	breakdown, ok := epaBreakdown(eventKey, teamNum)
 	if !ok {
 		return "unavailable"
 	}
@@ -1229,8 +1240,8 @@ func fetchStatboticsEPA(teamNum string) string {
 }
 
 // teamTotalEPA returns the team's current-season total points EPA.
-func teamTotalEPA(teamNum string) (float64, bool) {
-	breakdown, ok := statboticsEPABreakdown(teamNum)
+func teamTotalEPA(eventKey, teamNum string) (float64, bool) {
+	breakdown, ok := epaBreakdown(eventKey, teamNum)
 	if !ok {
 		return 0, false
 	}
@@ -1368,7 +1379,7 @@ func callGeminiTeamAnalysis(teamNum, eventKey, notes, pitNotes string, stats sco
 		EventKey:     eventKey,
 		Notes:        notes,
 		PitNotes:     pitNotes,
-		EPABreakdown: fetchStatboticsEPA(teamNum),
+		EPABreakdown: fetchStatboticsEPA(eventKey, teamNum),
 		Stats:        stats.promptText(),
 	}); err != nil {
 		return teamAnalysisJSON{}, fmt.Errorf("failed to render team analysis prompt: %w", err)
@@ -1438,7 +1449,7 @@ func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance str
 		OpponentAlliance: opponentAlliance,
 		Partners:         strings.Join(partners, ", "),
 		Opponents:        strings.Join(opponents, ", "),
-		OurEPA:           fetchStatboticsEPA(teamNum),
+		OurEPA:           fetchStatboticsEPA(eventKey, teamNum),
 		NotesContext:     notesContext,
 	}); err != nil {
 		return "", fmt.Errorf("failed to render match plan prompt: %w", err)
@@ -1661,6 +1672,9 @@ func clearEventHandler(w http.ResponseWriter, r *http.Request) {
 	db.Exec("DELETE FROM scout_submissions WHERE event_key = ?", req.EventKey)
 	db.Exec("DELETE FROM analysis_cache WHERE event_key = ?", req.EventKey)
 	db.Exec("DELETE FROM match_plan_cache WHERE event_key = ?", req.EventKey)
+	if req.EventKey == testEventKey {
+		clearDemoPitNotes()
+	}
 
 	fmt.Fprintf(w, "Deleted all data for event: %s", req.EventKey)
 }
@@ -1671,7 +1685,8 @@ func seedTestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	seedTestData()
-	fmt.Fprintf(w, "Test event seeded: %s (%d observations across 9 teams)", testEventKey, len(testObservations))
+	fmt.Fprintf(w, "Test event seeded: %s (%d observations across %d teams, demo EPAs, %d played + %d upcoming matches)",
+		testEventKey, len(testObservations), len(demoTotalEPA), 9, len(testMatches)-9)
 }
 
 func clearAllHandler(w http.ResponseWriter, r *http.Request) {
