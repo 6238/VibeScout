@@ -678,6 +678,17 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The pit profile only depends on the pit notes, so fetch it alongside the
+	// match analysis. A failure just leaves the pit row off the card.
+	pitCh := make(chan templates.PitProfile, 1)
+	go func() {
+		p, err := getPitProfile(teamNum)
+		if err != nil {
+			log.Printf("pit profile for %s: %v", teamNum, err)
+		}
+		pitCh <- p
+	}()
+
 	card, err := getOrGenerateAnalysis(eventKey, teamNum)
 	if err != nil {
 		card = templates.TeamAnalysisCard{
@@ -686,6 +697,7 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 			Error:      "Error generating analysis: " + err.Error(),
 		}
 	}
+	card.Pit = <-pitCh
 
 	db.QueryRow(`SELECT EXISTS(SELECT 1 FROM scout_submissions WHERE event_key = ? AND team_number = ? AND `+hasScoutDataSQL+`)`,
 		eventKey, teamNum).Scan(&card.HasNotes)
@@ -913,7 +925,7 @@ type teamAnalysisJSON struct {
 
 // analysisPromptVersion is mixed into the cache key so edits to the prompt's
 // output shape invalidate previously cached analyses.
-const analysisPromptVersion = "v5"
+const analysisPromptVersion = "v6"
 
 func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard, error) {
 	rows, err := db.Query(`
@@ -1084,7 +1096,7 @@ func apiMatchPlanHandler(w http.ResponseWriter, r *http.Request) {
 
 // matchPlanPromptVersion is mixed into the cache key so edits to the match plan
 // prompt invalidate previously cached strategies.
-const matchPlanPromptVersion = "v2"
+const matchPlanPromptVersion = "v3"
 
 func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.MatchPlanCard, error) {
 	frcTeam := "frc" + teamNumber

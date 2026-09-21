@@ -337,6 +337,38 @@ templ GeminiAnalysisProgressContainer(teams []string, eventKey string) {
 	}
 }
 
+// pitProfileRow shows what the team told us in the pit. It is styled quietly and
+// labeled self-reported because it counts for less than what we saw in matches.
+templ pitProfileRow(p PitProfile) {
+	<div class="mb-4 rounded-xl bg-[#F2E8D5]/60 border border-dashed border-[#D2B48C] px-3 py-2">
+		<div class="flex flex-wrap items-center gap-1.5 mb-1">
+			<span class="text-xs font-bold uppercase text-[#A1887F]" title="From the pit interview. The team's own claims, weighted less than match scouting.">Pit (self-reported)</span>
+			if p.Archetype != "" {
+				<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FFFBF5] text-[#5D4037] border border-[#8D6E63]">{ p.Archetype }</span>
+			}
+			if p.Role != "" {
+				<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FFFBF5] text-[#5D4037] border border-[#D2B48C]">{ "Prefers " + p.Role }</span>
+			}
+		</div>
+		<dl class="grid sm:grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-stone-700 leading-snug">
+			@pitFact("Strength", p.Strength)
+			@pitFact("Biggest problem", p.Problem)
+			@pitFact("Wants partner", p.Partner)
+			@pitFact("Back-to-back", p.Turnaround)
+			@pitFact("Driver safety", p.Safety)
+		</dl>
+	</div>
+}
+
+templ pitFact(label string, value string) {
+	if value != "" {
+		<div>
+			<dt class="inline font-bold text-[#8D6E63]">{ label }: </dt>
+			<dd class="inline">{ value }</dd>
+		</div>
+	}
+}
+
 templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 	<div
 		data-team={ card.TeamNumber }
@@ -433,6 +465,10 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 			<p class="text-xs font-bold text-[#8D6E63] mb-3">
 				{ fmt.Sprintf("Checklist (%d matches): broke %d · played defense %d · was defended %d", card.ChecklistN, card.BrokeN, card.DefenseN, card.WasDefendedN) }
 			</p>
+		}
+
+		if card.Pit.Has {
+			@pitProfileRow(card.Pit)
 		}
 
 		<!-- Score bars -->

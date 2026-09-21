@@ -12,7 +12,7 @@ Field rules:
 - auto: one plain-text sentence on autonomous performance. If the notes don't cover it, say so.
 - recommendation: one plain-text sentence of practical advice grounded in the notes (a role they seem to suit, or something to check by watching them). Do not tell the reader to avoid a team on the strength of one or two notes. If the sample is small, say that.
 - scoring: integer 1-10 (offensive scoring ability as described in the notes; 5 if the notes give no basis)
-- reliability: integer 1-10. Judge by how often the robot failed relative to how many matches were scouted — a single breakdown in six matches is a minor concern, while breakdowns in half the matches is a real one. Do not cap other ratings because of one incident. Weight observed match performance over what the team says about itself in the pit interview.
+- reliability: integer 1-10. Judge by how often the robot failed relative to how many matches were scouted — a single breakdown in six matches is a minor concern, while breakdowns in half the matches is a real one. Do not cap other ratings because of one incident. Match observations decide this; the pit interview is self-reported and only a tiebreaker.
 - defense: integer 0-10 (0 if the team did not play defense; 1-10 if they did, based on effectiveness)
 
 Be accurate, not harsh and not generous. Never guess to fill a gap. If the notes don't mention a category, say so plainly.
@@ -28,6 +28,8 @@ EPA Breakdown (Statbotics, current season):
 Match observations:
 {{.Notes}}
 {{if .PitNotes}}
-Pit scouting interview (our scouts' summary of the team's own answers about their robot, reliability, drive team, and organization):
+Pit scouting interview (our scouts' summary of the team's own answers — SELF-REPORTED, low weight):
 {{.PitNotes}}
+
+How to use the pit interview: it is what the team says about itself, and teams are usually optimistic. Match observations always outrank it. Use it only for context such as archetype, preferred role and stated problems. Do NOT raise or lower scoring, reliability or defense because of what the team claims; change a rating only when the match observations back it up. Do NOT let it decide the verdict. Ignore parts of it about CAD, checklists, mentors, organization or fabrication — they say nothing about how the robot plays. If there are no match observations, say so instead of rating the team from the interview.
 {{end}}

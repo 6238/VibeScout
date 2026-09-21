@@ -2,19 +2,26 @@ package templates
 
 import "fmt"
 
-var pitScoutQuestions = []string{
+// pitKeyQuestions are the ones that show up on each team's card (archetype,
+// role, and a few facts about how the robot plays), so scouters spend their time
+// on them first.
+var pitKeyQuestions = []string{
 	"Robot archetype: scorer, defender, feeder/support, or all-around?",
 	"Preferred alliance role: offense, defense, or feeding?",
 	"What alliance partner archetype complements them best?",
-	"Backup plan if their main strategy gets countered or defended?",
 	"Driver safety: would they run you over?",
 	"Biggest robot problem this season?",
 	"2 matches back to back (battery swap only)? 3?",
+	"Team's biggest strength?",
+}
+
+// pitFunQuestions are good conversation but don't feed the analysis.
+var pitFunQuestions = []string{
+	"Backup plan if their main strategy gets countered or defended?",
 	"In-match problems & how you fixed them?",
 	"How would you do without mentors here?",
 	"Fab & assembly: hard or easy?",
 	"If limited to one game task, which?",
-	"Team's biggest strength?",
 	"Robot part you're most proud of?",
 	"How much of the design is in CAD?",
 	"Pre-game checklist?",
@@ -55,11 +62,20 @@ templ PitScoutPage(eventKey string, eventName string) {
 
 							<div>
 								<label for="pit-summary" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Ask about</label>
-								<ol class="list-decimal list-inside text-base leading-snug text-[#5D4037] bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl px-3 py-2 mb-2 space-y-1">
-									for _, q := range pitScoutQuestions {
-										<li>{ q }</li>
-									}
-								</ol>
+								<div class="bg-[#FFFBF5]/60 border border-[#D2B48C] rounded-xl px-3 py-2 mb-2">
+									<p class="text-xs font-bold uppercase text-[#8D6E63] mb-1">Key questions <span class="normal-case font-semibold text-[#A1887F]">(shown on the team's card, so get these)</span></p>
+									<ol class="list-decimal list-inside text-base leading-snug text-[#5D4037] space-y-1">
+										for _, q := range pitKeyQuestions {
+											<li>{ q }</li>
+										}
+									</ol>
+									<p class="text-xs font-bold uppercase text-[#A1887F] mt-3 mb-1">Just for fun <span class="normal-case font-semibold">(not used in the analysis)</span></p>
+									<ol class="list-decimal list-inside text-sm leading-snug text-[#8D6E63] space-y-1" start="8">
+										for _, q := range pitFunQuestions {
+											<li>{ q }</li>
+										}
+									</ol>
+								</div>
 								<textarea id="pit-summary" name="summary" rows="8" required placeholder="Summary of their answers..."
 									class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700"></textarea>
 							</div>

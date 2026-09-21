@@ -68,6 +68,16 @@ func initDB() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`)
 
+	// Structured pit info (archetype, role, ...) extracted from the pit summary,
+	// cached until the summary changes.
+	db.Exec(`
+    CREATE TABLE IF NOT EXISTS pit_profile_cache (
+      team_number TEXT PRIMARY KEY,
+      profile TEXT NOT NULL,
+      notes_hash TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`)
+
 	// Idempotent migration: add ai_generated flag if it doesn't exist yet
 	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN ai_generated INTEGER DEFAULT 0`)
 

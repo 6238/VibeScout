@@ -28,7 +28,22 @@ type NextMatchData struct {
 	TheirScore    float64
 }
 
+// PitProfile is the handful of pit interview answers that say something about
+// how a robot plays. They are the team's own claims, so the card shows them
+// separately from what our scouts saw in matches.
+type PitProfile struct {
+	Has        bool // at least one field is filled in
+	Archetype  string
+	Role       string
+	Partner    string // partner archetype that complements them
+	Strength   string
+	Problem    string // biggest robot problem
+	Turnaround string // back-to-back match capability
+	Safety     string // driver safety
+}
+
 type TeamAnalysisCard struct {
+	Pit            PitProfile
 	Section        string // id prefix for cards shown in more than one place on the page
 	EventKey       string
 	TeamNumber     string
