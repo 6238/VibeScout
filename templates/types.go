@@ -18,6 +18,14 @@ type NextMatchData struct {
 	PlanError string
 	Partners  []string // our alliance, excluding us
 	Opponents []string
+
+	// Statbotics' forecast, from our alliance's side. Unset when Statbotics
+	// has no prediction, in which case the section leaves it out.
+	HasPrediction bool
+	WinPct        int // our chance to win, 0-100
+	Outlook       string
+	OurScore      float64
+	TheirScore    float64
 }
 
 type TeamAnalysisCard struct {

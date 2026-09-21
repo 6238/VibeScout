@@ -40,6 +40,21 @@ func lowDataTitle(lowData bool) string {
 	return ""
 }
 
+// outlookClasses colors the match outlook badge from easy (green) to tough (red).
+func outlookClasses(winPct int) string {
+	switch {
+	case winPct >= 80:
+		return "bg-green-700 text-white"
+	case winPct >= 60:
+		return "bg-green-100 text-green-700 border border-green-300"
+	case winPct > 40:
+		return "bg-amber-100 text-amber-700 border border-amber-300"
+	case winPct > 20:
+		return "bg-orange-100 text-orange-700 border border-orange-300"
+	}
+	return "bg-red-100 text-red-700 border border-red-300"
+}
+
 // panelID is the element id for a card's notes panels. Cards in the next-match
 // section share team numbers with the full list, so the section is part of the id.
 func panelID(card TeamAnalysisCard, kind string) string {
@@ -199,6 +214,21 @@ templ NextMatchSection(d NextMatchData) {
 				<h2 class="text-2xl font-black text-[#5D4037] uppercase tracking-tight">{ "Next Match: " + d.Label }</h2>
 				<span class="text-sm font-bold text-[#A1887F]">{ "We're on " + d.Plan.OurAlliance }</span>
 			</div>
+
+			if d.HasPrediction {
+				<div class="bg-white rounded-xl p-4 border border-[#D2B48C]" title="Statbotics' forecast for this match, from our side">
+					<div class="flex flex-wrap justify-between items-center gap-2 mb-2">
+						<span class={ "text-sm font-black px-3 py-1 rounded-full uppercase tracking-wide", outlookClasses(d.WinPct) }>{ d.Outlook }</span>
+						<span class="text-2xl font-black text-[#5D4037]">{ fmt.Sprintf("%d%%", d.WinPct) } <span class="text-xs font-bold text-[#A1887F] uppercase">to win</span></span>
+					</div>
+					<div class="h-2 rounded-full overflow-hidden bg-stone-200">
+						<div class="h-full rounded-full bg-[#8D6E63]" style={ fmt.Sprintf("width: %d%%", d.WinPct) }></div>
+					</div>
+					<p class="text-xs font-bold text-[#A1887F] mt-2">
+						{ fmt.Sprintf("Predicted score: %.0f – %.0f (us – them) · Statbotics", d.OurScore, d.TheirScore) }
+					</p>
+				</div>
+			}
 
 			<div class="bg-white rounded-xl p-4 border border-[#D2B48C]">
 				<p class="text-xs font-bold text-[#A1887F] uppercase mb-2">Strategy</p>

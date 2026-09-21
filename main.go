@@ -766,10 +766,22 @@ func apiNextMatchHandler(w http.ResponseWriter, r *http.Request) {
 
 	red, blue := stripFRC(m.Alliances.Red.TeamKeys), stripFRC(m.Alliances.Blue.TeamKeys)
 	ours, theirs := red, blue
+	weAreRed := true
 	for _, t := range blue {
 		if t == ourTeam {
 			ours, theirs = blue, red
+			weAreRed = false
 		}
+	}
+	if p, ok := statboticsMatchPrediction(m.Key); ok {
+		data.HasPrediction = true
+		data.WinPct = int(p.RedWinProb*100 + 0.5)
+		data.OurScore, data.TheirScore = p.RedScore, p.BlueScore
+		if !weAreRed {
+			data.WinPct = 100 - data.WinPct
+			data.OurScore, data.TheirScore = p.BlueScore, p.RedScore
+		}
+		data.Outlook = outlook(data.WinPct)
 	}
 	for _, t := range ours {
 		if t != ourTeam {

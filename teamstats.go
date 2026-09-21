@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"sort"
 	"sync"
 	"time"
@@ -51,6 +53,97 @@ func (s scoutStats) promptText() string {
 			s.ChecklistN, s.BrokeN, s.DefenseN, s.WasDefendedN)
 	}
 	return text
+}
+
+// ── Statbotics match prediction ───────────────────────────────────────────────
+
+// matchPrediction is Statbotics' pre-match forecast, from the red alliance's side.
+type matchPrediction struct {
+	RedWinProb float64 // 0-1
+	RedScore   float64
+	BlueScore  float64
+}
+
+// parseMatchPrediction reads the "pred" block of a Statbotics v3 match. Every
+// field is required: a missing one means the format isn't what we expect, and
+// showing a made-up 0% win chance would be worse than showing nothing.
+func parseMatchPrediction(body []byte) (matchPrediction, bool) {
+	var data struct {
+		Pred struct {
+			RedWinProb *float64 `json:"red_win_prob"`
+			RedScore   *float64 `json:"red_score"`
+			BlueScore  *float64 `json:"blue_score"`
+		} `json:"pred"`
+	}
+	if err := json.Unmarshal(body, &data); err != nil {
+		return matchPrediction{}, false
+	}
+	p := data.Pred
+	if p.RedWinProb == nil || p.RedScore == nil || p.BlueScore == nil || *p.RedWinProb < 0 || *p.RedWinProb > 1 {
+		return matchPrediction{}, false
+	}
+	return matchPrediction{*p.RedWinProb, *p.RedScore, *p.BlueScore}, true
+}
+
+var (
+	predCache   = map[string]matchPrediction{}
+	predFailed  = map[string]time.Time{}
+	predFetched = map[string]time.Time{}
+	predMu      sync.Mutex
+)
+
+// statboticsMatchPrediction fetches (and briefly caches) the forecast for a
+// match. Predictions shift as teams play, so successes expire after 5 minutes
+// and failures are retried after 2.
+func statboticsMatchPrediction(matchKey string) (matchPrediction, bool) {
+	predMu.Lock()
+	if p, ok := predCache[matchKey]; ok && time.Since(predFetched[matchKey]) < 5*time.Minute {
+		predMu.Unlock()
+		return p, true
+	}
+	if at, failed := predFailed[matchKey]; failed && time.Since(at) < 2*time.Minute {
+		predMu.Unlock()
+		return matchPrediction{}, false
+	}
+	predMu.Unlock()
+
+	resp, err := httpClient.Get("https://api.statbotics.io/v3/match/" + matchKey)
+	var p matchPrediction
+	ok := false
+	if err == nil {
+		defer resp.Body.Close()
+		if resp.StatusCode == 200 {
+			if body, err := io.ReadAll(resp.Body); err == nil {
+				p, ok = parseMatchPrediction(body)
+			}
+		}
+	}
+
+	predMu.Lock()
+	defer predMu.Unlock()
+	if ok {
+		predCache[matchKey] = p
+		predFetched[matchKey] = time.Now()
+		delete(predFailed, matchKey)
+	} else {
+		predFailed[matchKey] = time.Now()
+	}
+	return p, ok
+}
+
+// outlook turns our win chance (0-100) into a plain-language read of the match.
+func outlook(winPct int) string {
+	switch {
+	case winPct >= 80:
+		return "Easy win"
+	case winPct >= 60:
+		return "Favored"
+	case winPct > 40:
+		return "Close match"
+	case winPct > 20:
+		return "Underdog"
+	}
+	return "Tough match"
 }
 
 // ── EPA percentile among the event's teams ────────────────────────────────────
