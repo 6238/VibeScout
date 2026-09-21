@@ -109,6 +109,30 @@ func lineup(eventKey, label string, teams []string) string {
 	return text
 }
 
+// defenseRecord says which robots on our alliance have shown they can play
+// defense, so the plan can't hand defense to a robot with no record of it. The
+// evidence is the yes/no checklist (played defense in at least one match) and the
+// pit interview (defender archetype or preferred defense role).
+func defenseRecord(eventKey string, ours []string, profiles map[string]templates.PitProfile) string {
+	var proven []string
+	for _, t := range ours {
+		var reasons []string
+		if s := scoutStatsFor(eventKey, t); s.DefenseN > 0 {
+			reasons = append(reasons, fmt.Sprintf("played defense in %d of %d checklist matches", s.DefenseN, s.ChecklistN))
+		}
+		if p := profiles[t]; p.Archetype == "Defender" || p.Role == "Defense" {
+			reasons = append(reasons, "pit interview says defender")
+		}
+		if len(reasons) > 0 {
+			proven = append(proven, fmt.Sprintf("%s (%s)", t, strings.Join(reasons, "; ")))
+		}
+	}
+	if len(proven) == 0 {
+		return "Robots on our alliance with a defense record: NONE. No robot on our alliance may be given defense anywhere in the briefing."
+	}
+	return "Robots on our alliance with a defense record: " + strings.Join(proven, ", ") + ". Only these robots may be given defense."
+}
+
 // matchPlanContext gathers what the model knows about all six teams, including
 // our own robot, so its plan for us rests on our data and not on a guess.
 func matchPlanContext(eventKey, ourTeam string, ours, theirs []string) (context, lineups string) {
@@ -139,7 +163,8 @@ func matchPlanContext(eventKey, ourTeam string, ours, theirs []string) (context,
 		parts = append(parts, describe(t, "OPPONENT"))
 	}
 
-	lineups = lineup(eventKey, "Our alliance", ours) + "\n" + lineup(eventKey, "Opponent alliance", theirs)
+	lineups = lineup(eventKey, "Our alliance", ours) + "\n" + lineup(eventKey, "Opponent alliance", theirs) +
+		"\n" + defenseRecord(eventKey, ours, profiles)
 	return strings.Join(parts, "\n\n"), lineups
 }
 

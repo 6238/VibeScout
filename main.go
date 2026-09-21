@@ -1111,7 +1111,7 @@ func apiMatchPlanHandler(w http.ResponseWriter, r *http.Request) {
 
 // matchPlanPromptVersion is mixed into the cache key so edits to the match plan
 // prompt invalidate previously cached strategies.
-const matchPlanPromptVersion = "v9"
+const matchPlanPromptVersion = "v13"
 
 func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.MatchPlanCard, error) {
 	frcTeam := "frc" + teamNumber

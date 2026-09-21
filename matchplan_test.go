@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -19,6 +20,47 @@ func TestPitProfileText(t *testing.T) {
 	}
 	if strings.Contains(got, "strength") {
 		t.Errorf("blank fields should be left out, got %q", got)
+	}
+}
+
+// useTempDB points the package at a fresh database in a temp folder, loaded with
+// the demo event, and restores the working directory afterwards.
+func useTempDB(t *testing.T) {
+	t.Helper()
+	old, _ := os.Getwd()
+	if err := os.Chdir(t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	initDB()
+	seedTestData()
+	t.Cleanup(func() {
+		db.Close()
+		os.Chdir(old)
+	})
+}
+
+func TestDefenseRecord(t *testing.T) {
+	useTempDB(t)
+
+	// Demo data: 1003 and 1008 have "played defense" checklists; 1001 and 1005 don't.
+	none := defenseRecord(testEventKey, []string{"1001", "1005"}, nil)
+	if !strings.Contains(none, "NONE") {
+		t.Errorf("no defenders expected, got %q", none)
+	}
+
+	fromChecklist := defenseRecord(testEventKey, []string{"1001", "1003"}, nil)
+	if strings.Contains(fromChecklist, "NONE") || !strings.Contains(fromChecklist, "1003 (played defense in 4 of 4") {
+		t.Errorf("1003's checklists should count, got %q", fromChecklist)
+	}
+	if strings.Contains(fromChecklist, "1001 (") {
+		t.Errorf("1001 has no defense record, got %q", fromChecklist)
+	}
+
+	// The pit interview alone is enough too.
+	withPit := defenseRecord(testEventKey, []string{"1001", "1005"},
+		map[string]templates.PitProfile{"1005": {Has: true, Archetype: "Defender"}})
+	if !strings.Contains(withPit, "1005 (pit interview says defender)") {
+		t.Errorf("a pit defender should be listed, got %q", withPit)
 	}
 }
 
