@@ -304,20 +304,15 @@ func MatchPlannerResults(cards []MatchPlanCard, ourTeam string) templ.Component 
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</div></div></div><!-- Strategy --><div class=\"bg-white rounded-xl p-4 border border-[#D2B48C]\"><p class=\"text-xs font-bold text-[#A1887F] uppercase mb-2\">Strategy</p><p class=\"text-sm text-stone-700 leading-relaxed whitespace-pre-wrap\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</div></div></div><!-- Strategy --><div class=\"bg-white rounded-xl p-4 border border-[#D2B48C]\"><p class=\"text-xs font-bold text-[#A1887F] uppercase mb-2\">Strategy</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var19 string
-				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(card.Strategy)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/matchplanner.templ`, Line: 116, Col: 91}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
+				templ_7745c5c3_Err = StrategyBody(card.Strategy).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</p></div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

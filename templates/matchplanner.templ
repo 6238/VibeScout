@@ -113,7 +113,7 @@ templ MatchPlannerResults(cards []MatchPlanCard, ourTeam string) {
 					<!-- Strategy -->
 					<div class="bg-white rounded-xl p-4 border border-[#D2B48C]">
 						<p class="text-xs font-bold text-[#A1887F] uppercase mb-2">Strategy</p>
-						<p class="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap">{ card.Strategy }</p>
+						@StrategyBody(card.Strategy)
 					</div>
 				</div>
 			}
