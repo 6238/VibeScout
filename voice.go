@@ -28,6 +28,9 @@ var voiceScoutJS []byte
 //go:embed static/offline-sync.js
 var offlineSyncJS []byte
 
+//go:embed static/read-cache.js
+var readCacheJS []byte
+
 const geminiLiveWS = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent"
 
 const transcribeLiveModel = "models/gemini-3.5-transcribe-live"
@@ -126,6 +129,12 @@ func offlineSyncJSHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Write(offlineSyncJS)
+}
+
+func readCacheJSHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Write(readCacheJS)
 }
 
 func sortNotesHandler(w http.ResponseWriter, r *http.Request) {

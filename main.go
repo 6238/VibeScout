@@ -125,6 +125,7 @@ func main() {
 	http.HandleFunc("/api/sort-notes", sortNotesHandler)
 	http.HandleFunc("/static/voice-scout.js", voiceScoutJSHandler)
 	http.HandleFunc("/static/offline-sync.js", offlineSyncJSHandler)
+	http.HandleFunc("/static/read-cache.js", readCacheJSHandler)
 	http.HandleFunc("/pit-scout", pitScoutPageHandler)
 	http.HandleFunc("/api/save-pit-scout", savePitScoutHandler)
 	http.HandleFunc("/api/pit-teams", apiPitTeamsHandler)
