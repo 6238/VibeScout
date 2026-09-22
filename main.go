@@ -126,6 +126,7 @@ func main() {
 	http.HandleFunc("/static/voice-scout.js", voiceScoutJSHandler)
 	http.HandleFunc("/static/offline-sync.js", offlineSyncJSHandler)
 	http.HandleFunc("/static/read-cache.js", readCacheJSHandler)
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/pit-scout", pitScoutPageHandler)
 	http.HandleFunc("/api/save-pit-scout", savePitScoutHandler)
 	http.HandleFunc("/api/pit-teams", apiPitTeamsHandler)
@@ -571,6 +572,26 @@ func savePitScoutHandler(w http.ResponseWriter, r *http.Request) {
 	if teamNum == "" || summary == "" {
 		http.Error(w, "Team number and summary are required", http.StatusBadRequest)
 		return
+	}
+
+	// Only teams on the event's list can be pit scouted. Errors return 200 so htmx
+	// swaps the message into the page. If the list can't be loaded, don't block scouting.
+	if eventKey := strings.TrimSpace(r.FormValue("event_key")); eventKey != "" {
+		if teams, err := getEventTeamsCached(eventKey); err != nil {
+			log.Printf("pit scout team check %s: %v", eventKey, err)
+		} else {
+			found := false
+			for _, t := range teams {
+				if t == teamNum {
+					found = true
+					break
+				}
+			}
+			if !found {
+				fmt.Fprintf(w, `<span class="text-red-700">Team %s isn't on this event's team list, so it can't be pit scouted.</span>`, template.HTMLEscapeString(teamNum))
+				return
+			}
+		}
 	}
 
 	// A team keeps one pit scouting entry: edit the latest one if it exists.
