@@ -142,8 +142,8 @@ templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []Scout
 			// Quick-tag buttons just toggle selected state; saveAndAdvance reads
 			// which ones are active straight off the DOM and sends them as
 			// structured fields (broke/played_defense/was_defended), not merged
-			// into the notes text — see scanScoutNote on the server for how they're
-			// turned back into a sentence Gemini reads.
+			// into the notes text — see formatChecklistNote on the server for how
+			// they're turned back into a sentence Gemini reads.
 			document.addEventListener('click', function(e) {
 				const btn = e.target.closest('[data-tag-btn]');
 				if (!btn) return;

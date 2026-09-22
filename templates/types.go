@@ -111,7 +111,6 @@ type TeamNote struct {
 // happened instead of taking any one scout's word for it.
 type TeamNoteGroup struct {
 	MatchNum  int
-	Label     string // e.g. "Q12"
 	WatchURL  string
 	HasWatch  bool
 	ScoreText string   // e.g. "Won 674–16"; "" if the match hasn't been played yet

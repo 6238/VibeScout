@@ -112,4 +112,12 @@ func initDB() {
 	// treated as the more reliable account when two scouts covered the same
 	// match — see combineTeamNotes.
 	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN single_team INTEGER DEFAULT 0`)
+
+	// One AI-generated row per (event, match, team): retrying the video-fill
+	// admin tool for a team it already filled in (a page reload, a double
+	// click) updates that row instead of inserting a duplicate.
+	db.Exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_scout_ai_fill_dedupe
+      ON scout_submissions(event_key, match_num, team_number)
+      WHERE ai_generated = 1;`)
 }

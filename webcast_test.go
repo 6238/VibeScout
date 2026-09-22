@@ -2,6 +2,27 @@ package main
 
 import "testing"
 
+func TestOfficialYouTubeVideo(t *testing.T) {
+	m := Match{Videos: []MatchVideo{
+		{Type: "tba", Key: "internal123"},
+		{Type: "youtube", Key: "abc123"},
+	}}
+	if id, ok := m.OfficialYouTubeVideo(); !ok || id != "abc123" {
+		t.Errorf("got (%q, %v), want (\"abc123\", true)", id, ok)
+	}
+
+	if _, ok := (Match{}).OfficialYouTubeVideo(); ok {
+		t.Error("no videos should mean no official video")
+	}
+	if _, ok := (Match{Videos: []MatchVideo{{Type: "tba", Key: "internal123"}}}).OfficialYouTubeVideo(); ok {
+		t.Error("a tba-hosted video (not youtube) should not count as a match")
+	}
+	// Case-insensitive type match, matching youtubeWebcastIDs' own behavior.
+	if id, ok := (Match{Videos: []MatchVideo{{Type: "YouTube", Key: "xyz"}}}).OfficialYouTubeVideo(); !ok || id != "xyz" {
+		t.Errorf("got (%q, %v), want (\"xyz\", true)", id, ok)
+	}
+}
+
 func TestYouTubeWebcastIDs(t *testing.T) {
 	ids := youtubeWebcastIDs([]webcast{
 		{Type: "twitch", Channel: "firstinspires"},

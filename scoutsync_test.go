@@ -90,6 +90,53 @@ func scoutNoteFor(t *testing.T, eventKey, teamNumber string) string {
 	return note
 }
 
+// TestSaveAIGeneratedNoteRetryIsIdempotent: retrying the video-fill admin
+// tool for a team it already filled (a page reload, a double click) must
+// update that row, not insert a duplicate that would then look like a
+// second, independent scout to combineTeamNotes.
+func TestSaveAIGeneratedNoteRetryIsIdempotent(t *testing.T) {
+	useTempDB(t)
+
+	if err := saveAIGeneratedNote("2026test", 1, "254", "first pass: scored well"); err != nil {
+		t.Fatal(err)
+	}
+	if n := countScoutRows(t, "2026test", "254"); n != 1 {
+		t.Fatalf("after first save: %d rows, want 1", n)
+	}
+
+	if err := saveAIGeneratedNote("2026test", 1, "254", "retried: scored well, climbed too"); err != nil {
+		t.Fatal(err)
+	}
+	if n := countScoutRows(t, "2026test", "254"); n != 1 {
+		t.Fatalf("after retry: %d rows, want 1 (no duplicate)", n)
+	}
+	var notes string
+	db.QueryRow(`SELECT notes FROM scout_submissions WHERE event_key = ? AND team_number = ?`, "2026test", "254").Scan(&notes)
+	if want := "retried: scored well, climbed too"; notes != want {
+		t.Errorf("retry should update to the latest content: got %q, want %q", notes, want)
+	}
+}
+
+// TestSaveAIGeneratedNoteDoesNotCollideWithHumanNotes: the AI-fill dedupe key
+// only applies among ai_generated=1 rows, so a human note for the same
+// match/team (submitted before or after the AI ran) must not be overwritten
+// or blocked by it.
+func TestSaveAIGeneratedNoteDoesNotCollideWithHumanNotes(t *testing.T) {
+	useTempDB(t)
+
+	saveScoutSubmission(ScoutSubmission{
+		EventKey: "2026test", MatchNum: 1,
+		Teams: []TeamScoutData{{TeamNumber: "254", Notes: "human note"}},
+	})
+	if err := saveAIGeneratedNote("2026test", 1, "254", "ai note"); err != nil {
+		t.Fatal(err)
+	}
+
+	if n := countScoutRows(t, "2026test", "254"); n != 2 {
+		t.Errorf("a human row and an AI row for the same match should both exist: got %d rows, want 2", n)
+	}
+}
+
 // TestFieldScoutingTagsBecomeStructuredChecklist covers the field-scouting
 // quick-tag buttons (Broke / Played Defense / Was Defended): they must land
 // in the structured has_checklist/broke/played_defense/was_defended columns,

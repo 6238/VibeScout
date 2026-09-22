@@ -1081,7 +1081,6 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 func teamNoteGroupFor(eventKey, teamNum string, notes []templates.TeamNote) templates.TeamNoteGroup {
 	g := templates.TeamNoteGroup{
 		MatchNum:  notes[0].MatchNum,
-		Label:     fmt.Sprintf("Q%d", notes[0].MatchNum),
 		Notes:     notes,
 		Conflicts: checklistConflicts(notes),
 	}
@@ -1917,6 +1916,21 @@ func apiFillAIScoutHandler(w http.ResponseWriter, r *http.Request) {
 	templates.AiFillProgressContainer(slots).Render(r.Context(), w)
 }
 
+// saveAIGeneratedNote upserts one team's AI-generated notes for a match,
+// keyed on (event_key, match_num, team_number) among ai_generated=1 rows —
+// retrying this team (a page reload, a double click, or the earlier attempt
+// simply taking longer) updates that row instead of inserting a duplicate
+// that would then look like a second scout to combineTeamNotes.
+func saveAIGeneratedNote(eventKey string, matchNum int, teamNum, notes string) error {
+	_, err := db.Exec(`
+		INSERT INTO scout_submissions (event_key, match_num, scouter_id, team_number, notes, ai_generated)
+		VALUES (?, ?, ?, ?, ?, 1)
+		ON CONFLICT(event_key, match_num, team_number) WHERE ai_generated = 1 DO UPDATE SET
+			notes = excluded.notes`,
+		eventKey, matchNum, 0, teamNum, strings.TrimSpace(notes))
+	return err
+}
+
 // apiFillAIScoutTeamHandler processes one team: skips it if a human already
 // scouted this match, otherwise calls Gemini video analysis and saves the
 // result with ai_generated=1.
@@ -1950,10 +1964,7 @@ func apiFillAIScoutTeamHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db.Exec(`
-		INSERT INTO scout_submissions (event_key, match_num, scouter_id, team_number, notes, ai_generated)
-		VALUES (?, ?, ?, ?, ?, 1)`,
-		eventKey, matchNum, 0, teamNum, strings.TrimSpace(notes))
+	saveAIGeneratedNote(eventKey, matchNum, teamNum, notes)
 
 	// Bust analysis cache so this team gets re-analyzed with new data
 	db.Exec(`DELETE FROM analysis_cache WHERE event_key = ? AND team_number = ?`, eventKey, teamNum)

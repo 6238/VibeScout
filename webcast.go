@@ -250,6 +250,53 @@ func resolveWatchClip(eventKey string, m Match) (videoID string, startOffset, en
 	return videoID, so, eo, true
 }
 
+var (
+	officialVideoCache    = map[string]string{} // match key -> YouTube video id; only successes are cached
+	officialVideoFailedAt = map[string]time.Time{}
+	officialVideoMu       sync.Mutex
+)
+
+// officialMatchVideo returns (and caches) TBA's own official YouTube video
+// for one match. This needs its own fetch of the full per-match object
+// (/match/{key}): the lighter /matches/simple endpoint that getMatchesCached
+// uses for the schedule everywhere else in the app doesn't include the
+// videos field at all (confirmed against the real API — it's not just
+// usually empty, the key is absent), so checking Match.Videos on a Match from
+// the normal schedule call would silently never find anything. A found video
+// is cached for the process lifetime, since it doesn't change once posted;
+// not finding one is retried periodically, since it can be posted well after
+// the event.
+func officialMatchVideo(matchKey string) (string, bool) {
+	officialVideoMu.Lock()
+	if id, ok := officialVideoCache[matchKey]; ok {
+		officialVideoMu.Unlock()
+		return id, true
+	}
+	if at, failed := officialVideoFailedAt[matchKey]; failed && time.Since(at) < 30*time.Minute {
+		officialVideoMu.Unlock()
+		return "", false
+	}
+	officialVideoMu.Unlock()
+
+	var id string
+	var ok bool
+	if resp, err := tbaDo(fmt.Sprintf("/match/%s", matchKey)); err == nil {
+		var full Match
+		if decodeTBAObject(resp, &full) == nil {
+			id, ok = full.OfficialYouTubeVideo()
+		}
+	}
+
+	officialVideoMu.Lock()
+	if ok {
+		officialVideoCache[matchKey] = id
+	} else {
+		officialVideoFailedAt[matchKey] = time.Now()
+	}
+	officialVideoMu.Unlock()
+	return id, ok
+}
+
 // matchReviewURL is for a person going back to check a specific match, e.g.
 // to settle a disagreement between two scouts' notes. It prefers TBA's own
 // official match video when one has been posted — already trimmed to just
@@ -257,7 +304,7 @@ func resolveWatchClip(eventKey string, m Match) (videoID string, startOffset, en
 // timestamped moment in the event's livestream (matchWatchURL) when TBA
 // doesn't have one yet, which is normal for a while after an event.
 func matchReviewURL(eventKey string, m Match) (string, bool) {
-	if videoID, ok := m.OfficialYouTubeVideo(); ok {
+	if videoID, ok := officialMatchVideo(m.Key); ok {
 		return fmt.Sprintf("https://www.youtube.com/watch?v=%s", url.QueryEscape(videoID)), true
 	}
 	return matchWatchURL(eventKey, m)
