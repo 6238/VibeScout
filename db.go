@@ -105,4 +105,11 @@ func initDB() {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_scout_submission_dedupe
       ON scout_submissions(submission_id, team_number)
       WHERE submission_id != '';`)
+
+	// Idempotent migration: whether this note came from field scouting's
+	// one-robot mode (focused on a single robot) or the multi-robot mode
+	// (splitting attention across a whole alliance). A one-robot note is
+	// treated as the more reliable account when two scouts covered the same
+	// match — see combineTeamNotes.
+	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN single_team INTEGER DEFAULT 0`)
 }

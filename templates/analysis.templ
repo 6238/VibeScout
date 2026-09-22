@@ -3,6 +3,7 @@ package templates
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // verdictClasses returns the Tailwind classes for a verdict badge, color-coded
@@ -594,45 +595,93 @@ templ closePanelButton() {
 	</button>
 }
 
-templ TeamNotesPanel(notes []TeamNote) {
-	if len(notes) == 0 {
+templ TeamNotesPanel(groups []TeamNoteGroup) {
+	if len(groups) == 0 {
 		<div data-notes-panel class="mt-4 flex justify-between items-center">
 			<p class="text-sm text-[#A1887F] italic">No scouting notes found.</p>
 			@closePanelButton()
 		</div>
 	} else {
-		<div data-notes-panel class="mt-4 border-t border-[#D2B48C] pt-4 space-y-3">
+		<div data-notes-panel class="mt-4 border-t border-[#D2B48C] pt-4 space-y-4">
 			<div class="flex justify-between items-center">
 				<h3 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest">Scout Notes</h3>
 				@closePanelButton()
 			</div>
-			for _, note := range notes {
-				<div class="bg-[#F2E8D5] rounded-xl px-4 py-3">
-					<div class="flex justify-between items-baseline gap-2">
-						<span class="text-xs font-bold text-[#8D6E63] uppercase">Match { fmt.Sprintf("%d", note.MatchNum) }</span>
-						if note.AIGenerated {
-							<span class="text-xs font-bold text-[#A1887F]">Gemini (video)</span>
-						} else if note.ScouterName != "" {
-							<span class="text-xs font-bold text-[#A1887F] truncate">{ note.ScouterName }</span>
-						}
-					</div>
-					if note.HasChecklist {
-						<div class="flex flex-wrap gap-1.5 mt-2">
-							@checklistChip("Broke", note.Broke, true)
-							@checklistChip("Played defense", note.PlayedDefense, false)
-							@checklistChip("Was defended", note.WasDefended, false)
-							if note.AutoType != "" {
-								<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FFFBF5] text-[#5D4037] border border-[#D2B48C]">Auto: { note.AutoType }</span>
-							}
-						</div>
-					}
-					if note.Notes != "" {
-						<p class="text-sm text-stone-700 mt-1 whitespace-pre-wrap">{ note.Notes }</p>
-					}
-				</div>
+			for _, group := range groups {
+				@teamNoteGroupCard(group)
 			}
 		</div>
 	}
+}
+
+// teamNoteGroupCard is every note for one match, under a header linking back
+// to that match — TBA's own video once it's posted, otherwise a timestamped
+// moment in the event's livestream — plus the score, partners and opponents,
+// so a disputed or surprising note can be checked against what actually
+// happened.
+templ teamNoteGroupCard(group TeamNoteGroup) {
+	<div class="bg-[#F2E8D5] rounded-xl px-4 py-3">
+		<div class="flex justify-between items-baseline gap-2 flex-wrap">
+			<span class="text-sm font-black text-[#5D4037] uppercase">Match { fmt.Sprintf("%d", group.MatchNum) }</span>
+			<div class="flex items-center gap-2 text-xs font-bold text-[#8D6E63]">
+				if group.ScoreText != "" {
+					<span>{ group.ScoreText }</span>
+				}
+				if group.Partners != "" {
+					<span class="text-[#A1887F]">with { group.Partners }</span>
+				}
+				if group.Opponents != "" {
+					<span class="text-[#A1887F]">vs { group.Opponents }</span>
+				}
+				if group.HasWatch {
+					<a href={ templ.SafeURL(group.WatchURL) } target="_blank" rel="noopener"
+						class="text-[#5D4037] bg-white border border-[#D2B48C] rounded-full px-2 py-0.5 hover:bg-[#FFFBF5]">▶ Watch</a>
+				}
+			</div>
+		</div>
+		if len(group.Conflicts) > 0 {
+			<p class="text-xs font-bold text-red-700 mt-1.5">⚠ Scouts disagreed on: { strings.Join(group.Conflicts, ", ") } — check the video above.</p>
+		}
+		<div class="mt-2 space-y-2">
+			for _, note := range group.Notes {
+				@teamNoteCard(note, len(group.Notes) > 1)
+			}
+		</div>
+	</div>
+}
+
+templ teamNoteCard(note TeamNote, showMode bool) {
+	<div class="bg-[#FFFBF5]/70 rounded-lg px-3 py-2 border border-[#E0CDA8]">
+		<div class="flex justify-between items-baseline gap-2">
+			if note.AIGenerated {
+				<span class="text-xs font-bold text-[#A1887F]">Gemini (video)</span>
+			} else if note.ScouterName != "" {
+				<span class="text-xs font-bold text-[#A1887F] truncate">{ note.ScouterName }</span>
+			} else {
+				<span></span>
+			}
+			if showMode && !note.AIGenerated {
+				if note.SingleTeam {
+					<span class="text-xs font-bold text-[#8D6E63]">Focused on this robot</span>
+				} else {
+					<span class="text-xs font-bold text-[#A1887F]">Watching multiple robots</span>
+				}
+			}
+		</div>
+		if note.HasChecklist {
+			<div class="flex flex-wrap gap-1.5 mt-2">
+				@checklistChip("Broke", note.Broke, true)
+				@checklistChip("Played defense", note.PlayedDefense, false)
+				@checklistChip("Was defended", note.WasDefended, false)
+				if note.AutoType != "" {
+					<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FFFBF5] text-[#5D4037] border border-[#D2B48C]">Auto: { note.AutoType }</span>
+				}
+			</div>
+		}
+		if note.Notes != "" {
+			<p class="text-sm text-stone-700 mt-1 whitespace-pre-wrap">{ note.Notes }</p>
+		}
+	</div>
 }
 
 // checklistChip shows a yes/no answer; bad answers ("broke: yes") are red.

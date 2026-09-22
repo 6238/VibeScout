@@ -249,3 +249,16 @@ func resolveWatchClip(eventKey string, m Match) (videoID string, startOffset, en
 	so, eo := clipOffsets(start, m.ActualTime)
 	return videoID, so, eo, true
 }
+
+// matchReviewURL is for a person going back to check a specific match, e.g.
+// to settle a disagreement between two scouts' notes. It prefers TBA's own
+// official match video when one has been posted — already trimmed to just
+// the match, so the link needs no timestamp — and only falls back to a
+// timestamped moment in the event's livestream (matchWatchURL) when TBA
+// doesn't have one yet, which is normal for a while after an event.
+func matchReviewURL(eventKey string, m Match) (string, bool) {
+	if videoID, ok := m.OfficialYouTubeVideo(); ok {
+		return fmt.Sprintf("https://www.youtube.com/watch?v=%s", url.QueryEscape(videoID)), true
+	}
+	return matchWatchURL(eventKey, m)
+}

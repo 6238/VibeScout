@@ -56,25 +56,6 @@ func pitProfiles(teams []string) map[string]templates.PitProfile {
 	return out
 }
 
-// matchNotes returns a team's scouting notes at the event, oldest first.
-func matchNotes(eventKey, team string) []string {
-	rows, err := db.Query(`
-		SELECT `+scoutNoteColumns+` FROM scout_submissions
-		WHERE event_key = ? AND team_number = ?
-		ORDER BY match_num ASC`, eventKey, team)
-	if err != nil {
-		return nil
-	}
-	defer rows.Close()
-	var notes []string
-	for rows.Next() {
-		if n, err := scanScoutNote(rows); err == nil {
-			notes = append(notes, n)
-		}
-	}
-	return notes
-}
-
 // lineup describes an alliance's teams from highest EPA down, so the model can
 // see who the main scorer on each side is.
 func lineup(eventKey, label string, teams []string) string {
@@ -158,8 +139,8 @@ func matchPlanContext(eventKey, ourTeam string, ours, theirs []string) (context,
 
 	describe := func(team, role string) string {
 		notes := "none"
-		if n := matchNotes(eventKey, team); len(n) > 0 {
-			notes = strings.Join(n, " | ")
+		if n, err := combineTeamNotes(eventKey, team); err == nil && n != "" {
+			notes = n
 		}
 		pit := pitProfileText(profiles[team])
 		if pit == "" {

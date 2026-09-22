@@ -5,7 +5,6 @@ package main
 import (
 	"bytes"
 	"crypto/sha256"
-	"database/sql"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -14,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -49,31 +49,25 @@ type ScoutSubmission struct {
 type TeamScoutData struct {
 	TeamNumber    string `json:"team_number"`
 	Notes         string `json:"notes"`
-	HasChecklist  bool   `json:"has_checklist"` // only one-robot mode sends a checklist
+	HasChecklist  bool   `json:"has_checklist"` // field scouting sends this; the AI video-fill tool leaves it unset
 	Broke         bool   `json:"broke"`
 	PlayedDefense bool   `json:"played_defense"`
 	WasDefended   bool   `json:"was_defended"`
-	AutoType      string `json:"auto_type"`
+	AutoType      string `json:"auto_type"`   // not currently collected in the UI; always empty for now
+	SingleTeam    bool   `json:"single_team"` // scout was focused on just this robot, not splitting attention across an alliance
 }
 
 // hasScoutDataSQL matches submissions with something in them: written notes or
 // a checklist.
 const hasScoutDataSQL = `(TRIM(notes) != '' OR COALESCE(has_checklist, 0) = 1)`
 
-// scoutNoteColumns selects a submission's notes plus its checklist, for scanScoutNote.
-const scoutNoteColumns = `notes, COALESCE(has_checklist, 0), COALESCE(broke, 0), COALESCE(played_defense, 0), COALESCE(was_defended, 0), COALESCE(auto_type, '')`
-
-// scanScoutNote scans scoutNoteColumns and returns the text Gemini sees for one
-// submission. Rows without a checklist return just their notes, so older cached
-// analyses stay valid.
-func scanScoutNote(rows *sql.Rows) (string, error) {
-	var notes, autoType string
-	var hasChecklist, broke, playedDefense, wasDefended bool
-	if err := rows.Scan(&notes, &hasChecklist, &broke, &playedDefense, &wasDefended, &autoType); err != nil {
-		return "", err
-	}
+// formatChecklistNote turns one submission's notes plus its checklist flags
+// into the text Gemini reads, e.g. "scored well [Auto: 2 piece; Broke: no;
+// Played defense: no; Was defended: yes]". A row without a checklist (older
+// data, or the AI video-fill tool) returns just its notes.
+func formatChecklistNote(notes string, hasChecklist, broke, playedDefense, wasDefended bool, autoType string) string {
 	if !hasChecklist {
-		return notes, nil
+		return notes
 	}
 	yesNo := func(b bool) string {
 		if b {
@@ -88,9 +82,160 @@ func scanScoutNote(rows *sql.Rows) (string, error) {
 	checklist := fmt.Sprintf("[Auto: %s; Broke: %s; Played defense: %s; Was defended: %s]",
 		auto, yesNo(broke), yesNo(playedDefense), yesNo(wasDefended))
 	if strings.TrimSpace(notes) == "" {
-		return checklist, nil
+		return checklist
 	}
-	return notes + " " + checklist, nil
+	return notes + " " + checklist
+}
+
+// scoutRow is one match_num's submission, as read by combineTeamNotes.
+type scoutRow struct {
+	matchNum                                                    int
+	notes, scouter, autoType                                    string
+	singleTeam, hasChecklist, broke, playedDefense, wasDefended bool
+}
+
+// combineTeamNotes reads every submission for a team at an event and returns
+// the text Gemini sees, one block per match (see combineOneMatch) — so a
+// match two different scouts covered reads as one clear account instead of
+// two disconnected, possibly-contradictory blobs.
+func combineTeamNotes(eventKey, teamNum string) (string, error) {
+	rows, err := db.Query(`
+		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(single_team, 0),
+			COALESCE(has_checklist, 0), COALESCE(broke, 0), COALESCE(played_defense, 0), COALESCE(was_defended, 0), COALESCE(auto_type, '')
+		FROM scout_submissions
+		WHERE event_key = ? AND team_number = ?
+		ORDER BY match_num ASC`, eventKey, teamNum)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+
+	var all []scoutRow
+	for rows.Next() {
+		var r scoutRow
+		if err := rows.Scan(&r.matchNum, &r.notes, &r.scouter, &r.singleTeam,
+			&r.hasChecklist, &r.broke, &r.playedDefense, &r.wasDefended, &r.autoType); err != nil {
+			return "", err
+		}
+		all = append(all, r)
+	}
+
+	// Rows for the same match are always adjacent, since the query is
+	// ordered by match_num.
+	var matchTexts []string
+	for i := 0; i < len(all); {
+		j := i + 1
+		for j < len(all) && all[j].matchNum == all[i].matchNum {
+			j++
+		}
+		matchTexts = append(matchTexts, combineOneMatch(all[i:j]))
+		i = j
+	}
+	return strings.Join(matchTexts, "\n"), nil
+}
+
+// combineOneMatch formats every submission for a single match into one block.
+// A match scouted by just one person is formatted plainly. When two people
+// scouted it, a one-robot scout's account is treated as the more reliable one
+// — they were watching only this robot, not splitting attention across an
+// alliance — and labeled as such rather than silently preferred; the
+// checklist answers are OR'd together (a breakdown or defensive play is more
+// likely missed by one scout than invented by another) and flagged
+// explicitly if the scouts actually disagreed, so Gemini doesn't quietly
+// blend two different accounts into one falsely confident description.
+func combineOneMatch(rows []scoutRow) string {
+	label := fmt.Sprintf("Match %d", rows[0].matchNum)
+	if len(rows) == 1 {
+		r := rows[0]
+		return label + ": " + formatChecklistNote(r.notes, r.hasChecklist, r.broke, r.playedDefense, r.wasDefended, r.autoType)
+	}
+
+	var primary, secondary []scoutRow
+	for _, r := range rows {
+		if r.singleTeam {
+			primary = append(primary, r)
+		} else {
+			secondary = append(secondary, r)
+		}
+	}
+
+	var parts []string
+	for _, r := range primary {
+		if text := strings.TrimSpace(r.notes); text != "" {
+			parts = append(parts, "focused scout (watching only this robot): "+text)
+		}
+	}
+	for _, r := range secondary {
+		if text := strings.TrimSpace(r.notes); text != "" {
+			parts = append(parts, "scout also watching other robots: "+text)
+		}
+	}
+
+	if merged, disagreed := mergeChecklists(rows); merged != "" {
+		if len(disagreed) > 0 {
+			merged += fmt.Sprintf(" (scouts disagreed on: %s — treat with extra caution)", strings.Join(disagreed, ", "))
+		}
+		parts = append(parts, merged)
+	}
+
+	if len(parts) == 0 {
+		return label + ": no notes"
+	}
+	return fmt.Sprintf("%s (scouted by %d people): %s", label, len(rows), strings.Join(parts, " | "))
+}
+
+// mergeChecklists ORs the checklist answers across every scout who submitted
+// one for a match, and reports which fields the scouts who did submit a
+// checklist actually disagreed on. OR, not majority or first-wins, because a
+// breakdown or defensive play is more likely to be missed by one scout than
+// invented by another — under-reporting a real reliability problem is worse
+// than over-reporting one.
+func mergeChecklists(rows []scoutRow) (text string, disagreed []string) {
+	var have bool
+	var broke, playedDefense, wasDefended bool
+	var autoType string
+	brokeVals := map[bool]bool{}
+	playedDefenseVals := map[bool]bool{}
+	wasDefendedVals := map[bool]bool{}
+	for _, r := range rows {
+		if !r.hasChecklist {
+			continue
+		}
+		have = true
+		broke = broke || r.broke
+		playedDefense = playedDefense || r.playedDefense
+		wasDefended = wasDefended || r.wasDefended
+		brokeVals[r.broke] = true
+		playedDefenseVals[r.playedDefense] = true
+		wasDefendedVals[r.wasDefended] = true
+		if autoType == "" {
+			autoType = strings.TrimSpace(r.autoType)
+		}
+	}
+	if !have {
+		return "", nil
+	}
+	if len(brokeVals) > 1 {
+		disagreed = append(disagreed, "Broke")
+	}
+	if len(playedDefenseVals) > 1 {
+		disagreed = append(disagreed, "Played defense")
+	}
+	if len(wasDefendedVals) > 1 {
+		disagreed = append(disagreed, "Was defended")
+	}
+	if autoType == "" {
+		autoType = "not recorded"
+	}
+	yesNo := func(b bool) string {
+		if b {
+			return "yes"
+		}
+		return "no"
+	}
+	text = fmt.Sprintf("[Auto: %s; Broke: %s; Played defense: %s; Was defended: %s]",
+		autoType, yesNo(broke), yesNo(playedDefense), yesNo(wasDefended))
+	return text, disagreed
 }
 
 const ourTeam = templates.OurTeam
@@ -491,8 +636,8 @@ func saveScoutSubmission(sub ScoutSubmission) error {
 	for _, teamData := range sub.Teams {
 		_, err := db.Exec(`
 			INSERT INTO scout_submissions (event_key, match_num, scouter_name, team_number, notes,
-				has_checklist, broke, played_defense, was_defended, auto_type, submission_id)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				has_checklist, broke, played_defense, was_defended, auto_type, single_team, submission_id)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT(submission_id, team_number) WHERE submission_id != '' DO UPDATE SET
 				event_key = excluded.event_key,
 				match_num = excluded.match_num,
@@ -502,10 +647,11 @@ func saveScoutSubmission(sub ScoutSubmission) error {
 				broke = excluded.broke,
 				played_defense = excluded.played_defense,
 				was_defended = excluded.was_defended,
-				auto_type = excluded.auto_type`,
+				auto_type = excluded.auto_type,
+				single_team = excluded.single_team`,
 			sub.EventKey, sub.MatchNum, scouterName, teamData.TeamNumber, teamData.Notes,
 			teamData.HasChecklist, teamData.Broke, teamData.PlayedDefense, teamData.WasDefended,
-			strings.TrimSpace(teamData.AutoType), sub.SubmissionID)
+			strings.TrimSpace(teamData.AutoType), teamData.SingleTeam, sub.SubmissionID)
 		if err != nil {
 			return fmt.Errorf("team %s: %w", teamData.TeamNumber, err)
 		}
@@ -893,7 +1039,7 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := db.Query(`
-		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(ai_generated, 0),
+		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(ai_generated, 0), COALESCE(single_team, 0),
 			COALESCE(has_checklist, 0), COALESCE(broke, 0), COALESCE(played_defense, 0), COALESCE(was_defended, 0), COALESCE(auto_type, '')
 		FROM scout_submissions
 		WHERE event_key = ? AND team_number = ?
@@ -907,12 +1053,109 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 	var notes []templates.TeamNote
 	for rows.Next() {
 		var n templates.TeamNote
-		rows.Scan(&n.MatchNum, &n.Notes, &n.ScouterName, &n.AIGenerated,
+		rows.Scan(&n.MatchNum, &n.Notes, &n.ScouterName, &n.AIGenerated, &n.SingleTeam,
 			&n.HasChecklist, &n.Broke, &n.PlayedDefense, &n.WasDefended, &n.AutoType)
 		notes = append(notes, n)
 	}
+	rows.Close()
 
-	templates.TeamNotesPanel(notes).Render(r.Context(), w)
+	// Notes are already ordered by match_num, so notes for the same match are
+	// always adjacent — group them into one card per match.
+	var groups []templates.TeamNoteGroup
+	for i := 0; i < len(notes); {
+		j := i + 1
+		for j < len(notes) && notes[j].MatchNum == notes[i].MatchNum {
+			j++
+		}
+		groups = append(groups, teamNoteGroupFor(eventKey, teamNum, notes[i:j]))
+		i = j
+	}
+
+	templates.TeamNotesPanel(groups).Render(r.Context(), w)
+}
+
+// teamNoteGroupFor builds one match's card: its notes, plus enough context —
+// a link to go watch it, the final score, who the opponents were — that a
+// reviewer can check a disputed or surprising note against what actually
+// happened, instead of just taking one scout's word for it.
+func teamNoteGroupFor(eventKey, teamNum string, notes []templates.TeamNote) templates.TeamNoteGroup {
+	g := templates.TeamNoteGroup{
+		MatchNum:  notes[0].MatchNum,
+		Label:     fmt.Sprintf("Q%d", notes[0].MatchNum),
+		Notes:     notes,
+		Conflicts: checklistConflicts(notes),
+	}
+
+	matches, err := getMatchesCached(eventKey)
+	if err != nil {
+		return g
+	}
+	for _, m := range matches {
+		if m.CompLevel != "qm" || m.MatchNumber != g.MatchNum {
+			continue
+		}
+		g.WatchURL, g.HasWatch = matchReviewURL(eventKey, m)
+
+		onRed := slices.Contains(m.Alliances.Red.TeamKeys, "frc"+teamNum)
+		ownAlliance, opponentAlliance := m.Alliances.Red, m.Alliances.Blue
+		if !onRed {
+			ownAlliance, opponentAlliance = m.Alliances.Blue, m.Alliances.Red
+		}
+		var partners []string
+		for _, t := range stripFRC(ownAlliance.TeamKeys) {
+			if t != teamNum {
+				partners = append(partners, t)
+			}
+		}
+		g.Partners = strings.Join(partners, ", ")
+		g.Opponents = strings.Join(stripFRC(opponentAlliance.TeamKeys), ", ")
+
+		if m.Played() && m.Alliances.Red.Score != nil && m.Alliances.Blue.Score != nil {
+			redScore, blueScore := *m.Alliances.Red.Score, *m.Alliances.Blue.Score
+			ourScore, theirScore := redScore, blueScore
+			if !onRed {
+				ourScore, theirScore = blueScore, redScore
+			}
+			result := "Tied"
+			if ourScore > theirScore {
+				result = "Won"
+			} else if ourScore < theirScore {
+				result = "Lost"
+			}
+			g.ScoreText = fmt.Sprintf("%s %d–%d", result, ourScore, theirScore)
+		}
+		break
+	}
+	return g
+}
+
+// checklistConflicts reports which checklist fields the notes for one match
+// disagree on, so View Notes can flag it instead of leaving a reviewer to
+// spot the contradiction themselves. Same rule as mergeChecklists (used for
+// what Gemini reads): only rows that actually submitted a checklist count.
+func checklistConflicts(notes []templates.TeamNote) []string {
+	brokeVals := map[bool]bool{}
+	pdVals := map[bool]bool{}
+	wdVals := map[bool]bool{}
+	for _, n := range notes {
+		if !n.HasChecklist {
+			continue
+		}
+		brokeVals[n.Broke] = true
+		pdVals[n.PlayedDefense] = true
+		wdVals[n.WasDefended] = true
+	}
+	var out []string
+	if len(brokeVals) > 1 {
+		out = append(out, "Broke")
+	}
+	if len(pdVals) > 1 {
+		out = append(out, "Played defense")
+	}
+	if len(wdVals) > 1 {
+		out = append(out, "Was defended")
+	}
+	return out
 }
 
 func apiTeamPitNotesHandler(w http.ResponseWriter, r *http.Request) {
@@ -997,24 +1240,13 @@ type teamAnalysisJSON struct {
 
 // analysisPromptVersion is mixed into the cache key so edits to the prompt's
 // output shape invalidate previously cached analyses.
-const analysisPromptVersion = "v6"
+const analysisPromptVersion = "v7"
 
 func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard, error) {
-	rows, err := db.Query(`
-		SELECT `+scoutNoteColumns+` FROM scout_submissions
-		WHERE event_key = ? AND team_number = ?
-		ORDER BY match_num ASC`, eventKey, teamNum)
+	combined, err := combineTeamNotes(eventKey, teamNum)
 	if err != nil {
 		return templates.TeamAnalysisCard{}, err
 	}
-	var notesList []string
-	for rows.Next() {
-		n, _ := scanScoutNote(rows)
-		notesList = append(notesList, n)
-	}
-	rows.Close()
-
-	combined := strings.Join(notesList, "\n")
 	pitNotes := pitNotesFor(teamNum)
 	hashInput := analysisPromptVersion + "\n" + combined
 	if pitNotes != "" {
@@ -1508,7 +1740,13 @@ func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance str
 
 // ── AI Fill-in Scout ──────────────────────────────────────────────────────────
 
-const geminiVideoURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent"
+// A stronger model than geminiURL's on purpose: precise visual grounding
+// (reading a scoreboard, telling which robot on the field did what) needs
+// more than the lite tier reliably gives. A real test at Chezy Champs with
+// the lite model produced six teams' worth of notes that didn't even agree
+// with each other on the game's own terminology — see the trustworthy-
+// analysis branch history. Text-only analysis still uses the lite model.
+const geminiVideoURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent"
 
 // geminiVideoPost analyzes a video with Gemini. When endOffset > 0, only the
 // clip from startOffset to endOffset (seconds into the video) is sent, so a

@@ -31,7 +31,7 @@ WEAKNESSES:
 (one line per real weakness in the opponents, in this shape: "Team N: the weakness (evidence). Exploit: what we would do. Worth it: Yes or No, and the cost." If there are none worth acting on, write one line "None worth acting on." and say why.)
 
 ROBOT NOTES:
-(exactly one line for each of the six robots, in this order: 6238, our two partners, then the three opponents, each line starting with its number. Read that robot's notes before writing its line. Cover two things: breakdown history, as a count out of the matches scouted and when in the match ONLY if the notes say when, and habits or tendencies that matter in this match, such as drawing penalties, being defended every match, a slow start, only climbing when ahead, where it plays, or passing to a particular partner. If a robot has nothing specific, write "nothing notable" on its line.)
+(exactly one line for each of the six robots, in this order: {{.TeamNum}}, our two partners, then the three opponents, each line starting with its number. Read that robot's notes before writing its line. Cover two things: breakdown history, as a count out of the matches scouted and when in the match ONLY if the notes say when, and habits or tendencies that matter in this match, such as drawing penalties, being defended every match, a slow start, only climbing when ahead, where it plays, or passing to a particular partner. If a robot has nothing specific, write "nothing notable" on its line.)
 
 IF IT WORKS: a predicted score range for us if we carry out this plan, and one sign of success we can watch for in the match.
 

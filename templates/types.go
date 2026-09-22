@@ -96,12 +96,29 @@ type TeamNote struct {
 	Notes       string
 	ScouterName string // "" for notes saved before scouters had names
 	AIGenerated bool   // filled in by Gemini from match video
+	SingleTeam  bool   // scout was focused on just this robot, not a whole alliance
 	// Match checklist; only meaningful when HasChecklist
 	HasChecklist  bool
 	Broke         bool
 	PlayedDefense bool
 	WasDefended   bool
 	AutoType      string
+}
+
+// TeamNoteGroup is every note for one match, with enough match context (a
+// link to go watch it, the final score, who the opponents were) that a
+// reviewer can check a disputed or surprising note against what actually
+// happened instead of taking any one scout's word for it.
+type TeamNoteGroup struct {
+	MatchNum  int
+	Label     string // e.g. "Q12"
+	WatchURL  string
+	HasWatch  bool
+	ScoreText string   // e.g. "Won 674–16"; "" if the match hasn't been played yet
+	Partners  string   // e.g. "254, 971" — the rest of this team's own alliance
+	Opponents string   // e.g. "9032, 5940, 973"
+	Conflicts []string // checklist fields the notes below disagree on, e.g. ["Broke"]
+	Notes     []TeamNote
 }
 
 type PitTeam struct {

@@ -82,6 +82,25 @@ type Match struct {
 		Red  Alliance `json:"red"`
 		Blue Alliance `json:"blue"`
 	} `json:"alliances"`
+	Videos []MatchVideo `json:"videos"` // TBA's own official match video, posted well after the event
+}
+
+type MatchVideo struct {
+	Type string `json:"type"` // "youtube" or "tba"
+	Key  string `json:"key"`
+}
+
+// OfficialYouTubeVideo returns the video ID of TBA's own official recording of
+// this match, if one has been posted yet. Unlike the event's livestream, this
+// is already trimmed to just the match, so no timestamp offset is needed —
+// but it usually isn't available until well after the event.
+func (m Match) OfficialYouTubeVideo() (string, bool) {
+	for _, v := range m.Videos {
+		if strings.EqualFold(v.Type, "youtube") && v.Key != "" {
+			return v.Key, true
+		}
+	}
+	return "", false
 }
 
 type Alliance struct {
