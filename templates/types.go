@@ -83,6 +83,12 @@ type TeamAnalysisCard struct {
 type MatchLink struct {
 	Label string // e.g. "Q12"
 	URL   string
+
+	// A deep link into the event's YouTube broadcast at the moment this match
+	// happened, so it can be reviewed before the edited match video is posted.
+	// Empty when we don't have enough to build one (no webcast, etc).
+	WatchURL string
+	HasWatch bool
 }
 
 type TeamNote struct {

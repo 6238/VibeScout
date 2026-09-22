@@ -732,10 +732,12 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 	// The test event's matches don't exist on TBA, so links to them would be dead.
 	if matches, err := getMatchesCached(eventKey); err == nil && eventKey != testEventKey {
 		for _, m := range latestPlayedMatches(matches, teamNum, 2) {
-			card.RecentMatches = append(card.RecentMatches, templates.MatchLink{
+			link := templates.MatchLink{
 				Label: m.ShortLabel(),
 				URL:   "https://www.thebluealliance.com/match/" + m.Key,
-			})
+			}
+			link.WatchURL, link.HasWatch = matchWatchURL(eventKey, m)
+			card.RecentMatches = append(card.RecentMatches, link)
 		}
 	} else {
 		log.Printf("recent matches for %s at %s: %v", teamNum, eventKey, err)

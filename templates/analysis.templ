@@ -482,11 +482,20 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 				<div class="flex flex-wrap items-center gap-1.5">
 					<span class="text-xs font-bold uppercase text-[#A1887F] whitespace-nowrap">Latest Matches</span>
 					for _, m := range card.RecentMatches {
-						<a href={ templ.SafeURL(m.URL) } target="_blank" rel="noopener noreferrer"
-							title={ "Watch " + m.Label + " on The Blue Alliance" }
-							class="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap bg-[#FFFBF5] text-[#5D4037] border border-[#8D6E63] hover:bg-[#8D6E63] hover:text-white transition">
-							{ m.Label } ↗
-						</a>
+						<span class="inline-flex rounded-full overflow-hidden border border-[#8D6E63]">
+							<a href={ templ.SafeURL(m.URL) } target="_blank" rel="noopener noreferrer"
+								title={ "Match " + m.Label + " on The Blue Alliance" }
+								class="text-xs font-bold px-2.5 py-1 whitespace-nowrap bg-[#FFFBF5] text-[#5D4037] hover:bg-[#8D6E63] hover:text-white transition">
+								{ m.Label } ↗
+							</a>
+							if m.HasWatch {
+								<a href={ templ.SafeURL(m.WatchURL) } target="_blank" rel="noopener noreferrer"
+									title={ "Watch " + m.Label + " on YouTube at the moment it happened — no waiting for the edited match video" }
+									class="text-xs font-bold px-2 py-1 whitespace-nowrap bg-[#5D4037] text-white hover:bg-[#8D6E63] transition border-l border-[#8D6E63]">
+									▶
+								</a>
+							}
+						</span>
 					}
 				</div>
 			}
