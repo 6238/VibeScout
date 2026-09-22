@@ -64,6 +64,21 @@ func TestDefenseRecord(t *testing.T) {
 	}
 }
 
+func TestOpponentDefense(t *testing.T) {
+	useTempDB(t)
+
+	// Q10's opponents (1001, 1009, 1007) have no played-defense checklist and no
+	// defender pit profile.
+	if got := opponentDefense(testEventKey, []string{"1001", "1009", "1007"}, nil); got != "Opponents with a defense record: NONE." {
+		t.Errorf("Q10 opponents have no defense record, got %q", got)
+	}
+	// Q11's opponents include 1008, who played defense in checklist matches.
+	got := opponentDefense(testEventKey, []string{"1002", "1004", "1008"}, nil)
+	if !strings.Contains(got, "1008 (played defense in 3 of 3") || strings.Contains(got, "NONE") {
+		t.Errorf("1008 should be listed as a defender, got %q", got)
+	}
+}
+
 func TestForecastTextFlipsForBlue(t *testing.T) {
 	m, _ := findQualMatch(testMatches, 10) // demo: red 162, blue 165
 	red := forecastText(m, true)

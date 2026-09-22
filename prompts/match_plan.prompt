@@ -17,7 +17,8 @@ TLDR: one short line naming each of our three robots and its role, starting with
 EXPECTED RESULT: one or two sentences. Use the forecast's win chance and predicted score exactly as given (if there is no forecast, compare the combined EPAs and say so). Then say what this result hinges on, such as one robot staying up.
 
 WHAT THEY WILL TRY:
-(one line per opponent: what it will most likely do this match, with the evidence in the same sentence)
+DEFENSE ON US: which opponents, if any, will play defense against us and who they will go after. Use the "Opponents with a defense record" line above. If it says NONE, write "None of them has played defense."
+(then one line per opponent giving the specific things this robot does that another robot would not: a number from its record (notes per match, which climb it makes), when in the match it does things, a habit, and where it plays or who it passes to ONLY when a scouting note says so.)
 THEIR GAME PLAN: one sentence on how the opponent alliance wins if it does.
 
 DO WE NEED A COUNTER: Yes or No, then one sentence why. Say No when we are clearly favored and nothing they will try beats our normal game. Say Yes only when a specific thing they will do (for example a defender who will shadow our best scorer, or a scorer we can't out-cycle) would cost us the match.
@@ -28,6 +29,9 @@ WHY: one or two sentences on why this is the plan, including the obvious alterna
 
 WEAKNESSES:
 (one line per real weakness in the opponents, in this shape: "Team N: the weakness (evidence). Exploit: what we would do. Worth it: Yes or No, and the cost." If there are none worth acting on, write one line "None worth acting on." and say why.)
+
+ROBOT NOTES:
+(exactly one line for each of the six robots, in this order: 6238, our two partners, then the three opponents, each line starting with its number. Read that robot's notes before writing its line. Cover two things: breakdown history, as a count out of the matches scouted and when in the match ONLY if the notes say when, and habits or tendencies that matter in this match, such as drawing penalties, being defended every match, a slow start, only climbing when ahead, where it plays, or passing to a particular partner. If a robot has nothing specific, write "nothing notable" on its line.)
 
 IF IT WORKS: a predicted score range for us if we carry out this plan, and one sign of success we can watch for in the match.
 
@@ -48,9 +52,13 @@ Rules:
 - Predictions about opponents must come from their data: notes, checklist tallies, EPA and pit archetype, with the reason stated. If there is not enough data on an opponent, write "not enough data on them" instead of guessing.
 - Use the forecast to decide how much risk to take: if we are favored, keep it safe; if we are behind, we need the higher-variance play.
 - If DO WE NEED A COUNTER is Yes, OUR PLAN must actually contain the counter: name the robot and what it does against which opponent. If we have no way to counter (for example no proven defender), say that plainly, say the plan is to out-score them instead, and put that in WHY. Do not answer Yes and then give every robot the same generic job.
-- Do not mention field sides, start positions, or locations on the field ("center field", "left side", "the zone" and so on). We have no data on them.
+- Say where a robot plays on the field, which side it scores from, or which partner it passes to ONLY when a scouting note says so, and then use it, because that is the detail we most want. Never infer or invent a location or a passing target. If the notes don't say, leave it out.
+- Never write a sentence that would be true of almost any robot that scores: "scores at high speed", "scores aggressively", "tries to maximize points", "contributes points", "improved accuracy". Every line about a robot must contain at least one specific detail from the data that would not apply to most other robots: a number, a timing, a habit, a climb level, a location or passing target that a note states. If the data has nothing specific on a robot, write "nothing specific on them" for that robot instead of a generic line.
+- Do not state anything about a robot that is not in its notes, checklist counts, EPA or pit interview. Do not add qualities such as "accuracy" or "game pieces" the scouts did not write, and do not add when something happens ("in the first minute") unless a note says so.
+- Read every match note for each robot and pull out the sentences about where it plays on the field, who it passes to, when in the match it does things, and its habits. Lead with these, before totals like EPA. Say how often each was seen ("in 1 of 6 scouted matches", "in 3 of 4"); a detail from a single note is "seen in one scouted match". Never write "every", "always", "every time" or "consistently" unless the number of notes that say it equals the number of matches scouted for that robot.
+- The line "Opponents with a defense record" above is a fact. Follow it in DEFENSE ON US and everywhere else.
 - Do not repeat a team's raw numbers back at length; give the reason in a few words.
 - The predicted score in IF IT WORKS must be anchored on the numbers above: start from the forecast's predicted score for us, or from our alliance's combined EPA if there is no forecast, and say that baseline. Give a range, and only go above the baseline by a small amount, and only when the plan removes a specific weakness the data shows. Never give a number the data doesn't support.
 - The sign of success must be something a scout or driver can watch for in the match, tied to a specific robot and to what its record says it can do (for example, a count of notes by the end of auto). It must not be vague, such as "we are scoring well".
 - The TLDR must match OUR PLAN exactly: the same roles for the same robots, said briefly. It is a summary of the plan, not a separate idea, so a robot that is on offense in the plan is on offense in the TLDR.
-- Keep the whole briefing under 320 words.
+- Keep the whole briefing under 450 words.

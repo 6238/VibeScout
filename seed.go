@@ -136,7 +136,7 @@ var testObservations = []seedObs{
 	{3, "1001", "Scored 4 notes in teleop, quick cycle times. Had a brief brownout in auto but recovered fast."},
 	{4, "1001", "Dominant match. Scored 5 notes, climbed L3. Defense against them barely slowed them down."},
 	{6, "1001", "Another strong match. 4 notes teleop, L2 climb. One intake miss but otherwise flawless."},
-	{7, "1001", "Won the match almost alone. 4 notes teleop, L3 climb. Drove through defense like it wasn't there."},
+	{7, "1001", "Won the match almost alone. 4 notes teleop, L3 climb. Drove through defense like it wasn't there. Stays on the left side of the field the whole match."},
 	{9, "1001", "Steady again — 3 auto, 4 teleop. Partner 1011 was useless but they carried the alliance."},
 
 	// Team 1002 — inconsistent, high ceiling
@@ -189,13 +189,13 @@ var testObservations = []seedObs{
 	// Team 1009 — high scorer, somewhat unreliable
 	{2, "1009", "WOW — 5 notes in teleop, L3 climb. Best performance of the event so far. Robot looks great."},
 	{3, "1009", "Stalled out in auto (brownout?). Recovered for 3 notes teleop, L2 climb. Still impressive."},
-	{5, "1009", "4 notes teleop, fast cycles. Dropped the L3 climb attempt and settled for L2. Still strong."},
+	{5, "1009", "4 notes teleop, fast cycles. Dropped the L3 climb attempt and settled for L2. Still strong. Runs to the right side in auto every time."},
 	{6, "1009", "E-stopped at the 30 second mark — connection issue. Had already scored 3 notes. Unreliable."},
 	{8, "1009", "Great scoring (4 teleop) but got shut down by 1003's defense for most of the second half."},
 
 	// Team 1010 — only two matches scouted: shows the "low data" state
 	{7, "1010", "Scored 2 notes in teleop. Quiet match, hard to say much else."},
-	{9, "1010", "1 note auto, 2 teleop. Slow intake but no failures."},
+	{9, "1010", "1 note auto, 2 teleop. Slow intake but no failures. Spent the second half passing notes to 1005."},
 
 	// Team 1011 — a single match scouted
 	{7, "1011", "Barely moved. Might have had a drivetrain problem."},

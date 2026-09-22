@@ -114,8 +114,28 @@ func lineup(eventKey, label string, teams []string) string {
 // evidence is the yes/no checklist (played defense in at least one match) and the
 // pit interview (defender archetype or preferred defense role).
 func defenseRecord(eventKey string, ours []string, profiles map[string]templates.PitProfile) string {
+	proven := defenseProof(eventKey, ours, profiles)
+	if len(proven) == 0 {
+		return "Robots on our alliance with a defense record: NONE. No robot on our alliance may be given defense anywhere in the briefing."
+	}
+	return "Robots on our alliance with a defense record: " + strings.Join(proven, ", ") + ". Only these robots may be given defense."
+}
+
+// opponentDefense is the same check for the other alliance: which of them are
+// known to play defense, and so might go after us.
+func opponentDefense(eventKey string, theirs []string, profiles map[string]templates.PitProfile) string {
+	proven := defenseProof(eventKey, theirs, profiles)
+	if len(proven) == 0 {
+		return "Opponents with a defense record: NONE."
+	}
+	return "Opponents with a defense record: " + strings.Join(proven, ", ") + "."
+}
+
+// defenseProof lists each robot in teams that has shown it can play defense,
+// with the evidence: a played-defense checklist or a defender pit interview.
+func defenseProof(eventKey string, teams []string, profiles map[string]templates.PitProfile) []string {
 	var proven []string
-	for _, t := range ours {
+	for _, t := range teams {
 		var reasons []string
 		if s := scoutStatsFor(eventKey, t); s.DefenseN > 0 {
 			reasons = append(reasons, fmt.Sprintf("played defense in %d of %d checklist matches", s.DefenseN, s.ChecklistN))
@@ -127,10 +147,7 @@ func defenseRecord(eventKey string, ours []string, profiles map[string]templates
 			proven = append(proven, fmt.Sprintf("%s (%s)", t, strings.Join(reasons, "; ")))
 		}
 	}
-	if len(proven) == 0 {
-		return "Robots on our alliance with a defense record: NONE. No robot on our alliance may be given defense anywhere in the briefing."
-	}
-	return "Robots on our alliance with a defense record: " + strings.Join(proven, ", ") + ". Only these robots may be given defense."
+	return proven
 }
 
 // matchPlanContext gathers what the model knows about all six teams, including
@@ -164,7 +181,8 @@ func matchPlanContext(eventKey, ourTeam string, ours, theirs []string) (context,
 	}
 
 	lineups = lineup(eventKey, "Our alliance", ours) + "\n" + lineup(eventKey, "Opponent alliance", theirs) +
-		"\n" + defenseRecord(eventKey, ours, profiles)
+		"\n" + defenseRecord(eventKey, ours, profiles) +
+		"\n" + opponentDefense(eventKey, theirs, profiles)
 	return strings.Join(parts, "\n\n"), lineups
 }
 
