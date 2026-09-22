@@ -2,24 +2,50 @@ package main
 
 import "testing"
 
-func TestPickYouTubeWebcast(t *testing.T) {
-	yt, ok := pickYouTubeWebcast([]webcast{
+func TestYouTubeWebcastIDs(t *testing.T) {
+	ids := youtubeWebcastIDs([]webcast{
 		{Type: "twitch", Channel: "firstinspires"},
-		{Type: "youtube", Channel: "abc123"},
+		{Type: "youtube", Channel: "day1"},
+		{Type: "youtube", Channel: "day2"},
 	})
-	if !ok || yt != "abc123" {
-		t.Errorf("got %q, %v", yt, ok)
+	if len(ids) != 2 || ids[0] != "day1" || ids[1] != "day2" {
+		t.Errorf("got %v", ids)
 	}
 
-	if _, ok := pickYouTubeWebcast([]webcast{{Type: "twitch", Channel: "firstinspires"}}); ok {
-		t.Error("a twitch-only event should have no youtube webcast")
+	if ids := youtubeWebcastIDs([]webcast{{Type: "twitch", Channel: "firstinspires"}}); len(ids) != 0 {
+		t.Error("a twitch-only event should have no youtube webcasts")
 	}
-	if _, ok := pickYouTubeWebcast(nil); ok {
-		t.Error("no webcasts should mean no youtube webcast")
+	if ids := youtubeWebcastIDs(nil); len(ids) != 0 {
+		t.Error("no webcasts should mean no youtube webcasts")
 	}
 	// A malformed entry (empty channel) must not be picked.
-	if _, ok := pickYouTubeWebcast([]webcast{{Type: "YouTube", Channel: ""}}); ok {
+	if ids := youtubeWebcastIDs([]webcast{{Type: "YouTube", Channel: ""}}); len(ids) != 0 {
 		t.Error("an empty channel should not count as a match")
+	}
+}
+
+func TestBestWebcastVideo(t *testing.T) {
+	ids := []string{"day1", "day2", "day3"}
+	starts := map[string]int64{"day1": 1000, "day2": 90000, "day3": 180000}
+
+	// A match during day 2's broadcast must resolve to day2, not day1 (the
+	// first one TBA listed) or day3 (which hadn't started yet).
+	id, start, ok := bestWebcastVideo(ids, starts, 95000)
+	if !ok || id != "day2" || start != 90000 {
+		t.Errorf("got %q %d %v", id, start, ok)
+	}
+
+	// Before any broadcast has started: no match.
+	if _, _, ok := bestWebcastVideo(ids, starts, 500); ok {
+		t.Error("a match before every broadcast started should resolve to nothing")
+	}
+
+	// A video whose start time we never resolved (YouTube lookup failed) must
+	// be skipped, not treated as starting at time zero.
+	partial := map[string]int64{"day2": 90000}
+	id, _, ok = bestWebcastVideo(ids, partial, 5000)
+	if ok {
+		t.Errorf("day1's unresolved start should not make it eligible, got %q", id)
 	}
 }
 

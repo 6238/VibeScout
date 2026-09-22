@@ -61,6 +61,17 @@ func decodeTBAList[T any](resp *http.Response, dest *[]T) error {
 	return json.NewDecoder(resp.Body).Decode(dest)
 }
 
+// decodeTBAObject is decodeTBAList for a single JSON object response instead
+// of a list.
+func decodeTBAObject(resp *http.Response, dest any) error {
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return fmt.Errorf("tba %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+	return json.NewDecoder(resp.Body).Decode(dest)
+}
+
 type Match struct {
 	Key         string `json:"key"`
 	MatchNumber int    `json:"match_number"`

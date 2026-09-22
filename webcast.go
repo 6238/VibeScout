@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/url"
 	"os"
 	"strings"
@@ -11,8 +12,11 @@ import (
 	"time"
 )
 
-// webcast is one entry from TBA's /event/{key}/webcasts. For a YouTube webcast,
-// Channel is the video ID (TBA's own naming, not ours).
+// webcast is one entry from an event's "webcasts" list in TBA's full event
+// object (there is no standalone /event/{key}/webcasts endpoint — that 404s).
+// For a YouTube webcast, Channel is the video ID (TBA's own naming, not ours).
+// Multi-day events commonly have one YouTube webcast per day, each a separate
+// video, so Channel alone doesn't tell us which one covers a given match.
 type webcast struct {
 	Type    string `json:"type"`
 	Channel string `json:"channel"`
@@ -33,32 +37,55 @@ func eventWebcasts(eventKey string) ([]webcast, error) {
 	}
 	webcastsMu.Unlock()
 
-	resp, err := tbaDo(fmt.Sprintf("/event/%s/webcasts", eventKey))
+	resp, err := tbaDo(fmt.Sprintf("/event/%s", eventKey))
 	if err != nil {
 		return nil, err
 	}
-	var list []webcast
-	if err := decodeTBAList(resp, &list); err != nil {
+	var event struct {
+		Webcasts []webcast `json:"webcasts"`
+	}
+	if err := decodeTBAObject(resp, &event); err != nil {
 		return nil, err
 	}
 
 	webcastsMu.Lock()
-	webcastsCache[eventKey] = list
+	webcastsCache[eventKey] = event.Webcasts
 	webcastsAt[eventKey] = time.Now()
 	webcastsMu.Unlock()
-	return list, nil
+	return event.Webcasts, nil
 }
 
-// pickYouTubeWebcast returns the video ID of the first YouTube webcast in the
-// list, if any. Most events have exactly one; if there's a backup stream too,
-// we take the first, same as TBA's own match video preference.
-func pickYouTubeWebcast(list []webcast) (videoID string, ok bool) {
+// youtubeWebcastIDs returns the video IDs of every YouTube webcast in the
+// list, in the order TBA gave them. A single-day event normally has one; a
+// multi-day event normally has one per day.
+func youtubeWebcastIDs(list []webcast) []string {
+	var ids []string
 	for _, w := range list {
 		if strings.EqualFold(w.Type, "youtube") && w.Channel != "" {
-			return w.Channel, true
+			ids = append(ids, w.Channel)
 		}
 	}
-	return "", false
+	return ids
+}
+
+// bestWebcastVideo picks whichever of an event's YouTube broadcasts actually
+// covers a match, given each video's own start time (via starts, keyed by video
+// ID — only the videos that resolved get an entry). A match can only appear in
+// a broadcast that had already started, so among those, the one that started
+// most recently is the correct day's video; a broadcast that starts after the
+// match can't be it, even if it's otherwise the closest in time.
+func bestWebcastVideo(ids []string, starts map[string]int64, matchTime int64) (videoID string, startUnix int64, ok bool) {
+	bestStart := int64(-1)
+	for _, id := range ids {
+		start, known := starts[id]
+		if !known || start > matchTime {
+			continue
+		}
+		if start > bestStart {
+			bestStart, videoID, ok = start, id, true
+		}
+	}
+	return videoID, bestStart, ok
 }
 
 // watchLeadSeconds backs the link up a little before the match's recorded start,
@@ -155,20 +182,30 @@ func youtubeVideoStart(videoID string) (int64, bool) {
 // matchWatchURL returns a link into the event's YouTube broadcast at the
 // moment this match actually happened, when we have everything needed for
 // that: a played match with a recorded start time, a YouTube webcast for the
-// event, and (via youtubeVideoStart) that broadcast's own start time.
+// event, and (via youtubeVideoStart) that broadcast's own start time. For a
+// multi-day event it resolves every day's video and picks the one that
+// actually covers the match, not just the first one TBA lists.
 func matchWatchURL(eventKey string, m Match) (string, bool) {
 	if m.ActualTime <= 0 {
 		return "", false // TBA has no timestamp for this match
 	}
 	list, err := eventWebcasts(eventKey)
-	if err != nil || len(list) == 0 {
+	if err != nil {
+		log.Printf("webcasts for %s: %v", eventKey, err)
 		return "", false
 	}
-	videoID, ok := pickYouTubeWebcast(list)
-	if !ok {
-		return "", false
+	ids := youtubeWebcastIDs(list)
+	if len(ids) == 0 {
+		return "", false // event isn't on YouTube (Twitch, iframe, none, ...)
 	}
-	start, ok := youtubeVideoStart(videoID)
+
+	starts := make(map[string]int64, len(ids))
+	for _, id := range ids {
+		if start, ok := youtubeVideoStart(id); ok {
+			starts[id] = start
+		}
+	}
+	videoID, start, ok := bestWebcastVideo(ids, starts, m.ActualTime)
 	if !ok {
 		return "", false
 	}
