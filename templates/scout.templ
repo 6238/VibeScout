@@ -181,25 +181,17 @@ templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []Scout
 					teams: teams
 				};
 
-				try {
-					const resp = await fetch('/api/save-scout', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(submission)
-					});
+				// Save on this device first — that can't fail — then let it sync in
+				// the background instead of making the scout wait on (or lose data
+				// to) a bad connection. The queue keeps retrying until the server
+				// confirms it, including after this page has moved on.
+				window.offlineSync.queue('scout', '/api/save-scout', submission);
 
-					if (resp.ok) {
-						// Both modes pick a team/alliance each match, so always return to
-						// Field Scouting to pick again for the next one.
-						const next = new URLSearchParams({ event_key: eventKey, match_num: matchNum + 1, scouter: scouter });
-						next.set('mode', pickedTeam ? 'one' : 'three');
-						window.location.href = '/field-scout?' + next;
-					} else {
-						alert('Failed to save scout data.');
-					}
-				} catch (err) {
-					alert('Error: ' + err.message);
-				}
+				// Both modes pick a team/alliance each match, so always return to
+				// Field Scouting to pick again for the next one.
+				const next = new URLSearchParams({ event_key: eventKey, match_num: matchNum + 1, scouter: scouter });
+				next.set('mode', pickedTeam ? 'one' : 'three');
+				window.location.href = '/field-scout?' + next;
 			}
 			window.saveAndAdvance = saveAndAdvance;
 		</script>

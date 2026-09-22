@@ -37,10 +37,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 				<!-- Form first so the team list sits below it on mobile and beside it on desktop -->
 				<div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_16rem] md:gap-6">
 					<div>
-						<form id="pit-form" class="space-y-3"
-							hx-post="/api/save-pit-scout"
-							hx-target="#pit-result"
-							hx-swap="innerHTML">
+						<form id="pit-form" class="space-y-3">
 							<div>
 								<label for="pit-team-number" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Team #</label>
 								<div class="relative">
@@ -103,6 +100,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 					var summary = document.getElementById('pit-summary');
 					var status = document.getElementById('pit-edit-status');
 					var submit = document.getElementById('pit-submit');
+					var result = document.getElementById('pit-result');
 
 					var currentTeam = null;   // team whose notes state is loaded
 					var loadedSummary = null; // existing notes put in the text box, if any
@@ -257,12 +255,29 @@ templ PitScoutPage(eventKey string, eventName string) {
 						teams.classList.toggle('hide-scouted', hide.checked);
 					});
 
-					// ── After saving, start fresh for the next team ──
-					form.addEventListener('htmx:afterRequest', function(e) {
-						if (e.detail.elt !== form || !e.detail.successful) return;
+					// ── Save on this device first, sync in the background ──
+					// (see /static/offline-sync.js). A bad connection can no longer
+					// lose a pit interview: it's saved before the network is even
+					// touched, and resent automatically until the server confirms it.
+					form.addEventListener('submit', function(e) {
+						e.preventDefault();
+						var teamNumber = input.value.trim();
+						var summaryText = summary.value;
+						if (!teamNumber || !summaryText.trim()) return; // required fields
+
+						window.offlineSync.queue('pit', '/api/save-pit-scout',
+							{ team_number: teamNumber, summary: summaryText }, 'form');
+
 						form.reset();
 						currentTeam = null;
 						setNew();
+						result.textContent = 'Saved on this device ✓ — sending to the server…';
+					});
+					// The team list's "scouted" marks reflect real server state, so only
+					// refresh it once a queued pit entry actually reaches the server.
+					window.offlineSync.onSynced(function(item) {
+						if (item.kind !== 'pit') return;
+						document.body.dispatchEvent(new Event('pitSaved'));
 					});
 				})();
 			</script>

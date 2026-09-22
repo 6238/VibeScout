@@ -39,10 +39,11 @@ var matchPlanPromptTmpl string
 var videoScoutPromptTmpl string
 
 type ScoutSubmission struct {
-	EventKey    string          `json:"event_key"`
-	MatchNum    int             `json:"match_num"`
-	ScouterName string          `json:"scouter_name"`
-	Teams       []TeamScoutData `json:"teams"`
+	EventKey     string          `json:"event_key"`
+	MatchNum     int             `json:"match_num"`
+	ScouterName  string          `json:"scouter_name"`
+	SubmissionID string          `json:"submission_id"` // client-generated; see saveScoutSubmission
+	Teams        []TeamScoutData `json:"teams"`
 }
 
 type TeamScoutData struct {
@@ -123,6 +124,7 @@ func main() {
 	http.HandleFunc("/api/voice-scout", voiceScoutWSHandler)
 	http.HandleFunc("/api/sort-notes", sortNotesHandler)
 	http.HandleFunc("/static/voice-scout.js", voiceScoutJSHandler)
+	http.HandleFunc("/static/offline-sync.js", offlineSyncJSHandler)
 	http.HandleFunc("/pit-scout", pitScoutPageHandler)
 	http.HandleFunc("/api/save-pit-scout", savePitScoutHandler)
 	http.HandleFunc("/api/pit-teams", apiPitTeamsHandler)
@@ -464,22 +466,53 @@ func saveScoutDataHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := saveScoutSubmission(sub); err != nil {
+		log.Printf("save scout: %v", err)
+		http.Error(w, "Failed to save", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("Saved match %d, scouter %q, %d teams (submission %s)\n",
+		sub.MatchNum, canonicalScouterName(sub.ScouterName), len(sub.Teams), sub.SubmissionID)
+	w.WriteHeader(http.StatusOK)
+}
+
+// saveScoutSubmission writes a match's team notes. It's an upsert keyed on
+// (submission_id, team_number): the client generates one id per submission
+// attempt and reuses it for every retry, so retrying a slow or dropped
+// request updates the same rows instead of inserting duplicates. A caller
+// that leaves SubmissionID empty (older clients, the AI video-fill tool)
+// falls outside that uniqueness constraint and always inserts fresh, exactly
+// as this handler always did before retries were possible.
+func saveScoutSubmission(sub ScoutSubmission) error {
 	scouterName := canonicalScouterName(sub.ScouterName)
 	for _, teamData := range sub.Teams {
-		db.Exec(`
+		_, err := db.Exec(`
 			INSERT INTO scout_submissions (event_key, match_num, scouter_name, team_number, notes,
-				has_checklist, broke, played_defense, was_defended, auto_type)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				has_checklist, broke, played_defense, was_defended, auto_type, submission_id)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(submission_id, team_number) WHERE submission_id != '' DO UPDATE SET
+				event_key = excluded.event_key,
+				match_num = excluded.match_num,
+				scouter_name = excluded.scouter_name,
+				notes = excluded.notes,
+				has_checklist = excluded.has_checklist,
+				broke = excluded.broke,
+				played_defense = excluded.played_defense,
+				was_defended = excluded.was_defended,
+				auto_type = excluded.auto_type`,
 			sub.EventKey, sub.MatchNum, scouterName, teamData.TeamNumber, teamData.Notes,
-			teamData.HasChecklist, teamData.Broke, teamData.PlayedDefense, teamData.WasDefended, strings.TrimSpace(teamData.AutoType))
+			teamData.HasChecklist, teamData.Broke, teamData.PlayedDefense, teamData.WasDefended,
+			strings.TrimSpace(teamData.AutoType), sub.SubmissionID)
+		if err != nil {
+			return fmt.Errorf("team %s: %w", teamData.TeamNumber, err)
+		}
 
 		// Bust team analysis cache
 		db.Exec(`DELETE FROM analysis_cache WHERE event_key = ? AND team_number = ?`,
 			sub.EventKey, teamData.TeamNumber)
 	}
-
-	fmt.Printf("Saved match %d, scouter %q, %d teams\n", sub.MatchNum, scouterName, len(sub.Teams))
-	w.WriteHeader(http.StatusOK)
+	return nil
 }
 
 // ── Pit Scouting ──────────────────────────────────────────────────────────────

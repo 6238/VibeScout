@@ -91,4 +91,18 @@ func initDB() {
 	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN played_defense INTEGER DEFAULT 0`)
 	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN was_defended INTEGER DEFAULT 0`)
 	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN auto_type TEXT DEFAULT ''`)
+
+	// Idempotent migration: a client-generated id for retry safety. A scout's
+	// device saves a submission locally and keeps retrying it until the server
+	// confirms — possibly several times, if a slow connection drops the
+	// response without dropping the request. Every retry of the same attempt
+	// carries the same submission_id, so retries update the same row instead
+	// of inserting a duplicate. Old rows and any caller that doesn't set one
+	// (e.g. the AI video-fill admin tool) keep '' and are exempt from the
+	// uniqueness constraint below, preserving today's plain-insert behavior.
+	db.Exec(`ALTER TABLE scout_submissions ADD COLUMN submission_id TEXT DEFAULT ''`)
+	db.Exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_scout_submission_dedupe
+      ON scout_submissions(submission_id, team_number)
+      WHERE submission_id != '';`)
 }
