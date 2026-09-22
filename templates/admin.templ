@@ -22,7 +22,10 @@ templ AdminPage(events []string) {
 				<div class="mb-8">
 					<h2 class="text-xl font-bold text-[#5D4037] mb-4">Fill in Gemini Analysis</h2>
 					<p class="text-sm text-[#A1887F] mb-3">
-						For a specific match, analyze teams using a YouTube video. Teams that already have human scouting notes for that match will be skipped.
+						For a specific qual match, analyze every team using video. Leave the YouTube URL blank to
+						use the event's own webcast automatically (finds the right day and moment, and only sends
+						Gemini the few minutes around the match); paste a URL to override that, e.g. for an event
+						with no webcast on TBA. Teams that already have human scouting notes for that match are skipped.
 					</p>
 					<form
 						hx-post="/api/admin/fill-ai-scout"
@@ -42,7 +45,7 @@ templ AdminPage(events []string) {
 							class="w-full p-3 border-2 border-[#D2B48C] rounded-xl bg-[#FFFBF5] text-stone-700"/>
 						<input
 							name="youtube_url"
-							placeholder="YouTube URL (e.g. https://www.youtube.com/watch?v=...)"
+							placeholder="YouTube URL — optional, leave blank to auto-detect from the event's webcast"
 							class="w-full p-3 border-2 border-[#D2B48C] rounded-xl bg-[#FFFBF5] text-stone-700"/>
 						<button
 							id="ai-fill-btn"

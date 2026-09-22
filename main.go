@@ -1455,22 +1455,34 @@ func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance str
 
 const geminiVideoURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent"
 
-func geminiVideoPost(videoURI, prompt string) (string, error) {
+// geminiVideoPost analyzes a video with Gemini. When endOffset > 0, only the
+// clip from startOffset to endOffset (seconds into the video) is sent, so a
+// multi-hour event broadcast doesn't have to be processed in full just to
+// analyze one ~2:30 match.
+func geminiVideoPost(videoURI, prompt string, startOffset, endOffset int64) (string, error) {
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	if apiKey == "" {
 		return "", fmt.Errorf("GEMINI_API_KEY not set")
+	}
+
+	videoPart := map[string]interface{}{
+		"fileData": map[string]string{
+			"mimeType": "video/mp4",
+			"fileUri":  videoURI,
+		},
+	}
+	if endOffset > 0 {
+		videoPart["videoMetadata"] = map[string]string{
+			"startOffset": fmt.Sprintf("%ds", startOffset),
+			"endOffset":   fmt.Sprintf("%ds", endOffset),
+		}
 	}
 
 	payload := map[string]interface{}{
 		"contents": []map[string]interface{}{
 			{
 				"parts": []map[string]interface{}{
-					{
-						"fileData": map[string]string{
-							"mimeType": "video/mp4",
-							"fileUri":  videoURI,
-						},
-					},
+					videoPart,
 					{"text": prompt},
 				},
 			},
@@ -1528,7 +1540,7 @@ type videoScoutPromptData struct {
 	EventKey string
 }
 
-func callGeminiVideoScout(teamNum, eventKey string, matchNum int, videoURI string) (string, error) {
+func callGeminiVideoScout(teamNum, eventKey string, matchNum int, videoURI string, startOffset, endOffset int64) (string, error) {
 	tmpl, err := template.New("video_scout").Parse(videoScoutPromptTmpl)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse video scout prompt: %w", err)
@@ -1541,7 +1553,7 @@ func callGeminiVideoScout(teamNum, eventKey string, matchNum int, videoURI strin
 	}); err != nil {
 		return "", fmt.Errorf("failed to render video scout prompt: %w", err)
 	}
-	return geminiVideoPost(videoURI, buf.String())
+	return geminiVideoPost(videoURI, buf.String(), startOffset, endOffset)
 }
 
 // apiFillAIScoutHandler receives event_key, match_num, youtube_url and returns
@@ -1556,8 +1568,8 @@ func apiFillAIScoutHandler(w http.ResponseWriter, r *http.Request) {
 	matchNum, _ := strconv.Atoi(r.FormValue("match_num"))
 	youtubeURL := strings.TrimSpace(r.FormValue("youtube_url"))
 
-	if eventKey == "" || matchNum == 0 || youtubeURL == "" {
-		http.Error(w, "event_key, match_num, and youtube_url are required", http.StatusBadRequest)
+	if eventKey == "" || matchNum == 0 {
+		http.Error(w, "event_key and match_num are required", http.StatusBadRequest)
 		return
 	}
 
@@ -1581,6 +1593,19 @@ func apiFillAIScoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// No URL pasted in: find this match's own moment in the event's YouTube
+	// webcast ourselves, and trim to just the clip that covers it.
+	var startOffset, endOffset int64
+	if youtubeURL == "" {
+		videoID, so, eo, ok := resolveWatchClip(eventKey, targetMatch)
+		if !ok {
+			http.Error(w, "No YouTube webcast found for this match — paste a video URL manually.", http.StatusBadRequest)
+			return
+		}
+		youtubeURL = "https://www.youtube.com/watch?v=" + videoID
+		startOffset, endOffset = so, eo
+	}
+
 	allTeamKeys := append(targetMatch.Alliances.Red.TeamKeys, targetMatch.Alliances.Blue.TeamKeys...)
 	allTeams := stripFRC(allTeamKeys)
 
@@ -1590,8 +1615,8 @@ func apiFillAIScoutHandler(w http.ResponseWriter, r *http.Request) {
 		slots = append(slots, templates.AiFillSlot{
 			Team: team,
 			HXURL: fmt.Sprintf(
-				"/api/admin/fill-ai-scout-team?event_key=%s&match_num=%d&team_number=%s&youtube_url=%s",
-				url.QueryEscape(eventKey), matchNum, url.QueryEscape(team), encodedURL,
+				"/api/admin/fill-ai-scout-team?event_key=%s&match_num=%d&team_number=%s&youtube_url=%s&start_offset=%d&end_offset=%d",
+				url.QueryEscape(eventKey), matchNum, url.QueryEscape(team), encodedURL, startOffset, endOffset,
 			),
 		})
 	}
@@ -1599,20 +1624,34 @@ func apiFillAIScoutHandler(w http.ResponseWriter, r *http.Request) {
 	templates.AiFillProgressContainer(slots).Render(r.Context(), w)
 }
 
-// apiFillAIScoutTeamHandler processes one team: checks for existing data, calls
-// Gemini video analysis, saves with ai_generated=1 if no prior data exists.
+// apiFillAIScoutTeamHandler processes one team: skips it if a human already
+// scouted this match, otherwise calls Gemini video analysis and saves the
+// result with ai_generated=1.
 func apiFillAIScoutTeamHandler(w http.ResponseWriter, r *http.Request) {
 	eventKey := r.URL.Query().Get("event_key")
 	matchNum, _ := strconv.Atoi(r.URL.Query().Get("match_num"))
 	teamNum := r.URL.Query().Get("team_number")
 	youtubeURL := r.URL.Query().Get("youtube_url")
+	startOffset, _ := strconv.ParseInt(r.URL.Query().Get("start_offset"), 10, 64)
+	endOffset, _ := strconv.ParseInt(r.URL.Query().Get("end_offset"), 10, 64)
 
 	if eventKey == "" || matchNum == 0 || teamNum == "" || youtubeURL == "" {
 		http.Error(w, "missing parameters", http.StatusBadRequest)
 		return
 	}
 
-	notes, err := callGeminiVideoScout(teamNum, eventKey, matchNum, youtubeURL)
+	var hasHumanNotes bool
+	db.QueryRow(`SELECT EXISTS(
+		SELECT 1 FROM scout_submissions
+		WHERE event_key = ? AND match_num = ? AND team_number = ?
+			AND COALESCE(ai_generated, 0) = 0 AND `+hasScoutDataSQL+`)`,
+		eventKey, matchNum, teamNum).Scan(&hasHumanNotes)
+	if hasHumanNotes {
+		templates.AiFillTeamResult(templates.AiFillTeamResultData{Team: teamNum, Skipped: true}).Render(r.Context(), w)
+		return
+	}
+
+	notes, err := callGeminiVideoScout(teamNum, eventKey, matchNum, youtubeURL, startOffset, endOffset)
 	if err != nil {
 		templates.AiFillTeamResult(templates.AiFillTeamResultData{Team: teamNum, Notes: err.Error(), Success: false}).Render(r.Context(), w)
 		return

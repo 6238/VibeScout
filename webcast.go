@@ -179,24 +179,21 @@ func youtubeVideoStart(videoID string) (int64, bool) {
 	return start, ok
 }
 
-// matchWatchURL returns a link into the event's YouTube broadcast at the
-// moment this match actually happened, when we have everything needed for
-// that: a played match with a recorded start time, a YouTube webcast for the
-// event, and (via youtubeVideoStart) that broadcast's own start time. For a
-// multi-day event it resolves every day's video and picks the one that
-// actually covers the match, not just the first one TBA lists.
-func matchWatchURL(eventKey string, m Match) (string, bool) {
+// resolveBroadcast finds which of an event's YouTube webcasts actually covers
+// a match, and when that broadcast started. Shared by matchWatchURL (a link
+// for a person to click) and resolveWatchClip (a trimmed clip for Gemini).
+func resolveBroadcast(eventKey string, m Match) (videoID string, startUnix int64, ok bool) {
 	if m.ActualTime <= 0 {
-		return "", false // TBA has no timestamp for this match
+		return "", 0, false // TBA has no timestamp for this match
 	}
 	list, err := eventWebcasts(eventKey)
 	if err != nil {
 		log.Printf("webcasts for %s: %v", eventKey, err)
-		return "", false
+		return "", 0, false
 	}
 	ids := youtubeWebcastIDs(list)
 	if len(ids) == 0 {
-		return "", false // event isn't on YouTube (Twitch, iframe, none, ...)
+		return "", 0, false // event isn't on YouTube (Twitch, iframe, none, ...)
 	}
 
 	starts := make(map[string]int64, len(ids))
@@ -205,9 +202,50 @@ func matchWatchURL(eventKey string, m Match) (string, bool) {
 			starts[id] = start
 		}
 	}
-	videoID, start, ok := bestWebcastVideo(ids, starts, m.ActualTime)
+	return bestWebcastVideo(ids, starts, m.ActualTime)
+}
+
+// matchWatchURL returns a link into the event's YouTube broadcast at the
+// moment this match actually happened, when we have everything needed for
+// that. For a multi-day event it resolves every day's video and picks the
+// one that actually covers the match, not just the first one TBA lists.
+func matchWatchURL(eventKey string, m Match) (string, bool) {
+	videoID, start, ok := resolveBroadcast(eventKey, m)
 	if !ok {
 		return "", false
 	}
 	return buildWatchURL(videoID, start, m.ActualTime), true
+}
+
+// videoClipLeadSeconds/videoClipDurationSeconds bound the clip of a broadcast
+// sent to Gemini for one match: enough to catch the pre-match reset and the
+// whole ~2:30 match, without making it process an entire multi-hour stream.
+const (
+	videoClipLeadSeconds     = 20
+	videoClipDurationSeconds = 200
+)
+
+// clipOffsets is the pure part of resolveWatchClip: given when a broadcast
+// started and when the match happened (both unix seconds), it returns the
+// start/end offsets, in seconds from the start of the video, to send to
+// Gemini so it only has to watch the relevant clip.
+func clipOffsets(startUnix, matchTime int64) (startOffset, endOffset int64) {
+	startOffset = matchTime - startUnix - videoClipLeadSeconds
+	if startOffset < 0 {
+		startOffset = 0
+	}
+	endOffset = startOffset + videoClipLeadSeconds + videoClipDurationSeconds
+	return startOffset, endOffset
+}
+
+// resolveWatchClip finds the YouTube video and the offsets (in seconds from
+// its start) covering a match, so a video-analysis call only has to watch a
+// few minutes of a broadcast that might be hours long.
+func resolveWatchClip(eventKey string, m Match) (videoID string, startOffset, endOffset int64, ok bool) {
+	videoID, start, ok := resolveBroadcast(eventKey, m)
+	if !ok {
+		return "", 0, 0, false
+	}
+	so, eo := clipOffsets(start, m.ActualTime)
+	return videoID, so, eo, true
 }

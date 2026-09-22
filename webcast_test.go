@@ -66,6 +66,27 @@ func TestBuildWatchURL(t *testing.T) {
 	}
 }
 
+func TestClipOffsets(t *testing.T) {
+	// Broadcast started at unix 1000; match at 1000+3600 (an hour in).
+	start, end := clipOffsets(1000, 1000+3600)
+	if want := int64(3600 - videoClipLeadSeconds); start != want {
+		t.Errorf("start offset = %d, want %d", start, want)
+	}
+	if want := start + videoClipLeadSeconds + videoClipDurationSeconds; end != want {
+		t.Errorf("end offset = %d, want %d", end, want)
+	}
+	if end-start != videoClipLeadSeconds+videoClipDurationSeconds {
+		t.Errorf("clip length should always be lead+duration, got %d", end-start)
+	}
+
+	// A match right at (or before) the broadcast's own start must clamp to 0,
+	// not go negative.
+	start, _ = clipOffsets(1000, 1005)
+	if start != 0 {
+		t.Errorf("start offset = %d, want 0", start)
+	}
+}
+
 func TestParseYouTubeStart(t *testing.T) {
 	ts, ok := parseYouTubeStart([]byte(`{"items":[{"liveStreamingDetails":{"actualStartTime":"2026-03-14T15:04:05Z"}}]}`))
 	if !ok {
