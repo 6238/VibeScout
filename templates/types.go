@@ -56,30 +56,30 @@ type TeamAnalysisCard struct {
 	Failures       string
 	Auto           string
 	Recommendation string
-	Scoring        int // 1-10
-	Reliability    int // 1-10
-	Defense        int // 0 = N/A, 1-10 = score
+	Scoring        int    // 1-10
+	Reliability    int    // 1-10
+	Defense        int    // 0 = N/A, 1-10 = score
 	Error          string // set instead of the fields above when analysis generation failed
 	FromCache      bool
-	HasNotes    bool    // any non-empty match scouting notes at this event
-	HasPitNotes bool    // any pit scouting summaries
-	EPA         float64 // Statbotics total points EPA, current season
-	HasEPA      bool
-	Rank        int // current event qualification rank
-	HasRank     bool
+	HasNotes       bool    // any non-empty match scouting notes at this event
+	HasPitNotes    bool    // any pit scouting summaries
+	EPA            float64 // Statbotics total points EPA, current season
+	HasEPA         bool
+	Rank           int // current event qualification rank
+	HasRank        bool
 	// Up to the two most recent played matches at the event, newest first
 	RecentMatches []MatchLink
 
 	// What the verdict rests on. Computed from the database, not by the AI.
-	Matches         int    // distinct matches scouted at this event
-	LowData         bool   // too few matches for the AI verdict to mean much
-	ChecklistN      int    // scouted matches that recorded the yes/no checklist
-	BrokeN          int    // of those, matches where the robot broke
-	DefenseN        int    // of those, matches where it played defense
-	WasDefendedN    int    // of those, matches where it was defended
-	HasEPAPct       bool   // EPA percentile among this event's teams is known
-	EPATopPct       int    // 1 = best EPA at the event, 50 = median, 100 = worst
-	Disagreement    string // set when the notes-based verdict and EPA differ a lot
+	Matches      int    // distinct matches scouted at this event
+	LowData      bool   // too few matches for the AI verdict to mean much
+	ChecklistN   int    // scouted matches that recorded the yes/no checklist
+	BrokeN       int    // of those, matches where the robot broke
+	DefenseN     int    // of those, matches where it played defense
+	WasDefendedN int    // of those, matches where it was defended
+	HasEPAPct    bool   // EPA percentile among this event's teams is known
+	EPATopPct    int    // 1 = best EPA at the event, 50 = median, 100 = worst
+	Disagreement string // set when the notes-based verdict and EPA differ a lot
 
 	// Pre-rendered notes/pit-notes panel content, set only when this card is
 	// being re-shown right after a clarification was added, so the panel just
@@ -143,9 +143,10 @@ type PitNote struct {
 // cycles" meaning during auto, not the whole match. It's appended after the
 // notes it clarifies rather than rewriting the original scout's words.
 type Clarification struct {
-	Text   string
-	Author string // "" if not given
-	When   string
+	ID     int    `json:"id"`
+	Text   string `json:"text"`
+	Author string `json:"author"` // "" if not given
+	When   string `json:"when"`
 }
 
 type MatchPlannerPageData struct {

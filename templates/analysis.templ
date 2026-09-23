@@ -626,7 +626,7 @@ templ TeamNotesPanel(eventKey, teamNum, section string, groups []TeamNoteGroup, 
 			for _, group := range groups {
 				@teamNoteGroupCard(group)
 			}
-			@clarificationsList(clarifications)
+			@clarificationsList(eventKey, teamNum, section, "field", clarifications)
 			@clarificationForm(eventKey, teamNum, section, "field")
 		</div>
 	}
@@ -735,7 +735,7 @@ templ TeamPitNotesPanel(eventKey, teamNum, section string, notes []PitNote, clar
 					<p class="text-sm text-stone-700 mt-1 whitespace-pre-wrap">{ note.Summary }</p>
 				</div>
 			}
-			@clarificationsList(clarifications)
+			@clarificationsList(eventKey, teamNum, section, "pit", clarifications)
 			@clarificationForm(eventKey, teamNum, section, "pit")
 		</div>
 	}
@@ -745,21 +745,39 @@ templ TeamPitNotesPanel(eventKey, teamNum, section string, notes []PitNote, clar
 // top of the notes above, oldest first — visible to everyone, never a silent
 // edit, so a later reader can spot two clarifications that actually
 // contradict each other and go fix the underlying note directly instead.
-templ clarificationsList(items []Clarification) {
+// Anyone can add a clarification with no login, so anyone can also delete
+// one — e.g. once the note it was about has been edited directly and the
+// clarification is now stale.
+templ clarificationsList(eventKey, teamNum, section, noteType string, items []Clarification) {
 	if len(items) > 0 {
 		<div class="space-y-1.5">
 			<h4 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest">Clarifications</h4>
 			for _, c := range items {
-				<p class="text-sm text-stone-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
-					{ c.Text }
-					<span class="text-xs text-[#A1887F]">
-						—
-						if c.Author != "" {
-							{ c.Author },
-						}
-						{ c.When }
-					</span>
-				</p>
+				<div class="flex items-start justify-between gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+					<p class="text-sm text-stone-700">
+						{ c.Text }
+						<span class="text-xs text-[#A1887F]">
+							—
+							if c.Author != "" {
+								{ c.Author },
+							}
+							{ c.When }
+						</span>
+					</p>
+					<form
+						hx-post="/api/delete-clarification"
+						hx-target={ "#" + teamCardTargetID(section, teamNum) }
+						hx-swap="outerHTML"
+						hx-confirm="Delete this clarification? This can't be undone.">
+						<input type="hidden" name="id" value={ strconv.Itoa(c.ID) }/>
+						<input type="hidden" name="event_key" value={ eventKey }/>
+						<input type="hidden" name="team_number" value={ teamNum }/>
+						<input type="hidden" name="section" value={ section }/>
+						<input type="hidden" name="note_type" value={ noteType }/>
+						<button type="submit" title="Delete this clarification"
+							class="shrink-0 text-xs font-bold text-red-700 hover:text-red-900 px-1">✕</button>
+					</form>
+				</div>
 			}
 		</div>
 	}

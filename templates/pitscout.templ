@@ -67,6 +67,12 @@ templ PitScoutPage(eventKey string, eventName string) {
 								class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700"></textarea>
 						</div>
 
+						<!-- Strategy-team clarifications on this team's pit notes (see
+						     note_clarifications), shown right under the notes they're
+						     about — the same place those notes themselves get edited —
+						     with a delete button on each. -->
+						<div id="pit-clarifications" class="hidden space-y-1.5"></div>
+
 						<button id="pit-submit" type="submit" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-4 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
 							Save Pit Scouting
 						</button>
@@ -107,6 +113,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 					var status = document.getElementById('pit-edit-status');
 					var submit = document.getElementById('pit-submit');
 					var result = document.getElementById('pit-result');
+					var clarifications = document.getElementById('pit-clarifications');
 
 					var currentTeam = null;   // team whose notes state is loaded
 					var loadedSummary = null; // existing notes put in the text box, if any
@@ -118,16 +125,60 @@ templ PitScoutPage(eventKey string, eventName string) {
 						status.innerHTML = html;
 						status.classList.toggle('hidden', html === '');
 					}
-					function setEditing(team, text) {
+					function setEditing(team, text, clar) {
 						summary.value = text;
 						loadedSummary = text;
 						setStatus('✎ Editing existing notes for team ' + team);
 						submit.textContent = 'Update Pit Scouting';
+						renderClarifications(team, clar);
 					}
 					function setNew() {
 						loadedSummary = null;
 						setStatus('');
 						submit.textContent = 'Save Pit Scouting';
+						renderClarifications(null, []);
+					}
+
+					// Shows every clarification the strategy team has added on top of
+					// this team's pit notes, each with its own delete button — anyone
+					// can add one with no login, so anyone can also take one back, e.g.
+					// once the note above has been edited to resolve what it disagreed
+					// with. Deleting confirms first and is permanent.
+					function renderClarifications(team, list) {
+						list = list || [];
+						clarifications.innerHTML = '';
+						if (list.length === 0) { clarifications.classList.add('hidden'); return; }
+						clarifications.classList.remove('hidden');
+						var heading = document.createElement('p');
+						heading.className = 'text-xs font-bold uppercase text-[#A1887F] tracking-widest ml-1';
+						heading.textContent = 'Clarifications';
+						clarifications.appendChild(heading);
+						list.forEach(function(c) {
+							var row = document.createElement('div');
+							row.className = 'flex items-start justify-between gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5';
+							var p = document.createElement('p');
+							p.className = 'text-sm text-stone-700 flex-1';
+							p.textContent = c.text + ' — ' + (c.author ? c.author + ', ' : '') + c.when;
+							var del = document.createElement('button');
+							del.type = 'button';
+							del.title = 'Delete this clarification';
+							del.className = 'shrink-0 text-xs font-bold text-red-700 hover:text-red-900 px-1';
+							del.textContent = '✕';
+							del.addEventListener('click', function() {
+								if (!confirm("Delete this clarification? This can't be undone.")) return;
+								fetch('/api/delete-clarification', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+									body: new URLSearchParams({ id: c.id, team_number: team, note_type: 'pit' })
+								}).then(function() {
+									return fetch('/api/pit-note?team_number=' + encodeURIComponent(team));
+								}).then(function(r) { return r.json(); })
+								.then(function(note) { renderClarifications(team, note.clarifications); });
+							});
+							row.appendChild(p);
+							row.appendChild(del);
+							clarifications.appendChild(row);
+						});
 					}
 					// True if the text box holds something the scout typed that isn't saved anywhere
 					function hasUnsavedText() {
@@ -170,7 +221,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 									return;
 								}
 								if (!hasUnsavedText()) {
-									setEditing(team, note.summary);
+									setEditing(team, note.summary, note.clarifications);
 									return;
 								}
 								// Don't clobber what they typed; let them choose
@@ -179,7 +230,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 								submit.textContent = 'Update Pit Scouting';
 								loadedSummary = null;
 								document.getElementById('pit-load-existing').onclick = function() {
-									setEditing(team, note.summary);
+									setEditing(team, note.summary, note.clarifications);
 									summary.focus();
 								};
 							});

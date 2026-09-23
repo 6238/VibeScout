@@ -300,6 +300,7 @@ func main() {
 	http.HandleFunc("/api/team-notes", apiTeamNotesHandler)
 	http.HandleFunc("/api/team-pit-notes", apiTeamPitNotesHandler)
 	http.HandleFunc("/api/add-clarification", apiAddClarificationHandler)
+	http.HandleFunc("/api/delete-clarification", apiDeleteClarificationHandler)
 	http.HandleFunc("/api/search-teams", apiSearchTeamsHandler)
 	http.HandleFunc("/match-planner", matchPlannerPageHandler)
 	http.HandleFunc("/api/match-plan", apiMatchPlanHandler)
@@ -787,8 +788,15 @@ func apiPitNoteHandler(w http.ResponseWriter, r *http.Request) {
 		SELECT summary FROM pit_scouting WHERE team_number = ?
 		ORDER BY created_at DESC, id DESC LIMIT 1`, teamNum).Scan(&summary)
 
+	// Clarifications ride along here so the pit-scout page can show and
+	// delete them right alongside the human note they're about — the same
+	// place that note itself gets edited, not a separate screen.
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"exists": err == nil, "summary": summary})
+	json.NewEncoder(w).Encode(map[string]any{
+		"exists":         err == nil,
+		"summary":        summary,
+		"clarifications": clarificationsFor("", teamNum, "pit"),
+	})
 }
 
 // pitNotesFor returns all pit scouting summaries for a team, oldest first,
@@ -827,10 +835,10 @@ func pitNotesFor(teamNum string) string {
 // notes themselves (see pitNotesFor); field clarifications are, matching
 // combineTeamNotes.
 func clarificationsFor(eventKey, teamNum, noteType string) []templates.Clarification {
-	query := `SELECT clarification, author, created_at FROM note_clarifications WHERE team_number = ? AND note_type = ? ORDER BY created_at ASC`
+	query := `SELECT id, clarification, author, created_at FROM note_clarifications WHERE team_number = ? AND note_type = ? ORDER BY created_at ASC`
 	args := []any{teamNum, noteType}
 	if noteType == "field" {
-		query = `SELECT clarification, author, created_at FROM note_clarifications WHERE team_number = ? AND event_key = ? AND note_type = ? ORDER BY created_at ASC`
+		query = `SELECT id, clarification, author, created_at FROM note_clarifications WHERE team_number = ? AND event_key = ? AND note_type = ? ORDER BY created_at ASC`
 		args = []any{teamNum, eventKey, noteType}
 	}
 
@@ -845,7 +853,7 @@ func clarificationsFor(eventKey, teamNum, noteType string) []templates.Clarifica
 	for rows.Next() {
 		var c templates.Clarification
 		var createdAt time.Time
-		if err := rows.Scan(&c.Text, &c.Author, &createdAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Text, &c.Author, &createdAt); err != nil {
 			continue
 		}
 		c.When = createdAt.Format("Jan 2, 3:04 PM") + " UTC"
@@ -1298,10 +1306,7 @@ func buildPitNotes(teamNum string) ([]templates.PitNote, error) {
 // cycles" meaning during auto rather than the whole match. It's appended
 // after the notes it clarifies (see clarificationsBlock), never rewriting
 // the original scout's words, and every clarification is visible in the
-// panel it belongs to, never a silent edit. Saving invalidates that team's
-// cached analysis (the notes text — and so its hash — just changed) and
-// rebuilds the card immediately, with the panel just used reopened already
-// populated instead of collapsing back to closed.
+// panel it belongs to, never a silent edit.
 func apiAddClarificationHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
@@ -1335,6 +1340,64 @@ func apiAddClarificationHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	refreshCardAfterClarificationChange(w, r, eventKey, teamNum, section, noteType)
+}
+
+// apiDeleteClarificationHandler removes a clarification — anyone can add one
+// with no login, so anyone can also take one back, e.g. after the underlying
+// note was edited directly to resolve what it was disagreeing with (a stale
+// clarification left in place would otherwise keep being read by Gemini
+// alongside a note it no longer applies to). Deletion is permanent; the
+// button that posts here confirms with the person first (see
+// clarificationsList).
+//
+// Two callers use this: the analysis card (which also wants the whole card
+// rebuilt and returned, the same as apiAddClarificationHandler) and the
+// pit-scout page (which manages clarifications as part of editing the note
+// itself and just wants a quick ack — forcing a synchronous Gemini
+// re-analysis on every delete would make that fast, at-the-pit page wait on
+// a network call it doesn't need). event_key is how the two are told apart:
+// the analysis card always has one; the pit-scout page's delete leaves it
+// blank, since pit notes aren't scoped to an event anyway.
+func apiDeleteClarificationHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	teamNum := r.FormValue("team_number")
+	noteType := r.FormValue("note_type")
+	id, err := strconv.Atoi(r.FormValue("id"))
+	if err != nil || teamNum == "" || (noteType != "pit" && noteType != "field") {
+		http.Error(w, "a valid id, team_number, and note_type are required", http.StatusBadRequest)
+		return
+	}
+
+	// team_number and note_type aren't strictly needed to identify the row
+	// (id alone is unique) but are included as a sanity check against a
+	// mismatched or tampered form.
+	if _, err := db.Exec(`DELETE FROM note_clarifications WHERE id = ? AND team_number = ? AND note_type = ?`,
+		id, teamNum, noteType); err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+
+	eventKey := r.FormValue("event_key")
+	if eventKey == "" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{"deleted": true})
+		return
+	}
+	refreshCardAfterClarificationChange(w, r, eventKey, teamNum, r.FormValue("section"), noteType)
+}
+
+// refreshCardAfterClarificationChange rebuilds a team's analysis card after a
+// clarification was added or removed — that team's cached analysis is now
+// invalid (the notes text, and so its hash, just changed), so this
+// regenerates it immediately rather than waiting for the next natural view.
+// The panel just used is reopened already populated with the fresh list,
+// instead of collapsing back to closed.
+func refreshCardAfterClarificationChange(w http.ResponseWriter, r *http.Request, eventKey, teamNum, section, noteType string) {
 	card := buildTeamAnalysisCard(eventKey, teamNum, section)
 	if noteType == "field" {
 		if groups, err := buildTeamNoteGroups(eventKey, teamNum); err == nil {

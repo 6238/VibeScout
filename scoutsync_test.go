@@ -371,3 +371,40 @@ func TestClarificationsWithNoUnderlyingNotesNotAppended(t *testing.T) {
 		t.Errorf("no pit notes exist, so nothing should be returned, got %q", got)
 	}
 }
+
+// TestDeletedClarificationNoLongerAppended: once a clarification is deleted
+// (the same way apiDeleteClarificationHandler does it — matching on id,
+// team_number and note_type), it must stop showing up anywhere, including in
+// what Gemini reads. This is the fix for a clarification going stale once
+// the note it was about has been edited directly.
+func TestDeletedClarificationNoLongerAppended(t *testing.T) {
+	useTempDB(t)
+
+	saveScoutSubmission(ScoutSubmission{
+		EventKey: "2026test", MatchNum: 1,
+		Teams: []TeamScoutData{{TeamNumber: "254", Notes: "e-stopped mid match"}},
+	})
+	addClarification(t, "2026test", "254", "field", "this turned out to be wrong, ignore it", "")
+
+	items := clarificationsFor("2026test", "254", "field")
+	if len(items) != 1 {
+		t.Fatalf("expected 1 clarification before deleting, got %d", len(items))
+	}
+
+	res, err := db.Exec(`DELETE FROM note_clarifications WHERE id = ? AND team_number = ? AND note_type = ?`,
+		items[0].ID, "254", "field")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := res.RowsAffected(); n != 1 {
+		t.Fatalf("expected the delete to affect 1 row, got %d", n)
+	}
+
+	got := scoutNoteFor(t, "2026test", "254")
+	if strings.Contains(got, "Clarifications") {
+		t.Errorf("deleted clarification should no longer be appended, got %q", got)
+	}
+	if !strings.Contains(got, "Match 1: e-stopped mid match") {
+		t.Errorf("the original note should be untouched, got %q", got)
+	}
+}
