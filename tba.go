@@ -61,6 +61,17 @@ func decodeTBAList[T any](resp *http.Response, dest *[]T) error {
 	return json.NewDecoder(resp.Body).Decode(dest)
 }
 
+// decodeTBAObject is decodeTBAList for a single JSON object response instead
+// of a list.
+func decodeTBAObject(resp *http.Response, dest any) error {
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return fmt.Errorf("tba %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+	return json.NewDecoder(resp.Body).Decode(dest)
+}
+
 type Match struct {
 	Key         string `json:"key"`
 	MatchNumber int    `json:"match_number"`
@@ -71,6 +82,25 @@ type Match struct {
 		Red  Alliance `json:"red"`
 		Blue Alliance `json:"blue"`
 	} `json:"alliances"`
+	Videos []MatchVideo `json:"videos"` // TBA's own official match video, posted well after the event
+}
+
+type MatchVideo struct {
+	Type string `json:"type"` // "youtube" or "tba"
+	Key  string `json:"key"`
+}
+
+// OfficialYouTubeVideo returns the video ID of TBA's own official recording of
+// this match, if one has been posted yet. Unlike the event's livestream, this
+// is already trimmed to just the match, so no timestamp offset is needed —
+// but it usually isn't available until well after the event.
+func (m Match) OfficialYouTubeVideo() (string, bool) {
+	for _, v := range m.Videos {
+		if strings.EqualFold(v.Type, "youtube") && v.Key != "" {
+			return v.Key, true
+		}
+	}
+	return "", false
 }
 
 type Alliance struct {
@@ -230,6 +260,10 @@ var (
 // getEventRankingsCached returns the event's current rankings as a map of team
 // number (without "frc") to rank.
 func getEventRankingsCached(eventKey string) (map[string]int, error) {
+	if eventKey == testEventKey {
+		return demoRankings(), nil
+	}
+
 	rankingsMutex.Lock()
 	defer rankingsMutex.Unlock()
 

@@ -3,6 +3,7 @@ package templates
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // verdictClasses returns the Tailwind classes for a verdict badge, color-coded
@@ -24,12 +25,120 @@ func verdictClasses(verdict string) string {
 	}
 }
 
-templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
-	@Layout("Vibe Scout | AI Analysis") {
+// sortEPA is the card's EPA as a string for the page's sort control, or "" when
+// unknown so those cards sort last.
+func sortEPA(card TeamAnalysisCard) string {
+	if !card.HasEPA {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", card.EPA)
+}
+
+func lowDataTitle(lowData bool) string {
+	if lowData {
+		return "Based on too few scouted matches to trust. Lean on EPA."
+	}
+	return ""
+}
+
+// outlookClasses colors the match outlook badge from easy (green) to tough (red).
+func outlookClasses(winPct int) string {
+	switch {
+	case winPct >= 80:
+		return "bg-green-700 text-white"
+	case winPct >= 60:
+		return "bg-green-100 text-green-700 border border-green-300"
+	case winPct > 40:
+		return "bg-amber-100 text-amber-700 border border-amber-300"
+	case winPct > 20:
+		return "bg-orange-100 text-orange-700 border border-orange-300"
+	}
+	return "bg-red-100 text-red-700 border border-red-300"
+}
+
+// TLDRBox is our team's strategy in a line or two, shown above everything else.
+// It shows nothing when the briefing has no summary.
+templ TLDRBox(text string) {
+	if text != "" {
+		<div class="rounded-xl bg-[#5D4037] text-white px-4 py-3 shadow-md">
+			<p class="text-xs font-black uppercase tracking-widest text-[#D2B48C] mb-1">TL;DR</p>
+			<p class="text-base font-bold leading-snug">{ text }</p>
+		</div>
+	}
+}
+
+// StrategyBody is a whole briefing for pages that don't lay the summary out
+// separately: the summary box, then the rest of it.
+templ StrategyBody(s string) {
+	{{ tldr, rest := SplitTLDR(s) }}
+	if tldr != "" {
+		<div class="mb-3">
+			@TLDRBox(tldr)
+		</div>
+	}
+	@StrategyText(rest)
+}
+
+// StrategyText shows the match briefing with its section labels and team numbers
+// picked out, so it can be skimmed on the way to the field.
+templ StrategyText(s string) {
+	<div class="text-sm text-stone-700 leading-relaxed">
+		for _, l := range strategyLines(s) {
+			if l.Blank {
+				<div class="h-2"></div>
+			} else if l.Section {
+				<p class="mt-3 first:mt-0"><span class="font-black text-[#5D4037] uppercase tracking-wide text-xs">{ l.Label }</span> { l.Text }</p>
+			} else if l.Label != "" {
+				<p class="ml-3"><span class="font-black text-[#5D4037]">{ l.Label }:</span> { l.Text }</p>
+			} else {
+				<p>{ l.Text }</p>
+			}
+		}
+	</div>
+}
+
+// panelID is the element id for a card's notes panels. Cards in the next-match
+// section share team numbers with the full list, so the section is part of the id.
+func panelID(card TeamAnalysisCard, kind string) string {
+	return card.Section + kind + "-" + card.TeamNumber
+}
+
+// NextMatchPage is our next qualification match: the win chance, the plan and a
+// summary of each team in it. The content loads from /api/next-match.
+templ NextMatchPage(data EventPageData) {
+	@Layout("Vibe Scout | Next Match") {
+		<main class="container mx-auto px-4 py-8">
+			<div class="max-w-4xl mx-auto">
+				<p class="text-sm font-bold text-[#A1887F] mb-3 text-center">{ data.EventName }</p>
+				<div
+					id="next-match"
+					hx-get={ "/api/next-match?event_key=" + data.EventKey }
+					hx-trigger="load"
+					hx-swap="innerHTML"
+					class="mb-6">
+					<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl text-center text-[#A1887F] font-bold animate-pulse">
+						Loading next match...
+					</div>
+				</div>
+			</div>
+
+			<div class="text-center mt-6 flex flex-wrap gap-x-6 gap-y-2 justify-center">
+				<a href={ templ.SafeURL("/pick-list?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Pick List →</a>
+				<a href={ templ.SafeURL("/match-planner?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Plan a different match →</a>
+				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">← Back to Home</a>
+			</div>
+		</main>
+	}
+}
+
+// PickListPage is the ranked list of every team with its summary card, for
+// deciding who to pick.
+templ PickListPage(data EventPageData) {
+	@Layout("Vibe Scout | Pick List") {
 		<main class="container mx-auto px-4 py-8">
 			<div class="max-w-4xl mx-auto">
 				<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl mb-6">
-					<h1 class="text-3xl font-black text-[#5D4037] mb-1 text-center tracking-tight uppercase">AI Analysis</h1>
+					<h1 class="text-3xl font-black text-[#5D4037] mb-1 text-center tracking-tight uppercase">Pick List</h1>
 					<p class="text-sm font-bold text-[#A1887F] mb-4 text-center">{ data.EventName }</p>
 
 					<form
@@ -47,6 +156,18 @@ templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 						<input id="team-search" type="search" autocomplete="off" placeholder="Team # or keyword in scout / pit notes"
 							class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700"/>
 						<p id="team-search-status" class="text-xs text-[#A1887F] ml-2 mt-1"></p>
+					</div>
+
+					<div class="mt-4">
+						<label for="team-sort" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Sort Teams</label>
+						<select id="team-sort" class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
+							<option value="epa">EPA (best first)</option>
+							<option value="team">Team number</option>
+							<option value="reliability">Reliability (scouted)</option>
+							<option value="scoring">Scoring (scouted)</option>
+							<option value="matches">Matches scouted</option>
+						</select>
+						<p class="text-xs text-[#A1887F] ml-2 mt-1">EPA is measured over every match. Scouted ratings are only as good as the number of matches scouted.</p>
 					</div>
 				</div>
 
@@ -96,17 +217,124 @@ templ GeminiAnalysisPage(data GeminiAnalysisPageData) {
 						clearTimeout(timer);
 						timer = setTimeout(search, 250);
 					});
-					// Keep the filter applied as team cards load in
-					document.body.addEventListener('htmx:afterSettle', applyFilter);
+					var sortSel = document.getElementById('team-sort');
+					function num(el, key) {
+						var v = parseFloat(el.dataset[key]);
+						return isNaN(v) ? null : v;
+					}
+					function applySort() {
+						var list = document.querySelector('#analysis-results .space-y-4');
+						if (!list) return;
+						var key = sortSel.value;
+						var items = Array.prototype.slice.call(list.children);
+						// Cards still loading have no data yet, so they stay at the end.
+						var loaded = items.filter(function(el) { return !el.dataset.teamSlot; });
+						var pending = items.filter(function(el) { return el.dataset.teamSlot; });
+						loaded.sort(function(a, b) {
+							var av = num(a, key);
+							var bv = num(b, key);
+							if (av === null && bv === null) return num(a, 'team') - num(b, 'team');
+							if (av === null) return 1;
+							if (bv === null) return -1;
+							if (av === bv) return num(a, 'team') - num(b, 'team');
+							return key === 'team' ? av - bv : bv - av;
+						});
+						loaded.concat(pending).forEach(function(el) { list.appendChild(el); });
+					}
+					sortSel.addEventListener('change', applySort);
+
+					// Keep the filter and sort applied as team cards load in
+					document.body.addEventListener('htmx:afterSettle', function() {
+						applyFilter();
+						applySort();
+					});
 				})();
 			</script>
 
 			<div class="text-center mt-6 flex gap-6 justify-center">
-				<a href={ templ.SafeURL("/match-planner?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Match Planner →</a>
+				<a href={ templ.SafeURL("/next-match?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Next Match →</a>
 				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">← Back to Home</a>
 			</div>
 		</main>
 	}
+}
+
+templ NextMatchSection(d NextMatchData) {
+	if d.MatchNum == 0 {
+		<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl text-center">
+			<h2 class="text-xl font-black text-[#5D4037] uppercase tracking-tight">Next Match</h2>
+			if d.PlanError != "" {
+				<p class="text-sm text-red-600 mt-2">{ d.PlanError }</p>
+			} else {
+				<p class="text-sm text-[#A1887F] mt-2">{ "Team " + OurTeam + " has no unplayed qualification matches on the schedule." }</p>
+			}
+		</div>
+	} else {
+		<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl space-y-4">
+			{{ tldr, rest := SplitTLDR(d.Plan.Strategy) }}
+			<div class="flex flex-wrap justify-between items-baseline gap-2">
+				<h2 class="text-2xl font-black text-[#5D4037] uppercase tracking-tight">{ "Next Match: " + d.Label }</h2>
+				<span class="text-sm font-bold text-[#A1887F]">{ "We're on " + d.Plan.OurAlliance }</span>
+			</div>
+
+			@TLDRBox(tldr)
+
+			if d.HasPrediction {
+				<div class="bg-white rounded-xl p-4 border border-[#D2B48C]" title="Statbotics' forecast for this match, from our side">
+					<div class="flex flex-wrap justify-between items-center gap-2 mb-2">
+						<span class={ "text-sm font-black px-3 py-1 rounded-full uppercase tracking-wide", outlookClasses(d.WinPct) }>{ d.Outlook }</span>
+						<span class="text-2xl font-black text-[#5D4037]">{ fmt.Sprintf("%d%%", d.WinPct) } <span class="text-xs font-bold text-[#A1887F] uppercase">to win</span></span>
+					</div>
+					<div class="h-2 rounded-full overflow-hidden bg-stone-200">
+						<div class="h-full rounded-full bg-[#8D6E63]" style={ fmt.Sprintf("width: %d%%", d.WinPct) }></div>
+					</div>
+					<p class="text-xs font-bold text-[#A1887F] mt-2">
+						{ fmt.Sprintf("Predicted score: %.0f – %.0f (us – them) · Statbotics", d.OurScore, d.TheirScore) }
+					</p>
+				</div>
+			}
+
+			<div class="bg-white rounded-xl p-4 border border-[#D2B48C]">
+				<p class="text-xs font-bold text-[#A1887F] uppercase mb-2">Strategy</p>
+				if d.PlanError != "" {
+					<p class="text-sm text-red-600">{ d.PlanError }</p>
+				} else {
+					@StrategyText(rest)
+				}
+			</div>
+
+			<div>
+				<h3 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest mb-2">Partners</h3>
+				<div class="space-y-4">
+					for _, t := range d.Partners {
+						@nextMatchSlot(d.EventKey, t)
+					}
+				</div>
+			</div>
+			<div>
+				<h3 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest mb-2">Opponents</h3>
+				<div class="space-y-4">
+					for _, t := range d.Opponents {
+						@nextMatchSlot(d.EventKey, t)
+					}
+				</div>
+			</div>
+		</div>
+	}
+}
+
+// nextMatchSlot is a placeholder that loads one team's summary card. It has no
+// data-team-slot, so it doesn't count toward the full-list progress bar.
+templ nextMatchSlot(eventKey string, team string) {
+	<div
+		hx-get={ "/api/analyze-team?section=next-&event_key=" + eventKey + "&team_number=" + team }
+		hx-trigger="load"
+		hx-swap="outerHTML"
+		class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md animate-pulse">
+		<div class="h-6 w-28 bg-[#D2B48C44] rounded mb-3"></div>
+		<div class="h-4 bg-[#D2B48C44] rounded w-full mb-2"></div>
+		<div class="h-4 bg-[#D2B48C44] rounded w-3/4"></div>
+	</div>
 }
 
 templ GeminiAnalysisProgressContainer(teams []string, eventKey string) {
@@ -173,20 +401,76 @@ templ GeminiAnalysisProgressContainer(teams []string, eventKey string) {
 	}
 }
 
+// pitProfileRow shows what the team told us in the pit. It is styled quietly and
+// labeled self-reported because it counts for less than what we saw in matches.
+templ pitProfileRow(p PitProfile) {
+	<div class="mb-4 rounded-xl bg-[#F2E8D5]/60 border border-dashed border-[#D2B48C] px-3 py-2">
+		<div class="flex flex-wrap items-center gap-1.5 mb-1">
+			<span class="text-xs font-bold uppercase text-[#A1887F]" title="From the pit interview. The team's own claims, weighted less than match scouting.">Pit (self-reported)</span>
+			if p.Archetype != "" {
+				<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FFFBF5] text-[#5D4037] border border-[#8D6E63]">{ p.Archetype }</span>
+			}
+			if p.Role != "" {
+				<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FFFBF5] text-[#5D4037] border border-[#D2B48C]">{ "Prefers " + p.Role }</span>
+			}
+		</div>
+		<dl class="grid sm:grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-stone-700 leading-snug">
+			@pitFact("Strength", p.Strength)
+			@pitFact("Biggest problem", p.Problem)
+			@pitFact("Wants partner", p.Partner)
+			@pitFact("Back-to-back", p.Turnaround)
+			@pitFact("Driver safety", p.Safety)
+		</dl>
+	</div>
+}
+
+templ pitFact(label string, value string) {
+	if value != "" {
+		<div>
+			<dt class="inline font-bold text-[#8D6E63]">{ label }: </dt>
+			<dd class="inline">{ value }</dd>
+		</div>
+	}
+}
+
 templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
-	<div data-team={ card.TeamNumber } class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md">
+	<div
+		data-team={ card.TeamNumber }
+		data-epa={ sortEPA(card) }
+		data-matches={ strconv.Itoa(card.Matches) }
+		data-scoring={ strconv.Itoa(card.Scoring) }
+		data-reliability={ strconv.Itoa(card.Reliability) }
+		class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md">
 		<!-- Header row -->
 		<div class="flex flex-wrap justify-between items-center gap-2 mb-4">
-			<div class="flex items-baseline gap-2">
+			<div class="flex flex-wrap items-baseline gap-2">
 				<h2 class="text-xl font-black text-[#5D4037] whitespace-nowrap">Team { card.TeamNumber }</h2>
-				if card.Verdict != "" {
-					<span class={ "text-xs font-black px-3 py-1 rounded-full uppercase tracking-wide whitespace-nowrap", verdictClasses(card.Verdict) }>
-						{ card.Verdict }
-					</span>
-				}
 				if card.HasEPA {
 					<span class="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-[#5D4037] text-white" title="Statbotics total points EPA this season">
 						{ fmt.Sprintf("EPA %.1f", card.EPA) }
+					</span>
+				}
+				if card.HasEPAPct {
+					<span class="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-[#F2E8D5] text-[#5D4037] border border-[#8D6E63]" title="Where this team's EPA ranks among the teams at this event">
+						{ fmt.Sprintf("EPA top %d%%", card.EPATopPct) }
+					</span>
+				}
+				if card.Matches > 0 {
+					<span class={ "text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap border",
+						templ.KV("bg-amber-100 text-amber-700 border-amber-300", card.LowData),
+						templ.KV("bg-green-100 text-green-700 border-green-300", !card.LowData) }
+						title="Matches our scouts recorded for this team. The scouting read below rests on these.">
+						{ fmt.Sprintf("%d scouted", card.Matches) }
+					</span>
+				}
+				if card.LowData {
+					<span class="text-xs font-black px-3 py-1 rounded-full uppercase tracking-wide whitespace-nowrap bg-stone-100 text-stone-600 border border-stone-300" title="Fewer than 3 scouted matches, so no verdict is shown. Use EPA.">
+						Low data
+					</span>
+				} else if card.Verdict != "" {
+					<span class={ "text-xs font-black px-3 py-1 rounded-full uppercase tracking-wide whitespace-nowrap", verdictClasses(card.Verdict) }
+						title="The AI's read of our scouting notes only. It is not a rating of the team.">
+						{ "Notes: " + card.Verdict }
 					</span>
 				}
 				if card.HasRank {
@@ -199,11 +483,20 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 				<div class="flex flex-wrap items-center gap-1.5">
 					<span class="text-xs font-bold uppercase text-[#A1887F] whitespace-nowrap">Latest Matches</span>
 					for _, m := range card.RecentMatches {
-						<a href={ templ.SafeURL(m.URL) } target="_blank" rel="noopener noreferrer"
-							title={ "Watch " + m.Label + " on The Blue Alliance" }
-							class="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap bg-[#FFFBF5] text-[#5D4037] border border-[#8D6E63] hover:bg-[#8D6E63] hover:text-white transition">
-							{ m.Label } ↗
-						</a>
+						<span class="inline-flex rounded-full overflow-hidden border border-[#8D6E63]">
+							<a href={ templ.SafeURL(m.URL) } target="_blank" rel="noopener noreferrer"
+								title={ "Match " + m.Label + " on The Blue Alliance" }
+								class="text-xs font-bold px-2.5 py-1 whitespace-nowrap bg-[#FFFBF5] text-[#5D4037] hover:bg-[#8D6E63] hover:text-white transition">
+								{ m.Label } ↗
+							</a>
+							if m.HasWatch {
+								<a href={ templ.SafeURL(m.WatchURL) } target="_blank" rel="noopener noreferrer"
+									title={ "Watch " + m.Label + " on YouTube at the moment it happened — no waiting for the edited match video" }
+									class="text-xs font-bold px-2 py-1 whitespace-nowrap bg-[#5D4037] text-white hover:bg-[#8D6E63] transition border-l border-[#8D6E63]">
+									▶
+								</a>
+							}
+						</span>
 					}
 				</div>
 			}
@@ -217,7 +510,7 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 					<button
 						class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap bg-[#F2E8D5] text-[#8D6E63] border border-[#D2B48C] hover:bg-[#D2B48C] transition"
 						hx-get={ "/api/team-notes?event_key=" + card.EventKey + "&team_number=" + card.TeamNumber }
-						hx-target={ "#notes-" + card.TeamNumber }
+						hx-target={ "#" + panelID(card, "notes") }
 						hx-swap="innerHTML"
 						hx-on::before-request="var t = event.detail.target; if (t.innerHTML.trim() !== '') { t.innerHTML = ''; event.preventDefault(); }">
 						View Notes
@@ -227,7 +520,7 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 					<button
 						class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap bg-[#F2E8D5] text-[#8D6E63] border border-[#D2B48C] hover:bg-[#D2B48C] transition"
 						hx-get={ "/api/team-pit-notes?team_number=" + card.TeamNumber }
-						hx-target={ "#pit-notes-" + card.TeamNumber }
+						hx-target={ "#" + panelID(card, "pit-notes") }
 						hx-swap="innerHTML"
 						hx-on::before-request="var t = event.detail.target; if (t.innerHTML.trim() !== '') { t.innerHTML = ''; event.preventDefault(); }">
 						Pit Notes
@@ -236,8 +529,24 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 			</div>
 		</div>
 
+		if card.Disagreement != "" {
+			<p class="text-xs font-bold text-amber-800 bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 mb-3">
+				⚠ { card.Disagreement }
+			</p>
+		}
+		if card.ChecklistN > 0 {
+			<p class="text-xs font-bold text-[#8D6E63] mb-3">
+				{ fmt.Sprintf("Checklist (%d matches): broke %d · played defense %d · was defended %d", card.ChecklistN, card.BrokeN, card.DefenseN, card.WasDefendedN) }
+			</p>
+		}
+
+		if card.Pit.Has {
+			@pitProfileRow(card.Pit)
+		}
+
 		<!-- Score bars -->
-		<div class="grid grid-cols-3 gap-3 mb-4">
+		<div class={ "grid grid-cols-3 gap-3 mb-4", templ.KV("opacity-50", card.LowData) }
+			title={ lowDataTitle(card.LowData) }>
 			@scoreBar("Scoring", card.Scoring, "#D2B48C", "#8D6E63")
 			@scoreBar("Reliability", card.Reliability, "#A8D5A2", "#4CAF50")
 			@defenseBar(card.Defense)
@@ -274,8 +583,8 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 		}
 
 		<!-- Notes (loaded on demand) -->
-		<div id={ "notes-" + card.TeamNumber }></div>
-		<div id={ "pit-notes-" + card.TeamNumber }></div>
+		<div id={ panelID(card, "notes") }></div>
+		<div id={ panelID(card, "pit-notes") }></div>
 	</div>
 }
 
@@ -286,45 +595,93 @@ templ closePanelButton() {
 	</button>
 }
 
-templ TeamNotesPanel(notes []TeamNote) {
-	if len(notes) == 0 {
+templ TeamNotesPanel(groups []TeamNoteGroup) {
+	if len(groups) == 0 {
 		<div data-notes-panel class="mt-4 flex justify-between items-center">
 			<p class="text-sm text-[#A1887F] italic">No scouting notes found.</p>
 			@closePanelButton()
 		</div>
 	} else {
-		<div data-notes-panel class="mt-4 border-t border-[#D2B48C] pt-4 space-y-3">
+		<div data-notes-panel class="mt-4 border-t border-[#D2B48C] pt-4 space-y-4">
 			<div class="flex justify-between items-center">
 				<h3 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest">Scout Notes</h3>
 				@closePanelButton()
 			</div>
-			for _, note := range notes {
-				<div class="bg-[#F2E8D5] rounded-xl px-4 py-3">
-					<div class="flex justify-between items-baseline gap-2">
-						<span class="text-xs font-bold text-[#8D6E63] uppercase">Match { fmt.Sprintf("%d", note.MatchNum) }</span>
-						if note.AIGenerated {
-							<span class="text-xs font-bold text-[#A1887F]">Gemini (video)</span>
-						} else if note.ScouterName != "" {
-							<span class="text-xs font-bold text-[#A1887F] truncate">{ note.ScouterName }</span>
-						}
-					</div>
-					if note.HasChecklist {
-						<div class="flex flex-wrap gap-1.5 mt-2">
-							@checklistChip("Broke", note.Broke, true)
-							@checklistChip("Played defense", note.PlayedDefense, false)
-							@checklistChip("Was defended", note.WasDefended, false)
-							if note.AutoType != "" {
-								<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FFFBF5] text-[#5D4037] border border-[#D2B48C]">Auto: { note.AutoType }</span>
-							}
-						</div>
-					}
-					if note.Notes != "" {
-						<p class="text-sm text-stone-700 mt-1 whitespace-pre-wrap">{ note.Notes }</p>
-					}
-				</div>
+			for _, group := range groups {
+				@teamNoteGroupCard(group)
 			}
 		</div>
 	}
+}
+
+// teamNoteGroupCard is every note for one match, under a header linking back
+// to that match — TBA's own video once it's posted, otherwise a timestamped
+// moment in the event's livestream — plus the score, partners and opponents,
+// so a disputed or surprising note can be checked against what actually
+// happened.
+templ teamNoteGroupCard(group TeamNoteGroup) {
+	<div class="bg-[#F2E8D5] rounded-xl px-4 py-3">
+		<div class="flex justify-between items-baseline gap-2 flex-wrap">
+			<span class="text-sm font-black text-[#5D4037] uppercase">Match { fmt.Sprintf("%d", group.MatchNum) }</span>
+			<div class="flex items-center gap-2 text-xs font-bold text-[#8D6E63]">
+				if group.ScoreText != "" {
+					<span>{ group.ScoreText }</span>
+				}
+				if group.Partners != "" {
+					<span class="text-[#A1887F]">with { group.Partners }</span>
+				}
+				if group.Opponents != "" {
+					<span class="text-[#A1887F]">vs { group.Opponents }</span>
+				}
+				if group.HasWatch {
+					<a href={ templ.SafeURL(group.WatchURL) } target="_blank" rel="noopener"
+						class="text-[#5D4037] bg-white border border-[#D2B48C] rounded-full px-2 py-0.5 hover:bg-[#FFFBF5]">▶ Watch</a>
+				}
+			</div>
+		</div>
+		if len(group.Conflicts) > 0 {
+			<p class="text-xs font-bold text-red-700 mt-1.5">⚠ Scouts disagreed on: { strings.Join(group.Conflicts, ", ") } — check the video above.</p>
+		}
+		<div class="mt-2 space-y-2">
+			for _, note := range group.Notes {
+				@teamNoteCard(note, len(group.Notes) > 1)
+			}
+		</div>
+	</div>
+}
+
+templ teamNoteCard(note TeamNote, showMode bool) {
+	<div class="bg-[#FFFBF5]/70 rounded-lg px-3 py-2 border border-[#E0CDA8]">
+		<div class="flex justify-between items-baseline gap-2">
+			if note.AIGenerated {
+				<span class="text-xs font-bold text-[#A1887F]">Gemini (video)</span>
+			} else if note.ScouterName != "" {
+				<span class="text-xs font-bold text-[#A1887F] truncate">{ note.ScouterName }</span>
+			} else {
+				<span></span>
+			}
+			if showMode && !note.AIGenerated {
+				if note.SingleTeam {
+					<span class="text-xs font-bold text-[#8D6E63]">Focused on this robot</span>
+				} else {
+					<span class="text-xs font-bold text-[#A1887F]">Watching multiple robots</span>
+				}
+			}
+		</div>
+		if note.HasChecklist {
+			<div class="flex flex-wrap gap-1.5 mt-2">
+				@checklistChip("Broke", note.Broke, true)
+				@checklistChip("Played defense", note.PlayedDefense, false)
+				@checklistChip("Was defended", note.WasDefended, false)
+				if note.AutoType != "" {
+					<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FFFBF5] text-[#5D4037] border border-[#D2B48C]">Auto: { note.AutoType }</span>
+				}
+			</div>
+		}
+		if note.Notes != "" {
+			<p class="text-sm text-stone-700 mt-1 whitespace-pre-wrap">{ note.Notes }</p>
+		}
+	</div>
 }
 
 // checklistChip shows a yes/no answer; bad answers ("broke: yes") are red.

@@ -3,12 +3,49 @@ package templates
 // OurTeam is the team this scouting app belongs to.
 const OurTeam = "6238"
 
-type GeminiAnalysisPageData struct {
+// EventPageData is what the Next Match and Pick List pages need: the event.
+type EventPageData struct {
 	EventKey  string
 	EventName string
 }
 
+// NextMatchData is the "next match" section at the top of the analysis page.
+type NextMatchData struct {
+	EventKey  string
+	Found     bool // our team has an unplayed qual match
+	Label     string
+	MatchNum  int
+	Plan      MatchPlanCard
+	PlanError string
+	Partners  []string // our alliance, excluding us
+	Opponents []string
+
+	// Statbotics' forecast, from our alliance's side. Unset when Statbotics
+	// has no prediction, in which case the section leaves it out.
+	HasPrediction bool
+	WinPct        int // our chance to win, 0-100
+	Outlook       string
+	OurScore      float64
+	TheirScore    float64
+}
+
+// PitProfile is the handful of pit interview answers that say something about
+// how a robot plays. They are the team's own claims, so the card shows them
+// separately from what our scouts saw in matches.
+type PitProfile struct {
+	Has        bool // at least one field is filled in
+	Archetype  string
+	Role       string
+	Partner    string // partner archetype that complements them
+	Strength   string
+	Problem    string // biggest robot problem
+	Turnaround string // back-to-back match capability
+	Safety     string // driver safety
+}
+
 type TeamAnalysisCard struct {
+	Pit            PitProfile
+	Section        string // id prefix for cards shown in more than one place on the page
 	EventKey       string
 	TeamNumber     string
 	Verdict        string // one of: Elite Pick, Strong Pick, Average, Below Average, Avoid
@@ -30,11 +67,28 @@ type TeamAnalysisCard struct {
 	HasRank     bool
 	// Up to the two most recent played matches at the event, newest first
 	RecentMatches []MatchLink
+
+	// What the verdict rests on. Computed from the database, not by the AI.
+	Matches         int    // distinct matches scouted at this event
+	LowData         bool   // too few matches for the AI verdict to mean much
+	ChecklistN      int    // scouted matches that recorded the yes/no checklist
+	BrokeN          int    // of those, matches where the robot broke
+	DefenseN        int    // of those, matches where it played defense
+	WasDefendedN    int    // of those, matches where it was defended
+	HasEPAPct       bool   // EPA percentile among this event's teams is known
+	EPATopPct       int    // 1 = best EPA at the event, 50 = median, 100 = worst
+	Disagreement    string // set when the notes-based verdict and EPA differ a lot
 }
 
 type MatchLink struct {
 	Label string // e.g. "Q12"
 	URL   string
+
+	// A deep link into the event's YouTube broadcast at the moment this match
+	// happened, so it can be reviewed before the edited match video is posted.
+	// Empty when we don't have enough to build one (no webcast, etc).
+	WatchURL string
+	HasWatch bool
 }
 
 type TeamNote struct {
@@ -42,12 +96,28 @@ type TeamNote struct {
 	Notes       string
 	ScouterName string // "" for notes saved before scouters had names
 	AIGenerated bool   // filled in by Gemini from match video
+	SingleTeam  bool   // scout was focused on just this robot, not a whole alliance
 	// Match checklist; only meaningful when HasChecklist
 	HasChecklist  bool
 	Broke         bool
 	PlayedDefense bool
 	WasDefended   bool
 	AutoType      string
+}
+
+// TeamNoteGroup is every note for one match, with enough match context (a
+// link to go watch it, the final score, who the opponents were) that a
+// reviewer can check a disputed or surprising note against what actually
+// happened instead of taking any one scout's word for it.
+type TeamNoteGroup struct {
+	MatchNum  int
+	WatchURL  string
+	HasWatch  bool
+	ScoreText string   // e.g. "Won 674–16"; "" if the match hasn't been played yet
+	Partners  string   // e.g. "254, 971" — the rest of this team's own alliance
+	Opponents string   // e.g. "9032, 5940, 973"
+	Conflicts []string // checklist fields the notes below disagree on, e.g. ["Broke"]
+	Notes     []TeamNote
 }
 
 type PitTeam struct {

@@ -42,7 +42,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><style>\r\n            body { background-color: #F7F0E6; } /* Sunbaked Cream */\r\n        </style></head><body class=\"font-sans text-stone-800\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><style>\r\n            body { background-color: #F7F0E6; } /* Sunbaked Cream */\r\n        </style></head><body class=\"font-sans text-stone-800\"><!-- Loaded before the page content: both only attach listeners to\r\n             document.body and don't touch page-specific elements, but a\r\n             page's own inline script can run synchronously as soon as it's\r\n             parsed and may call window.offlineSync/etc. immediately (not\r\n             just from an event handler) — so these have to exist first. --><script src=\"/static/read-cache.js\"></script><script src=\"/static/offline-sync.js\"></script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

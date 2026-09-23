@@ -139,9 +139,11 @@ templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []Scout
 
 		@templ.JSONScript("scout-config", ScoutPageConfig{Teams: teams, OneRobot: singleTeam})
 		<script>
-			// Quick-tag buttons just toggle selected state; they stay out of the visible
-			// notes textarea and get merged into the notes sent to the server on submit
-			// (see nextMatch), so Gemini sees them without cluttering the scout's view.
+			// Quick-tag buttons just toggle selected state; saveAndAdvance reads
+			// which ones are active straight off the DOM and sends them as
+			// structured fields (broke/played_defense/was_defended), not merged
+			// into the notes text — see formatChecklistNote on the server for how
+			// they're turned back into a sentence Gemini reads.
 			document.addEventListener('click', function(e) {
 				const btn = e.target.closest('[data-tag-btn]');
 				if (!btn) return;
@@ -164,13 +166,25 @@ templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []Scout
 				const scouter = params.get('scouter') || '';
 				const pickedTeam = params.get('team');
 
+				// A one-robot scout is watching just this robot, not splitting
+				// attention across a whole alliance — sent along so notes from the
+				// two modes can be told apart later (see combineTeamNotes on the
+				// server, and the ScoutPageConfig JSON this page already embeds).
+				const scoutConfig = JSON.parse(document.getElementById('scout-config')?.textContent || '{}');
+				const singleTeam = !!scoutConfig.one_robot;
+
 				const teamCards = document.querySelectorAll('[data-team-card]');
 				const teams = Array.from(teamCards).map(card => {
-					const tags = Array.from(card.querySelectorAll('[data-tag-btn].active')).map(b => b.dataset.tag);
+					const isActive = tag => !!card.querySelector('[data-tag-btn][data-tag="' + tag + '"].active');
 					const notes = card.querySelector('textarea')?.value || '';
 					return {
 						team_number: card.getAttribute('data-team-card'),
-						notes: tags.length ? '[' + tags.join('] [') + '] ' + notes : notes
+						notes: notes,
+						has_checklist: true,
+						broke: isActive('Broke'),
+						played_defense: isActive('Played Defense'),
+						was_defended: isActive('Was Defended'),
+						single_team: singleTeam
 					};
 				});
 
@@ -181,25 +195,17 @@ templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []Scout
 					teams: teams
 				};
 
-				try {
-					const resp = await fetch('/api/save-scout', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(submission)
-					});
+				// Save on this device first — that can't fail — then let it sync in
+				// the background instead of making the scout wait on (or lose data
+				// to) a bad connection. The queue keeps retrying until the server
+				// confirms it, including after this page has moved on.
+				window.offlineSync.queue('scout', '/api/save-scout', submission);
 
-					if (resp.ok) {
-						// Both modes pick a team/alliance each match, so always return to
-						// Field Scouting to pick again for the next one.
-						const next = new URLSearchParams({ event_key: eventKey, match_num: matchNum + 1, scouter: scouter });
-						next.set('mode', pickedTeam ? 'one' : 'three');
-						window.location.href = '/field-scout?' + next;
-					} else {
-						alert('Failed to save scout data.');
-					}
-				} catch (err) {
-					alert('Error: ' + err.message);
-				}
+				// Both modes pick a team/alliance each match, so always return to
+				// Field Scouting to pick again for the next one.
+				const next = new URLSearchParams({ event_key: eventKey, match_num: matchNum + 1, scouter: scouter });
+				next.set('mode', pickedTeam ? 'one' : 'three');
+				window.location.href = '/field-scout?' + next;
 			}
 			window.saveAndAdvance = saveAndAdvance;
 		</script>
@@ -207,9 +213,9 @@ templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []Scout
 	}
 }
 
-// fieldTagButton is a toggleable pill button; selected tags are merged into
-// the notes sent to the server on submit (see nextMatch in ScoutPage), kept
-// out of the visible textarea.
+// fieldTagButton is a toggleable pill button; its state is read straight off
+// the DOM on submit and sent as a structured field (see saveAndAdvance in
+// ScoutPage), kept out of the visible notes textarea.
 templ fieldTagButton(tag string) {
 	<button type="button" data-tag-btn data-tag={ tag }
 		class="field-tag text-sm font-bold px-3.5 py-2 rounded-full border border-[#D2B48C] bg-white text-[#8D6E63] hover:bg-[#F2E8D5] transition">

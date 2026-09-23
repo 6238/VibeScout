@@ -1,0 +1,21 @@
+You are extracting facts from a FIRST Robotics Competition pit scouting summary for Team {{.TeamNum}}. The summary is what our scouts wrote down of the team's own answers to a list of interview questions. Respond with a JSON object only — no markdown fences, no extra text.
+
+JSON format: {"archetype":"Scorer","role":"Offense","partner":"...","strength":"...","problem":"...","turnaround":"...","safety":"..."}
+
+Only these parts of the interview matter. Ignore everything else in the summary (CAD, checklists, mentors, team organization, fabrication, "proudest part" and similar).
+
+Field rules:
+- archetype: exactly one of "Scorer", "Defender", "Feeder", "All-Around", or "" if the summary doesn't say. (Question: robot archetype.)
+- role: exactly one of "Offense", "Defense", "Feeding", "Flexible", or "" if the summary doesn't say. (Question: preferred alliance role.)
+- partner: up to 12 words on what kind of alliance partner complements them, or "".
+- strength: up to 12 words on the team's biggest strength, or "".
+- problem: up to 12 words on their biggest robot problem this season, or "".
+- turnaround: up to 12 words on whether they can play back-to-back matches (battery swap only), or "".
+- safety: up to 12 words on their answer about driver safety / whether they'd run into partners, or "".
+
+Rules:
+- Use only what the summary says. If a question wasn't answered or the answer is unclear, use "". Never guess or infer from the team number or from other answers.
+- These are the team's own claims. Report them as stated; do not embellish or judge them.
+
+Pit scouting summary:
+{{.PitNotes}}

@@ -5,7 +5,6 @@ package main
 import (
 	"bytes"
 	"crypto/sha256"
-	"database/sql"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -14,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -39,40 +39,35 @@ var matchPlanPromptTmpl string
 var videoScoutPromptTmpl string
 
 type ScoutSubmission struct {
-	EventKey    string          `json:"event_key"`
-	MatchNum    int             `json:"match_num"`
-	ScouterName string          `json:"scouter_name"`
-	Teams       []TeamScoutData `json:"teams"`
+	EventKey     string          `json:"event_key"`
+	MatchNum     int             `json:"match_num"`
+	ScouterName  string          `json:"scouter_name"`
+	SubmissionID string          `json:"submission_id"` // client-generated; see saveScoutSubmission
+	Teams        []TeamScoutData `json:"teams"`
 }
 
 type TeamScoutData struct {
 	TeamNumber    string `json:"team_number"`
 	Notes         string `json:"notes"`
-	HasChecklist  bool   `json:"has_checklist"` // only one-robot mode sends a checklist
+	HasChecklist  bool   `json:"has_checklist"` // field scouting sends this; the AI video-fill tool leaves it unset
 	Broke         bool   `json:"broke"`
 	PlayedDefense bool   `json:"played_defense"`
 	WasDefended   bool   `json:"was_defended"`
-	AutoType      string `json:"auto_type"`
+	AutoType      string `json:"auto_type"`   // not currently collected in the UI; always empty for now
+	SingleTeam    bool   `json:"single_team"` // scout was focused on just this robot, not splitting attention across an alliance
 }
 
 // hasScoutDataSQL matches submissions with something in them: written notes or
 // a checklist.
 const hasScoutDataSQL = `(TRIM(notes) != '' OR COALESCE(has_checklist, 0) = 1)`
 
-// scoutNoteColumns selects a submission's notes plus its checklist, for scanScoutNote.
-const scoutNoteColumns = `notes, COALESCE(has_checklist, 0), COALESCE(broke, 0), COALESCE(played_defense, 0), COALESCE(was_defended, 0), COALESCE(auto_type, '')`
-
-// scanScoutNote scans scoutNoteColumns and returns the text Gemini sees for one
-// submission. Rows without a checklist return just their notes, so older cached
-// analyses stay valid.
-func scanScoutNote(rows *sql.Rows) (string, error) {
-	var notes, autoType string
-	var hasChecklist, broke, playedDefense, wasDefended bool
-	if err := rows.Scan(&notes, &hasChecklist, &broke, &playedDefense, &wasDefended, &autoType); err != nil {
-		return "", err
-	}
+// formatChecklistNote turns one submission's notes plus its checklist flags
+// into the text Gemini reads, e.g. "scored well [Auto: 2 piece; Broke: no;
+// Played defense: no; Was defended: yes]". A row without a checklist (older
+// data, or the AI video-fill tool) returns just its notes.
+func formatChecklistNote(notes string, hasChecklist, broke, playedDefense, wasDefended bool, autoType string) string {
 	if !hasChecklist {
-		return notes, nil
+		return notes
 	}
 	yesNo := func(b bool) string {
 		if b {
@@ -87,9 +82,160 @@ func scanScoutNote(rows *sql.Rows) (string, error) {
 	checklist := fmt.Sprintf("[Auto: %s; Broke: %s; Played defense: %s; Was defended: %s]",
 		auto, yesNo(broke), yesNo(playedDefense), yesNo(wasDefended))
 	if strings.TrimSpace(notes) == "" {
-		return checklist, nil
+		return checklist
 	}
-	return notes + " " + checklist, nil
+	return notes + " " + checklist
+}
+
+// scoutRow is one match_num's submission, as read by combineTeamNotes.
+type scoutRow struct {
+	matchNum                                                    int
+	notes, scouter, autoType                                    string
+	singleTeam, hasChecklist, broke, playedDefense, wasDefended bool
+}
+
+// combineTeamNotes reads every submission for a team at an event and returns
+// the text Gemini sees, one block per match (see combineOneMatch) — so a
+// match two different scouts covered reads as one clear account instead of
+// two disconnected, possibly-contradictory blobs.
+func combineTeamNotes(eventKey, teamNum string) (string, error) {
+	rows, err := db.Query(`
+		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(single_team, 0),
+			COALESCE(has_checklist, 0), COALESCE(broke, 0), COALESCE(played_defense, 0), COALESCE(was_defended, 0), COALESCE(auto_type, '')
+		FROM scout_submissions
+		WHERE event_key = ? AND team_number = ?
+		ORDER BY match_num ASC`, eventKey, teamNum)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+
+	var all []scoutRow
+	for rows.Next() {
+		var r scoutRow
+		if err := rows.Scan(&r.matchNum, &r.notes, &r.scouter, &r.singleTeam,
+			&r.hasChecklist, &r.broke, &r.playedDefense, &r.wasDefended, &r.autoType); err != nil {
+			return "", err
+		}
+		all = append(all, r)
+	}
+
+	// Rows for the same match are always adjacent, since the query is
+	// ordered by match_num.
+	var matchTexts []string
+	for i := 0; i < len(all); {
+		j := i + 1
+		for j < len(all) && all[j].matchNum == all[i].matchNum {
+			j++
+		}
+		matchTexts = append(matchTexts, combineOneMatch(all[i:j]))
+		i = j
+	}
+	return strings.Join(matchTexts, "\n"), nil
+}
+
+// combineOneMatch formats every submission for a single match into one block.
+// A match scouted by just one person is formatted plainly. When two people
+// scouted it, a one-robot scout's account is treated as the more reliable one
+// — they were watching only this robot, not splitting attention across an
+// alliance — and labeled as such rather than silently preferred; the
+// checklist answers are OR'd together (a breakdown or defensive play is more
+// likely missed by one scout than invented by another) and flagged
+// explicitly if the scouts actually disagreed, so Gemini doesn't quietly
+// blend two different accounts into one falsely confident description.
+func combineOneMatch(rows []scoutRow) string {
+	label := fmt.Sprintf("Match %d", rows[0].matchNum)
+	if len(rows) == 1 {
+		r := rows[0]
+		return label + ": " + formatChecklistNote(r.notes, r.hasChecklist, r.broke, r.playedDefense, r.wasDefended, r.autoType)
+	}
+
+	var primary, secondary []scoutRow
+	for _, r := range rows {
+		if r.singleTeam {
+			primary = append(primary, r)
+		} else {
+			secondary = append(secondary, r)
+		}
+	}
+
+	var parts []string
+	for _, r := range primary {
+		if text := strings.TrimSpace(r.notes); text != "" {
+			parts = append(parts, "focused scout (watching only this robot): "+text)
+		}
+	}
+	for _, r := range secondary {
+		if text := strings.TrimSpace(r.notes); text != "" {
+			parts = append(parts, "scout also watching other robots: "+text)
+		}
+	}
+
+	if merged, disagreed := mergeChecklists(rows); merged != "" {
+		if len(disagreed) > 0 {
+			merged += fmt.Sprintf(" (scouts disagreed on: %s — treat with extra caution)", strings.Join(disagreed, ", "))
+		}
+		parts = append(parts, merged)
+	}
+
+	if len(parts) == 0 {
+		return label + ": no notes"
+	}
+	return fmt.Sprintf("%s (scouted by %d people): %s", label, len(rows), strings.Join(parts, " | "))
+}
+
+// mergeChecklists ORs the checklist answers across every scout who submitted
+// one for a match, and reports which fields the scouts who did submit a
+// checklist actually disagreed on. OR, not majority or first-wins, because a
+// breakdown or defensive play is more likely to be missed by one scout than
+// invented by another — under-reporting a real reliability problem is worse
+// than over-reporting one.
+func mergeChecklists(rows []scoutRow) (text string, disagreed []string) {
+	var have bool
+	var broke, playedDefense, wasDefended bool
+	var autoType string
+	brokeVals := map[bool]bool{}
+	playedDefenseVals := map[bool]bool{}
+	wasDefendedVals := map[bool]bool{}
+	for _, r := range rows {
+		if !r.hasChecklist {
+			continue
+		}
+		have = true
+		broke = broke || r.broke
+		playedDefense = playedDefense || r.playedDefense
+		wasDefended = wasDefended || r.wasDefended
+		brokeVals[r.broke] = true
+		playedDefenseVals[r.playedDefense] = true
+		wasDefendedVals[r.wasDefended] = true
+		if autoType == "" {
+			autoType = strings.TrimSpace(r.autoType)
+		}
+	}
+	if !have {
+		return "", nil
+	}
+	if len(brokeVals) > 1 {
+		disagreed = append(disagreed, "Broke")
+	}
+	if len(playedDefenseVals) > 1 {
+		disagreed = append(disagreed, "Played defense")
+	}
+	if len(wasDefendedVals) > 1 {
+		disagreed = append(disagreed, "Was defended")
+	}
+	if autoType == "" {
+		autoType = "not recorded"
+	}
+	yesNo := func(b bool) string {
+		if b {
+			return "yes"
+		}
+		return "no"
+	}
+	text = fmt.Sprintf("[Auto: %s; Broke: %s; Played defense: %s; Was defended: %s]",
+		autoType, yesNo(broke), yesNo(playedDefense), yesNo(wasDefended))
+	return text, disagreed
 }
 
 const ourTeam = templates.OurTeam
@@ -123,14 +269,26 @@ func main() {
 	http.HandleFunc("/api/voice-scout", voiceScoutWSHandler)
 	http.HandleFunc("/api/sort-notes", sortNotesHandler)
 	http.HandleFunc("/static/voice-scout.js", voiceScoutJSHandler)
+	http.HandleFunc("/static/offline-sync.js", offlineSyncJSHandler)
+	http.HandleFunc("/static/read-cache.js", readCacheJSHandler)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/pit-scout", pitScoutPageHandler)
 	http.HandleFunc("/api/save-pit-scout", savePitScoutHandler)
 	http.HandleFunc("/api/pit-teams", apiPitTeamsHandler)
 	http.HandleFunc("/api/pit-note", apiPitNoteHandler)
-	http.HandleFunc("/analysis", geminiAnalysisPageHandler)
+	http.HandleFunc("/next-match", nextMatchPageHandler)
+	http.HandleFunc("/pick-list", pickListPageHandler)
+	// The pick list used to be the "AI Analysis" page; keep old links working.
+	http.HandleFunc("/analysis", func(w http.ResponseWriter, r *http.Request) {
+		target := "/pick-list"
+		if r.URL.RawQuery != "" {
+			target += "?" + r.URL.RawQuery
+		}
+		http.Redirect(w, r, target, http.StatusFound)
+	})
 	http.HandleFunc("/api/run-analysis", apiRunAnalysisHandler)
 	http.HandleFunc("/api/analyze-team", apiAnalyzeTeamHandler)
+	http.HandleFunc("/api/next-match", apiNextMatchHandler)
 	http.HandleFunc("/api/team-notes", apiTeamNotesHandler)
 	http.HandleFunc("/api/team-pit-notes", apiTeamPitNotesHandler)
 	http.HandleFunc("/api/search-teams", apiSearchTeamsHandler)
@@ -455,22 +613,54 @@ func saveScoutDataHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := saveScoutSubmission(sub); err != nil {
+		log.Printf("save scout: %v", err)
+		http.Error(w, "Failed to save", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("Saved match %d, scouter %q, %d teams (submission %s)\n",
+		sub.MatchNum, canonicalScouterName(sub.ScouterName), len(sub.Teams), sub.SubmissionID)
+	w.WriteHeader(http.StatusOK)
+}
+
+// saveScoutSubmission writes a match's team notes. It's an upsert keyed on
+// (submission_id, team_number): the client generates one id per submission
+// attempt and reuses it for every retry, so retrying a slow or dropped
+// request updates the same rows instead of inserting duplicates. A caller
+// that leaves SubmissionID empty (older clients, the AI video-fill tool)
+// falls outside that uniqueness constraint and always inserts fresh, exactly
+// as this handler always did before retries were possible.
+func saveScoutSubmission(sub ScoutSubmission) error {
 	scouterName := canonicalScouterName(sub.ScouterName)
 	for _, teamData := range sub.Teams {
-		db.Exec(`
+		_, err := db.Exec(`
 			INSERT INTO scout_submissions (event_key, match_num, scouter_name, team_number, notes,
-				has_checklist, broke, played_defense, was_defended, auto_type)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				has_checklist, broke, played_defense, was_defended, auto_type, single_team, submission_id)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(submission_id, team_number) WHERE submission_id != '' DO UPDATE SET
+				event_key = excluded.event_key,
+				match_num = excluded.match_num,
+				scouter_name = excluded.scouter_name,
+				notes = excluded.notes,
+				has_checklist = excluded.has_checklist,
+				broke = excluded.broke,
+				played_defense = excluded.played_defense,
+				was_defended = excluded.was_defended,
+				auto_type = excluded.auto_type,
+				single_team = excluded.single_team`,
 			sub.EventKey, sub.MatchNum, scouterName, teamData.TeamNumber, teamData.Notes,
-			teamData.HasChecklist, teamData.Broke, teamData.PlayedDefense, teamData.WasDefended, strings.TrimSpace(teamData.AutoType))
+			teamData.HasChecklist, teamData.Broke, teamData.PlayedDefense, teamData.WasDefended,
+			strings.TrimSpace(teamData.AutoType), teamData.SingleTeam, sub.SubmissionID)
+		if err != nil {
+			return fmt.Errorf("team %s: %w", teamData.TeamNumber, err)
+		}
 
 		// Bust team analysis cache
 		db.Exec(`DELETE FROM analysis_cache WHERE event_key = ? AND team_number = ?`,
 			sub.EventKey, teamData.TeamNumber)
 	}
-
-	fmt.Printf("Saved match %d, scouter %q, %d teams\n", sub.MatchNum, scouterName, len(sub.Teams))
-	w.WriteHeader(http.StatusOK)
+	return nil
 }
 
 // ── Pit Scouting ──────────────────────────────────────────────────────────────
@@ -646,17 +836,22 @@ func currentEventMap() (map[string]string, error) {
 
 // ── Analysis ──────────────────────────────────────────────────────────────────
 
-func geminiAnalysisPageHandler(w http.ResponseWriter, r *http.Request) {
+func pickListPageHandler(w http.ResponseWriter, r *http.Request) {
 	eventKey, ok := requireEvent(w, r)
 	if !ok {
 		return
 	}
+	data := templates.EventPageData{EventKey: eventKey, EventName: eventNameFor(eventKey)}
+	templ.Handler(templates.PickListPage(data)).ServeHTTP(w, r)
+}
 
-	data := templates.GeminiAnalysisPageData{
-		EventKey:  eventKey,
-		EventName: eventNameFor(eventKey),
+func nextMatchPageHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey, ok := requireEvent(w, r)
+	if !ok {
+		return
 	}
-	templ.Handler(templates.GeminiAnalysisPage(data)).ServeHTTP(w, r)
+	data := templates.EventPageData{EventKey: eventKey, EventName: eventNameFor(eventKey)}
+	templ.Handler(templates.NextMatchPage(data)).ServeHTTP(w, r)
 }
 
 func apiRunAnalysisHandler(w http.ResponseWriter, r *http.Request) {
@@ -698,6 +893,17 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The pit profile only depends on the pit notes, so fetch it alongside the
+	// match analysis. A failure just leaves the pit row off the card.
+	pitCh := make(chan templates.PitProfile, 1)
+	go func() {
+		p, err := getPitProfile(teamNum)
+		if err != nil {
+			log.Printf("pit profile for %s: %v", teamNum, err)
+		}
+		pitCh <- p
+	}()
+
 	card, err := getOrGenerateAnalysis(eventKey, teamNum)
 	if err != nil {
 		card = templates.TeamAnalysisCard{
@@ -706,12 +912,17 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 			Error:      "Error generating analysis: " + err.Error(),
 		}
 	}
+	card.Pit = <-pitCh
 
 	db.QueryRow(`SELECT EXISTS(SELECT 1 FROM scout_submissions WHERE event_key = ? AND team_number = ? AND `+hasScoutDataSQL+`)`,
 		eventKey, teamNum).Scan(&card.HasNotes)
 	db.QueryRow(`SELECT EXISTS(SELECT 1 FROM pit_scouting WHERE team_number = ?)`, teamNum).Scan(&card.HasPitNotes)
 
-	card.EPA, card.HasEPA = teamTotalEPA(teamNum)
+	// Cards in the next-match section share team numbers with the full list, so
+	// their element ids carry a prefix to stay unique.
+	card.Section = r.URL.Query().Get("section")
+	card.EPA, card.HasEPA = teamTotalEPA(eventKey, teamNum)
+	addTrustInfo(&card)
 
 	if rankings, err := getEventRankingsCached(eventKey); err == nil {
 		card.Rank, card.HasRank = rankings[teamNum]
@@ -719,18 +930,104 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("rankings for %s at %s: %v", teamNum, eventKey, err)
 	}
 
-	if matches, err := getMatchesCached(eventKey); err == nil {
+	// The test event's matches don't exist on TBA, so links to them would be dead.
+	if matches, err := getMatchesCached(eventKey); err == nil && eventKey != testEventKey {
 		for _, m := range latestPlayedMatches(matches, teamNum, 2) {
-			card.RecentMatches = append(card.RecentMatches, templates.MatchLink{
+			link := templates.MatchLink{
 				Label: m.ShortLabel(),
 				URL:   "https://www.thebluealliance.com/match/" + m.Key,
-			})
+			}
+			link.WatchURL, link.HasWatch = matchWatchURL(eventKey, m)
+			card.RecentMatches = append(card.RecentMatches, link)
 		}
 	} else {
 		log.Printf("recent matches for %s at %s: %v", teamNum, eventKey, err)
 	}
 
 	templates.SingleTeamAnalysisCard(card).Render(r.Context(), w)
+}
+
+// nextQualFor returns our team's first unplayed qual match.
+func nextQualFor(matches []Match, team string) (Match, bool) {
+	key := "frc" + team
+	var next Match
+	found := false
+	for _, m := range matches {
+		if m.CompLevel != "qm" || m.Played() || (found && m.MatchNumber >= next.MatchNumber) {
+			continue
+		}
+		for _, k := range append(append([]string{}, m.Alliances.Red.TeamKeys...), m.Alliances.Blue.TeamKeys...) {
+			if k == key {
+				next, found = m, true
+				break
+			}
+		}
+	}
+	return next, found
+}
+
+// apiNextMatchHandler renders the next-match section: our next qual, the
+// strategy for it, and (via the page) a summary card for each team in it.
+func apiNextMatchHandler(w http.ResponseWriter, r *http.Request) {
+	eventKey := r.URL.Query().Get("event_key")
+	if eventKey == "" || eventKey == "none" {
+		http.Error(w, "event_key required", http.StatusBadRequest)
+		return
+	}
+
+	data := templates.NextMatchData{EventKey: eventKey}
+	matches, err := getMatchesCached(eventKey)
+	if err != nil {
+		log.Printf("next match at %s: %v", eventKey, err)
+		data.PlanError = "Couldn't load the match schedule."
+		templates.NextMatchSection(data).Render(r.Context(), w)
+		return
+	}
+
+	m, ok := nextQualFor(matches, ourTeam)
+	if !ok {
+		templates.NextMatchSection(data).Render(r.Context(), w)
+		return
+	}
+
+	data.Found = true
+	data.MatchNum = m.MatchNumber
+	data.Label = m.ShortLabel()
+
+	red, blue := stripFRC(m.Alliances.Red.TeamKeys), stripFRC(m.Alliances.Blue.TeamKeys)
+	ours, theirs := red, blue
+	weAreRed := true
+	for _, t := range blue {
+		if t == ourTeam {
+			ours, theirs = blue, red
+			weAreRed = false
+		}
+	}
+	if p, ok := statboticsMatchPrediction(m.Key); ok {
+		data.HasPrediction = true
+		data.WinPct = int(p.RedWinProb*100 + 0.5)
+		data.OurScore, data.TheirScore = p.RedScore, p.BlueScore
+		if !weAreRed {
+			data.WinPct = 100 - data.WinPct
+			data.OurScore, data.TheirScore = p.BlueScore, p.RedScore
+		}
+		data.Outlook = outlook(data.WinPct)
+	}
+	for _, t := range ours {
+		if t != ourTeam {
+			data.Partners = append(data.Partners, t)
+		}
+	}
+	data.Opponents = theirs
+
+	plan, err := getOrGenerateMatchPlan(eventKey, ourTeam, m)
+	if err != nil {
+		data.PlanError = "Error generating strategy: " + err.Error()
+	} else {
+		data.Plan = plan
+	}
+
+	templates.NextMatchSection(data).Render(r.Context(), w)
 }
 
 func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
@@ -742,7 +1039,7 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := db.Query(`
-		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(ai_generated, 0),
+		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(ai_generated, 0), COALESCE(single_team, 0),
 			COALESCE(has_checklist, 0), COALESCE(broke, 0), COALESCE(played_defense, 0), COALESCE(was_defended, 0), COALESCE(auto_type, '')
 		FROM scout_submissions
 		WHERE event_key = ? AND team_number = ?
@@ -756,12 +1053,108 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 	var notes []templates.TeamNote
 	for rows.Next() {
 		var n templates.TeamNote
-		rows.Scan(&n.MatchNum, &n.Notes, &n.ScouterName, &n.AIGenerated,
+		rows.Scan(&n.MatchNum, &n.Notes, &n.ScouterName, &n.AIGenerated, &n.SingleTeam,
 			&n.HasChecklist, &n.Broke, &n.PlayedDefense, &n.WasDefended, &n.AutoType)
 		notes = append(notes, n)
 	}
+	rows.Close()
 
-	templates.TeamNotesPanel(notes).Render(r.Context(), w)
+	// Notes are already ordered by match_num, so notes for the same match are
+	// always adjacent — group them into one card per match.
+	var groups []templates.TeamNoteGroup
+	for i := 0; i < len(notes); {
+		j := i + 1
+		for j < len(notes) && notes[j].MatchNum == notes[i].MatchNum {
+			j++
+		}
+		groups = append(groups, teamNoteGroupFor(eventKey, teamNum, notes[i:j]))
+		i = j
+	}
+
+	templates.TeamNotesPanel(groups).Render(r.Context(), w)
+}
+
+// teamNoteGroupFor builds one match's card: its notes, plus enough context —
+// a link to go watch it, the final score, who the opponents were — that a
+// reviewer can check a disputed or surprising note against what actually
+// happened, instead of just taking one scout's word for it.
+func teamNoteGroupFor(eventKey, teamNum string, notes []templates.TeamNote) templates.TeamNoteGroup {
+	g := templates.TeamNoteGroup{
+		MatchNum:  notes[0].MatchNum,
+		Notes:     notes,
+		Conflicts: checklistConflicts(notes),
+	}
+
+	matches, err := getMatchesCached(eventKey)
+	if err != nil {
+		return g
+	}
+	for _, m := range matches {
+		if m.CompLevel != "qm" || m.MatchNumber != g.MatchNum {
+			continue
+		}
+		g.WatchURL, g.HasWatch = matchReviewURL(eventKey, m)
+
+		onRed := slices.Contains(m.Alliances.Red.TeamKeys, "frc"+teamNum)
+		ownAlliance, opponentAlliance := m.Alliances.Red, m.Alliances.Blue
+		if !onRed {
+			ownAlliance, opponentAlliance = m.Alliances.Blue, m.Alliances.Red
+		}
+		var partners []string
+		for _, t := range stripFRC(ownAlliance.TeamKeys) {
+			if t != teamNum {
+				partners = append(partners, t)
+			}
+		}
+		g.Partners = strings.Join(partners, ", ")
+		g.Opponents = strings.Join(stripFRC(opponentAlliance.TeamKeys), ", ")
+
+		if m.Played() && m.Alliances.Red.Score != nil && m.Alliances.Blue.Score != nil {
+			redScore, blueScore := *m.Alliances.Red.Score, *m.Alliances.Blue.Score
+			ourScore, theirScore := redScore, blueScore
+			if !onRed {
+				ourScore, theirScore = blueScore, redScore
+			}
+			result := "Tied"
+			if ourScore > theirScore {
+				result = "Won"
+			} else if ourScore < theirScore {
+				result = "Lost"
+			}
+			g.ScoreText = fmt.Sprintf("%s %d–%d", result, ourScore, theirScore)
+		}
+		break
+	}
+	return g
+}
+
+// checklistConflicts reports which checklist fields the notes for one match
+// disagree on, so View Notes can flag it instead of leaving a reviewer to
+// spot the contradiction themselves. Same rule as mergeChecklists (used for
+// what Gemini reads): only rows that actually submitted a checklist count.
+func checklistConflicts(notes []templates.TeamNote) []string {
+	brokeVals := map[bool]bool{}
+	pdVals := map[bool]bool{}
+	wdVals := map[bool]bool{}
+	for _, n := range notes {
+		if !n.HasChecklist {
+			continue
+		}
+		brokeVals[n.Broke] = true
+		pdVals[n.PlayedDefense] = true
+		wdVals[n.WasDefended] = true
+	}
+	var out []string
+	if len(brokeVals) > 1 {
+		out = append(out, "Broke")
+	}
+	if len(pdVals) > 1 {
+		out = append(out, "Played defense")
+	}
+	if len(wdVals) > 1 {
+		out = append(out, "Was defended")
+	}
+	return out
 }
 
 func apiTeamPitNotesHandler(w http.ResponseWriter, r *http.Request) {
@@ -846,24 +1239,13 @@ type teamAnalysisJSON struct {
 
 // analysisPromptVersion is mixed into the cache key so edits to the prompt's
 // output shape invalidate previously cached analyses.
-const analysisPromptVersion = "v4"
+const analysisPromptVersion = "v7"
 
 func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard, error) {
-	rows, err := db.Query(`
-		SELECT `+scoutNoteColumns+` FROM scout_submissions
-		WHERE event_key = ? AND team_number = ?
-		ORDER BY match_num ASC`, eventKey, teamNum)
+	combined, err := combineTeamNotes(eventKey, teamNum)
 	if err != nil {
 		return templates.TeamAnalysisCard{}, err
 	}
-	var notesList []string
-	for rows.Next() {
-		n, _ := scanScoutNote(rows)
-		notesList = append(notesList, n)
-	}
-	rows.Close()
-
-	combined := strings.Join(notesList, "\n")
 	pitNotes := pitNotesFor(teamNum)
 	hashInput := analysisPromptVersion + "\n" + combined
 	if pitNotes != "" {
@@ -899,7 +1281,7 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 		// If JSON parse fails, fall through to regenerate
 	}
 
-	result, err := callGeminiTeamAnalysis(teamNum, eventKey, combined, pitNotes)
+	result, err := callGeminiTeamAnalysis(teamNum, eventKey, combined, pitNotes, scoutStatsFor(eventKey, teamNum))
 	if err != nil {
 		return templates.TeamAnalysisCard{}, err
 	}
@@ -1015,6 +1397,10 @@ func apiMatchPlanHandler(w http.ResponseWriter, r *http.Request) {
 	templates.MatchPlannerResults([]templates.MatchPlanCard{card}, teamNumber).Render(r.Context(), w)
 }
 
+// matchPlanPromptVersion is mixed into the cache key so edits to the match plan
+// prompt invalidate previously cached strategies.
+const matchPlanPromptVersion = "v16"
+
 func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.MatchPlanCard, error) {
 	frcTeam := "frc" + teamNumber
 	redTeams := stripFRC(m.Alliances.Red.TeamKeys)
@@ -1028,40 +1414,15 @@ func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.Mat
 		}
 	}
 
-	// Collect notes for all 5 other teams, build hash
-	allTeams := append(redTeams, blueTeams...)
-	sort.Strings(allTeams)
-
-	var noteParts []string    // for hash (scouting notes only)
-	var contextParts []string // for prompt (notes + EPA)
-	for _, t := range allTeams {
-		if t == teamNumber {
-			continue
-		}
-		rows, _ := db.Query(`
-			SELECT `+scoutNoteColumns+` FROM scout_submissions
-			WHERE event_key = ? AND team_number = ?
-			ORDER BY match_num ASC`, eventKey, t)
-		var notes []string
-		for rows.Next() {
-			n, _ := scanScoutNote(rows)
-			notes = append(notes, n)
-		}
-		rows.Close()
-		noteLine := fmt.Sprintf("Team %s: %s", t, strings.Join(notes, " | "))
-		teamContext := fmt.Sprintf("Team %s:\n  EPA:\n%s\n  Notes: %s",
-			t, fetchStatboticsEPA(t), strings.Join(notes, " | "))
-		if pitNotes := pitNotesFor(t); pitNotes != "" {
-			noteLine += " [pit] " + pitNotes
-			teamContext += "\n  Pit scouting interview: " + pitNotes
-		}
-		noteParts = append(noteParts, noteLine)
-		contextParts = append(contextParts, teamContext)
+	// Everything the model sees about all six teams, including our own robot. The
+	// cache key covers all of it, so the plan regenerates when any of it changes.
+	ourSide, theirSide := redTeams, blueTeams
+	if ourAlliance == "Blue" {
+		ourSide, theirSide = blueTeams, redTeams
 	}
-
-	combinedNotes := strings.Join(noteParts, "\n")
-	notesContext := strings.Join(contextParts, "\n\n")
-	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(combinedNotes)))
+	notesContext, lineups := matchPlanContext(eventKey, teamNumber, ourSide, theirSide)
+	forecast := forecastText(m, ourAlliance == "Red")
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(matchPlanPromptVersion+"\n"+lineups+"\n"+forecast+"\n"+notesContext)))
 
 	// Check cache
 	var cachedStrategy, cachedHash string
@@ -1081,7 +1442,7 @@ func getOrGenerateMatchPlan(eventKey, teamNumber string, m Match) (templates.Mat
 		}, nil
 	}
 
-	strategy, err := callGeminiMatchPlan(teamNumber, eventKey, m.MatchNumber, ourAlliance, redTeams, blueTeams, notesContext)
+	strategy, err := callGeminiMatchPlan(teamNumber, eventKey, m.MatchNumber, ourAlliance, redTeams, blueTeams, notesContext, lineups, forecast)
 	if err != nil {
 		return templates.MatchPlanCard{}, err
 	}
@@ -1124,10 +1485,20 @@ var (
 	httpClient  = &http.Client{Timeout: 5 * time.Second}
 )
 
+// epaBreakdown returns a team's EPA breakdown for the given event. The test
+// event uses made-up numbers (see seed.go); every other event uses Statbotics.
+func epaBreakdown(eventKey, teamNum string) (map[string]float64, bool) {
+	if eventKey == testEventKey {
+		b, ok := demoEPA[teamNum]
+		return b, ok
+	}
+	return statboticsEPABreakdown(teamNum)
+}
+
 // fetchStatboticsEPA returns the team's current-season EPA breakdown as text for
 // Gemini prompts, or "unavailable".
-func fetchStatboticsEPA(teamNum string) string {
-	breakdown, ok := statboticsEPABreakdown(teamNum)
+func fetchStatboticsEPA(eventKey, teamNum string) string {
+	breakdown, ok := epaBreakdown(eventKey, teamNum)
 	if !ok {
 		return "unavailable"
 	}
@@ -1146,8 +1517,8 @@ func fetchStatboticsEPA(teamNum string) string {
 }
 
 // teamTotalEPA returns the team's current-season total points EPA.
-func teamTotalEPA(teamNum string) (float64, bool) {
-	breakdown, ok := statboticsEPABreakdown(teamNum)
+func teamTotalEPA(eventKey, teamNum string) (float64, bool) {
+	breakdown, ok := epaBreakdown(eventKey, teamNum)
 	if !ok {
 		return 0, false
 	}
@@ -1271,9 +1642,10 @@ type teamAnalysisPromptData struct {
 	Notes        string
 	PitNotes     string
 	EPABreakdown string
+	Stats        string
 }
 
-func callGeminiTeamAnalysis(teamNum, eventKey, notes, pitNotes string) (teamAnalysisJSON, error) {
+func callGeminiTeamAnalysis(teamNum, eventKey, notes, pitNotes string, stats scoutStats) (teamAnalysisJSON, error) {
 	tmpl, err := template.New("team_analysis").Parse(teamAnalysisPromptTmpl)
 	if err != nil {
 		return teamAnalysisJSON{}, fmt.Errorf("failed to parse team analysis prompt: %w", err)
@@ -1284,7 +1656,8 @@ func callGeminiTeamAnalysis(teamNum, eventKey, notes, pitNotes string) (teamAnal
 		EventKey:     eventKey,
 		Notes:        notes,
 		PitNotes:     pitNotes,
-		EPABreakdown: fetchStatboticsEPA(teamNum),
+		EPABreakdown: fetchStatboticsEPA(eventKey, teamNum),
+		Stats:        stats.promptText(),
 	}); err != nil {
 		return teamAnalysisJSON{}, fmt.Errorf("failed to render team analysis prompt: %w", err)
 	}
@@ -1316,11 +1689,12 @@ type matchPlanPromptData struct {
 	OpponentAlliance string
 	Partners         string
 	Opponents        string
-	OurEPA           string
+	Forecast         string
+	Lineups          string
 	NotesContext     string
 }
 
-func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance string, redTeams, blueTeams []string, notesContext string) (string, error) {
+func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance string, redTeams, blueTeams []string, notesContext, lineups, forecast string) (string, error) {
 	alliancePartners := redTeams
 	opponents := blueTeams
 	if ourAlliance == "Blue" {
@@ -1353,7 +1727,8 @@ func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance str
 		OpponentAlliance: opponentAlliance,
 		Partners:         strings.Join(partners, ", "),
 		Opponents:        strings.Join(opponents, ", "),
-		OurEPA:           fetchStatboticsEPA(teamNum),
+		Forecast:         forecast,
+		Lineups:          lineups,
 		NotesContext:     notesContext,
 	}); err != nil {
 		return "", fmt.Errorf("failed to render match plan prompt: %w", err)
@@ -1364,24 +1739,42 @@ func callGeminiMatchPlan(teamNum, eventKey string, matchNum int, ourAlliance str
 
 // ── AI Fill-in Scout ──────────────────────────────────────────────────────────
 
-const geminiVideoURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent"
+// A stronger model than geminiURL's on purpose: precise visual grounding
+// (reading a scoreboard, telling which robot on the field did what) needs
+// more than the lite tier reliably gives. A real test at Chezy Champs with
+// the lite model produced six teams' worth of notes that didn't even agree
+// with each other on the game's own terminology — see the trustworthy-
+// analysis branch history. Text-only analysis still uses the lite model.
+const geminiVideoURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent"
 
-func geminiVideoPost(videoURI, prompt string) (string, error) {
+// geminiVideoPost analyzes a video with Gemini. When endOffset > 0, only the
+// clip from startOffset to endOffset (seconds into the video) is sent, so a
+// multi-hour event broadcast doesn't have to be processed in full just to
+// analyze one ~2:30 match.
+func geminiVideoPost(videoURI, prompt string, startOffset, endOffset int64) (string, error) {
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	if apiKey == "" {
 		return "", fmt.Errorf("GEMINI_API_KEY not set")
+	}
+
+	videoPart := map[string]interface{}{
+		"fileData": map[string]string{
+			"mimeType": "video/mp4",
+			"fileUri":  videoURI,
+		},
+	}
+	if endOffset > 0 {
+		videoPart["videoMetadata"] = map[string]string{
+			"startOffset": fmt.Sprintf("%ds", startOffset),
+			"endOffset":   fmt.Sprintf("%ds", endOffset),
+		}
 	}
 
 	payload := map[string]interface{}{
 		"contents": []map[string]interface{}{
 			{
 				"parts": []map[string]interface{}{
-					{
-						"fileData": map[string]string{
-							"mimeType": "video/mp4",
-							"fileUri":  videoURI,
-						},
-					},
+					videoPart,
 					{"text": prompt},
 				},
 			},
@@ -1439,7 +1832,7 @@ type videoScoutPromptData struct {
 	EventKey string
 }
 
-func callGeminiVideoScout(teamNum, eventKey string, matchNum int, videoURI string) (string, error) {
+func callGeminiVideoScout(teamNum, eventKey string, matchNum int, videoURI string, startOffset, endOffset int64) (string, error) {
 	tmpl, err := template.New("video_scout").Parse(videoScoutPromptTmpl)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse video scout prompt: %w", err)
@@ -1452,7 +1845,7 @@ func callGeminiVideoScout(teamNum, eventKey string, matchNum int, videoURI strin
 	}); err != nil {
 		return "", fmt.Errorf("failed to render video scout prompt: %w", err)
 	}
-	return geminiVideoPost(videoURI, buf.String())
+	return geminiVideoPost(videoURI, buf.String(), startOffset, endOffset)
 }
 
 // apiFillAIScoutHandler receives event_key, match_num, youtube_url and returns
@@ -1467,8 +1860,8 @@ func apiFillAIScoutHandler(w http.ResponseWriter, r *http.Request) {
 	matchNum, _ := strconv.Atoi(r.FormValue("match_num"))
 	youtubeURL := strings.TrimSpace(r.FormValue("youtube_url"))
 
-	if eventKey == "" || matchNum == 0 || youtubeURL == "" {
-		http.Error(w, "event_key, match_num, and youtube_url are required", http.StatusBadRequest)
+	if eventKey == "" || matchNum == 0 {
+		http.Error(w, "event_key and match_num are required", http.StatusBadRequest)
 		return
 	}
 
@@ -1492,6 +1885,19 @@ func apiFillAIScoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// No URL pasted in: find this match's own moment in the event's YouTube
+	// webcast ourselves, and trim to just the clip that covers it.
+	var startOffset, endOffset int64
+	if youtubeURL == "" {
+		videoID, so, eo, ok := resolveWatchClip(eventKey, targetMatch)
+		if !ok {
+			http.Error(w, "No YouTube webcast found for this match — paste a video URL manually.", http.StatusBadRequest)
+			return
+		}
+		youtubeURL = "https://www.youtube.com/watch?v=" + videoID
+		startOffset, endOffset = so, eo
+	}
+
 	allTeamKeys := append(targetMatch.Alliances.Red.TeamKeys, targetMatch.Alliances.Blue.TeamKeys...)
 	allTeams := stripFRC(allTeamKeys)
 
@@ -1501,8 +1907,8 @@ func apiFillAIScoutHandler(w http.ResponseWriter, r *http.Request) {
 		slots = append(slots, templates.AiFillSlot{
 			Team: team,
 			HXURL: fmt.Sprintf(
-				"/api/admin/fill-ai-scout-team?event_key=%s&match_num=%d&team_number=%s&youtube_url=%s",
-				url.QueryEscape(eventKey), matchNum, url.QueryEscape(team), encodedURL,
+				"/api/admin/fill-ai-scout-team?event_key=%s&match_num=%d&team_number=%s&youtube_url=%s&start_offset=%d&end_offset=%d",
+				url.QueryEscape(eventKey), matchNum, url.QueryEscape(team), encodedURL, startOffset, endOffset,
 			),
 		})
 	}
@@ -1510,29 +1916,55 @@ func apiFillAIScoutHandler(w http.ResponseWriter, r *http.Request) {
 	templates.AiFillProgressContainer(slots).Render(r.Context(), w)
 }
 
-// apiFillAIScoutTeamHandler processes one team: checks for existing data, calls
-// Gemini video analysis, saves with ai_generated=1 if no prior data exists.
+// saveAIGeneratedNote upserts one team's AI-generated notes for a match,
+// keyed on (event_key, match_num, team_number) among ai_generated=1 rows —
+// retrying this team (a page reload, a double click, or the earlier attempt
+// simply taking longer) updates that row instead of inserting a duplicate
+// that would then look like a second scout to combineTeamNotes.
+func saveAIGeneratedNote(eventKey string, matchNum int, teamNum, notes string) error {
+	_, err := db.Exec(`
+		INSERT INTO scout_submissions (event_key, match_num, scouter_id, team_number, notes, ai_generated)
+		VALUES (?, ?, ?, ?, ?, 1)
+		ON CONFLICT(event_key, match_num, team_number) WHERE ai_generated = 1 DO UPDATE SET
+			notes = excluded.notes`,
+		eventKey, matchNum, 0, teamNum, strings.TrimSpace(notes))
+	return err
+}
+
+// apiFillAIScoutTeamHandler processes one team: skips it if a human already
+// scouted this match, otherwise calls Gemini video analysis and saves the
+// result with ai_generated=1.
 func apiFillAIScoutTeamHandler(w http.ResponseWriter, r *http.Request) {
 	eventKey := r.URL.Query().Get("event_key")
 	matchNum, _ := strconv.Atoi(r.URL.Query().Get("match_num"))
 	teamNum := r.URL.Query().Get("team_number")
 	youtubeURL := r.URL.Query().Get("youtube_url")
+	startOffset, _ := strconv.ParseInt(r.URL.Query().Get("start_offset"), 10, 64)
+	endOffset, _ := strconv.ParseInt(r.URL.Query().Get("end_offset"), 10, 64)
 
 	if eventKey == "" || matchNum == 0 || teamNum == "" || youtubeURL == "" {
 		http.Error(w, "missing parameters", http.StatusBadRequest)
 		return
 	}
 
-	notes, err := callGeminiVideoScout(teamNum, eventKey, matchNum, youtubeURL)
+	var hasHumanNotes bool
+	db.QueryRow(`SELECT EXISTS(
+		SELECT 1 FROM scout_submissions
+		WHERE event_key = ? AND match_num = ? AND team_number = ?
+			AND COALESCE(ai_generated, 0) = 0 AND `+hasScoutDataSQL+`)`,
+		eventKey, matchNum, teamNum).Scan(&hasHumanNotes)
+	if hasHumanNotes {
+		templates.AiFillTeamResult(templates.AiFillTeamResultData{Team: teamNum, Skipped: true}).Render(r.Context(), w)
+		return
+	}
+
+	notes, err := callGeminiVideoScout(teamNum, eventKey, matchNum, youtubeURL, startOffset, endOffset)
 	if err != nil {
 		templates.AiFillTeamResult(templates.AiFillTeamResultData{Team: teamNum, Notes: err.Error(), Success: false}).Render(r.Context(), w)
 		return
 	}
 
-	db.Exec(`
-		INSERT INTO scout_submissions (event_key, match_num, scouter_id, team_number, notes, ai_generated)
-		VALUES (?, ?, ?, ?, ?, 1)`,
-		eventKey, matchNum, 0, teamNum, strings.TrimSpace(notes))
+	saveAIGeneratedNote(eventKey, matchNum, teamNum, notes)
 
 	// Bust analysis cache so this team gets re-analyzed with new data
 	db.Exec(`DELETE FROM analysis_cache WHERE event_key = ? AND team_number = ?`, eventKey, teamNum)
@@ -1576,6 +2008,9 @@ func clearEventHandler(w http.ResponseWriter, r *http.Request) {
 	db.Exec("DELETE FROM scout_submissions WHERE event_key = ?", req.EventKey)
 	db.Exec("DELETE FROM analysis_cache WHERE event_key = ?", req.EventKey)
 	db.Exec("DELETE FROM match_plan_cache WHERE event_key = ?", req.EventKey)
+	if req.EventKey == testEventKey {
+		clearDemoPitNotes()
+	}
 
 	fmt.Fprintf(w, "Deleted all data for event: %s", req.EventKey)
 }
@@ -1586,7 +2021,8 @@ func seedTestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	seedTestData()
-	fmt.Fprintf(w, "Test event seeded: %s (%d observations across 9 teams)", testEventKey, len(testObservations))
+	fmt.Fprintf(w, "Test event seeded: %s (%d observations across %d teams, demo EPAs, %d played + %d upcoming matches)",
+		testEventKey, len(testObservations), len(demoTotalEPA), 9, len(testMatches)-9)
 }
 
 func clearAllHandler(w http.ResponseWriter, r *http.Request) {
