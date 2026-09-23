@@ -266,3 +266,108 @@ func TestFieldScoutingNoTagsStillCountsAsScouted(t *testing.T) {
 		t.Error("a submitted checklist with no notes and no tags should still count as scouted")
 	}
 }
+
+// addClarification inserts a clarification row directly, the way
+// apiAddClarificationHandler does, without going through an HTTP request.
+func addClarification(t *testing.T, eventKey, teamNum, noteType, text, author string) {
+	t.Helper()
+	if _, err := db.Exec(`
+		INSERT INTO note_clarifications (event_key, team_number, note_type, clarification, author)
+		VALUES (?, ?, ?, ?, ?)`,
+		eventKey, teamNum, noteType, text, author); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestCombineTeamNotesAppendsFieldClarification: a clarification on a team's
+// match notes must reach Gemini, appended after the notes it clarifies —
+// not silently swapped in over the original scout's words.
+func TestCombineTeamNotesAppendsFieldClarification(t *testing.T) {
+	useTempDB(t)
+
+	saveScoutSubmission(ScoutSubmission{
+		EventKey: "2026test", MatchNum: 1,
+		Teams: []TeamScoutData{{TeamNumber: "254", Notes: "e-stopped mid match"}},
+	})
+	addClarification(t, "2026test", "254", "field", "The e-stop was a driver safety call, not a robot failure.", "Elliot")
+
+	got := scoutNoteFor(t, "2026test", "254")
+	if !strings.Contains(got, "Match 1: e-stopped mid match") {
+		t.Errorf("original note should be preserved untouched, got %q", got)
+	}
+	if !strings.Contains(got, "Clarifications from strategy team:\n- The e-stop was a driver safety call, not a robot failure. (Elliot)") {
+		t.Errorf("expected the clarification appended with its author, got %q", got)
+	}
+}
+
+// TestPitNotesForAppendsPitClarification: same as above, for pit notes —
+// e.g. "2.5 cycles" meaning during auto, not the whole match.
+func TestPitNotesForAppendsPitClarification(t *testing.T) {
+	useTempDB(t)
+
+	db.Exec(`INSERT INTO pit_scouting (team_number, summary) VALUES (?, ?)`, "254", "Claims 2.5 cycles.")
+	addClarification(t, "", "254", "pit", `"2.5 cycles" means during auto, not the whole match.`, "")
+
+	got := pitNotesFor("254")
+	if !strings.HasPrefix(got, "Claims 2.5 cycles.") {
+		t.Errorf("original pit summary should be preserved untouched, got %q", got)
+	}
+	want := `Clarifications from strategy team:` + "\n" + `- "2.5 cycles" means during auto, not the whole match.`
+	if !strings.Contains(got, want) {
+		t.Errorf("expected the clarification appended with no author suffix, got %q", got)
+	}
+}
+
+// TestClarificationsFieldScopedToEvent: a field clarification is only about
+// the notes from the event it was added at, matching combineTeamNotes
+// itself — it must not leak into a different event's read of the same team.
+func TestClarificationsFieldScopedToEvent(t *testing.T) {
+	useTempDB(t)
+
+	saveScoutSubmission(ScoutSubmission{
+		EventKey: "2026other", MatchNum: 1,
+		Teams: []TeamScoutData{{TeamNumber: "254", Notes: "scored well"}},
+	})
+	addClarification(t, "2026test", "254", "field", "this only applies at 2026test", "")
+
+	got := scoutNoteFor(t, "2026other", "254")
+	if strings.Contains(got, "Clarifications") {
+		t.Errorf("a clarification from a different event should not appear here, got %q", got)
+	}
+}
+
+// TestClarificationsPitNotScopedToEvent: a pit clarification applies no
+// matter which event's analysis is reading the pit notes, matching
+// pit_scouting's own lack of event scoping.
+func TestClarificationsPitNotScopedToEvent(t *testing.T) {
+	useTempDB(t)
+
+	db.Exec(`INSERT INTO pit_scouting (team_number, summary) VALUES (?, ?)`, "254", "Claims 2.5 cycles.")
+	addClarification(t, "", "254", "pit", "means during auto", "")
+
+	block := clarificationsBlock("2026test", "254", "pit")
+	if !strings.Contains(block, "means during auto") {
+		t.Errorf("a pit clarification should show up regardless of event_key, got %q", block)
+	}
+	block = clarificationsBlock("2026other", "254", "pit")
+	if !strings.Contains(block, "means during auto") {
+		t.Errorf("a pit clarification should show up for any event_key, got %q", block)
+	}
+}
+
+// TestClarificationsWithNoUnderlyingNotesNotAppended: a clarification on a
+// team that hasn't actually been scouted/pit-scouted yet shouldn't produce
+// dangling "Clarifications:" text with nothing for it to clarify.
+func TestClarificationsWithNoUnderlyingNotesNotAppended(t *testing.T) {
+	useTempDB(t)
+
+	addClarification(t, "2026test", "254", "field", "a clarification with nothing to clarify", "")
+	if got := scoutNoteFor(t, "2026test", "254"); got != "" {
+		t.Errorf("no field notes exist, so nothing should be returned, got %q", got)
+	}
+
+	addClarification(t, "", "254", "pit", "a clarification with nothing to clarify", "")
+	if got := pitNotesFor("254"); got != "" {
+		t.Errorf("no pit notes exist, so nothing should be returned, got %q", got)
+	}
+}

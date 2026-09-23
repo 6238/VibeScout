@@ -103,6 +103,13 @@ func panelID(card TeamAnalysisCard, kind string) string {
 	return card.Section + kind + "-" + card.TeamNumber
 }
 
+// teamCardTargetID is the element id of a whole card, so the clarification
+// form (nested inside a notes panel, itself nested inside the card) can
+// target the card for a full refresh after it saves.
+func teamCardTargetID(section, teamNum string) string {
+	return "team-card-" + section + teamNum
+}
+
 // NextMatchPage is our next qualification match: the win chance, the plan and a
 // summary of each team in it. The content loads from /api/next-match.
 templ NextMatchPage(data EventPageData) {
@@ -435,6 +442,7 @@ templ pitFact(label string, value string) {
 
 templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 	<div
+		id={ teamCardTargetID(card.Section, card.TeamNumber) }
 		data-team={ card.TeamNumber }
 		data-epa={ sortEPA(card) }
 		data-matches={ strconv.Itoa(card.Matches) }
@@ -509,7 +517,7 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 				if card.HasNotes {
 					<button
 						class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap bg-[#F2E8D5] text-[#8D6E63] border border-[#D2B48C] hover:bg-[#D2B48C] transition"
-						hx-get={ "/api/team-notes?event_key=" + card.EventKey + "&team_number=" + card.TeamNumber }
+						hx-get={ "/api/team-notes?event_key=" + card.EventKey + "&team_number=" + card.TeamNumber + "&section=" + card.Section }
 						hx-target={ "#" + panelID(card, "notes") }
 						hx-swap="innerHTML"
 						hx-on::before-request="var t = event.detail.target; if (t.innerHTML.trim() !== '') { t.innerHTML = ''; event.preventDefault(); }">
@@ -519,7 +527,7 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 				if card.HasPitNotes {
 					<button
 						class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap bg-[#F2E8D5] text-[#8D6E63] border border-[#D2B48C] hover:bg-[#D2B48C] transition"
-						hx-get={ "/api/team-pit-notes?team_number=" + card.TeamNumber }
+						hx-get={ "/api/team-pit-notes?team_number=" + card.TeamNumber + "&event_key=" + card.EventKey + "&section=" + card.Section }
 						hx-target={ "#" + panelID(card, "pit-notes") }
 						hx-swap="innerHTML"
 						hx-on::before-request="var t = event.detail.target; if (t.innerHTML.trim() !== '') { t.innerHTML = ''; event.preventDefault(); }">
@@ -582,9 +590,17 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 			</div>
 		}
 
-		<!-- Notes (loaded on demand) -->
-		<div id={ panelID(card, "notes") }></div>
-		<div id={ panelID(card, "pit-notes") }></div>
+		<!-- Notes (loaded on demand, or pre-filled after a clarification refresh) -->
+		<div id={ panelID(card, "notes") }>
+			if card.OpenNotesPanel != nil {
+				@card.OpenNotesPanel
+			}
+		</div>
+		<div id={ panelID(card, "pit-notes") }>
+			if card.OpenPitNotesPanel != nil {
+				@card.OpenPitNotesPanel
+			}
+		</div>
 	</div>
 }
 
@@ -595,7 +611,7 @@ templ closePanelButton() {
 	</button>
 }
 
-templ TeamNotesPanel(groups []TeamNoteGroup) {
+templ TeamNotesPanel(eventKey, teamNum, section string, groups []TeamNoteGroup, clarifications []Clarification) {
 	if len(groups) == 0 {
 		<div data-notes-panel class="mt-4 flex justify-between items-center">
 			<p class="text-sm text-[#A1887F] italic">No scouting notes found.</p>
@@ -610,6 +626,8 @@ templ TeamNotesPanel(groups []TeamNoteGroup) {
 			for _, group := range groups {
 				@teamNoteGroupCard(group)
 			}
+			@clarificationsList(clarifications)
+			@clarificationForm(eventKey, teamNum, section, "field")
 		</div>
 	}
 }
@@ -699,7 +717,7 @@ templ checklistChip(label string, yes bool, yesIsBad bool) {
 	</span>
 }
 
-templ TeamPitNotesPanel(notes []PitNote) {
+templ TeamPitNotesPanel(eventKey, teamNum, section string, notes []PitNote, clarifications []Clarification) {
 	if len(notes) == 0 {
 		<div data-notes-panel class="mt-4 flex justify-between items-center">
 			<p class="text-sm text-[#A1887F] italic">No pit scouting notes found.</p>
@@ -717,8 +735,70 @@ templ TeamPitNotesPanel(notes []PitNote) {
 					<p class="text-sm text-stone-700 mt-1 whitespace-pre-wrap">{ note.Summary }</p>
 				</div>
 			}
+			@clarificationsList(clarifications)
+			@clarificationForm(eventKey, teamNum, section, "pit")
 		</div>
 	}
+}
+
+// clarificationsList shows every clarification the strategy team has added on
+// top of the notes above, oldest first — visible to everyone, never a silent
+// edit, so a later reader can spot two clarifications that actually
+// contradict each other and go fix the underlying note directly instead.
+templ clarificationsList(items []Clarification) {
+	if len(items) > 0 {
+		<div class="space-y-1.5">
+			<h4 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest">Clarifications</h4>
+			for _, c := range items {
+				<p class="text-sm text-stone-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+					{ c.Text }
+					<span class="text-xs text-[#A1887F]">
+						—
+						if c.Author != "" {
+							{ c.Author },
+						}
+						{ c.When }
+					</span>
+				</p>
+			}
+		</div>
+	}
+}
+
+// clarificationForm lets anyone add context the AI misread — e.g. "2.5
+// cycles" meaning during auto, not the whole match — right where the
+// misread note is, instead of hunting down and editing the original scouting
+// entry. It's appended after the notes it clarifies (see clarificationsBlock
+// on the server), never rewriting the original scout's words, and saving
+// refreshes the whole card above so the fix shows up immediately.
+templ clarificationForm(eventKey, teamNum, section, noteType string) {
+	<form
+		class="flex flex-col gap-2 pt-1"
+		hx-post="/api/add-clarification"
+		hx-target={ "#" + teamCardTargetID(section, teamNum) }
+		hx-swap="outerHTML">
+		<input type="hidden" name="event_key" value={ eventKey }/>
+		<input type="hidden" name="team_number" value={ teamNum }/>
+		<input type="hidden" name="section" value={ section }/>
+		<input type="hidden" name="note_type" value={ noteType }/>
+		<label class="text-xs font-bold uppercase text-[#A1887F] tracking-widest">
+			if noteType == "pit" {
+				Clarify these pit notes for the AI
+			} else {
+				Clarify these match notes for the AI
+			}
+		</label>
+		<textarea name="text" rows="2" required
+			placeholder={ `e.g. "2.5 cycles" means during auto, not the whole match` }
+			class="w-full p-2 text-sm bg-white border border-[#D2B48C] rounded-lg resize-none"></textarea>
+		<div class="flex flex-wrap gap-2 items-center">
+			<input type="text" name="author" placeholder="Your name (optional)"
+				class="flex-1 min-w-[8rem] p-2 text-sm bg-white border border-[#D2B48C] rounded-lg"/>
+			<button type="submit" class="text-xs font-bold px-3 py-1.5 rounded-full bg-[#5D4037] text-white hover:bg-[#8D6E63] transition whitespace-nowrap">
+				Save &amp; refresh analysis
+			</button>
+		</div>
+	</form>
 }
 
 templ GeminiAnalysisResults(cards []TeamAnalysisCard) {

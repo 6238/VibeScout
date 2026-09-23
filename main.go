@@ -95,9 +95,10 @@ type scoutRow struct {
 }
 
 // combineTeamNotes reads every submission for a team at an event and returns
-// the text Gemini sees, one block per match (see combineOneMatch) — so a
+// the text Gemini sees: one block per match (see combineOneMatch) — so a
 // match two different scouts covered reads as one clear account instead of
-// two disconnected, possibly-contradictory blobs.
+// two disconnected, possibly-contradictory blobs — followed by any
+// clarifications the strategy team has added (see clarificationsBlock).
 func combineTeamNotes(eventKey, teamNum string) (string, error) {
 	rows, err := db.Query(`
 		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(single_team, 0),
@@ -131,7 +132,14 @@ func combineTeamNotes(eventKey, teamNum string) (string, error) {
 		matchTexts = append(matchTexts, combineOneMatch(all[i:j]))
 		i = j
 	}
-	return strings.Join(matchTexts, "\n"), nil
+	joined := strings.Join(matchTexts, "\n")
+	if joined == "" {
+		return "", nil // nothing scouted yet, so no clarification could apply to anything
+	}
+	if block := clarificationsBlock(eventKey, teamNum, "field"); block != "" {
+		joined += "\n" + block
+	}
+	return joined, nil
 }
 
 // combineOneMatch formats every submission for a single match into one block.
@@ -291,6 +299,7 @@ func main() {
 	http.HandleFunc("/api/next-match", apiNextMatchHandler)
 	http.HandleFunc("/api/team-notes", apiTeamNotesHandler)
 	http.HandleFunc("/api/team-pit-notes", apiTeamPitNotesHandler)
+	http.HandleFunc("/api/add-clarification", apiAddClarificationHandler)
 	http.HandleFunc("/api/search-teams", apiSearchTeamsHandler)
 	http.HandleFunc("/match-planner", matchPlannerPageHandler)
 	http.HandleFunc("/api/match-plan", apiMatchPlanHandler)
@@ -783,7 +792,9 @@ func apiPitNoteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // pitNotesFor returns all pit scouting summaries for a team, oldest first,
-// joined into one block of text. Returns "" if the team hasn't been pit scouted.
+// joined into one block of text, followed by any clarifications the strategy
+// team has added (see clarificationsBlock). Returns "" if the team hasn't
+// been pit scouted.
 func pitNotesFor(teamNum string) string {
 	rows, err := db.Query(`
 		SELECT summary FROM pit_scouting
@@ -801,7 +812,66 @@ func pitNotesFor(teamNum string) string {
 		rows.Scan(&s)
 		summaries = append(summaries, s)
 	}
-	return strings.Join(summaries, "\n---\n")
+	joined := strings.Join(summaries, "\n---\n")
+	if joined == "" {
+		return "" // team hasn't been pit scouted, so no clarification could apply to anything
+	}
+	if block := clarificationsBlock("", teamNum, "pit"); block != "" {
+		joined += "\n" + block
+	}
+	return joined
+}
+
+// clarificationsFor returns strategy-team clarifications on a team's notes,
+// oldest first. Pit clarifications aren't scoped to an event, matching pit
+// notes themselves (see pitNotesFor); field clarifications are, matching
+// combineTeamNotes.
+func clarificationsFor(eventKey, teamNum, noteType string) []templates.Clarification {
+	query := `SELECT clarification, author, created_at FROM note_clarifications WHERE team_number = ? AND note_type = ? ORDER BY created_at ASC`
+	args := []any{teamNum, noteType}
+	if noteType == "field" {
+		query = `SELECT clarification, author, created_at FROM note_clarifications WHERE team_number = ? AND event_key = ? AND note_type = ? ORDER BY created_at ASC`
+		args = []any{teamNum, eventKey, noteType}
+	}
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		log.Printf("clarifications for %s (%s): %v", teamNum, noteType, err)
+		return nil
+	}
+	defer rows.Close()
+
+	var out []templates.Clarification
+	for rows.Next() {
+		var c templates.Clarification
+		var createdAt time.Time
+		if err := rows.Scan(&c.Text, &c.Author, &createdAt); err != nil {
+			continue
+		}
+		c.When = createdAt.Format("Jan 2, 3:04 PM") + " UTC"
+		out = append(out, c)
+	}
+	return out
+}
+
+// clarificationsBlock formats a team's clarifications as the text Gemini
+// reads, appended after the notes they clarify — e.g. a pit note claiming
+// "2.5 cycles" gets a trailing line spelling out that it meant auto only.
+// Returns "" when there are none, so callers can skip appending anything.
+func clarificationsBlock(eventKey, teamNum, noteType string) string {
+	items := clarificationsFor(eventKey, teamNum, noteType)
+	if len(items) == 0 {
+		return ""
+	}
+	lines := make([]string, len(items))
+	for i, c := range items {
+		if c.Author != "" {
+			lines[i] = fmt.Sprintf("- %s (%s)", c.Text, c.Author)
+		} else {
+			lines[i] = "- " + c.Text
+		}
+	}
+	return "Clarifications from strategy team:\n" + strings.Join(lines, "\n")
 }
 
 // currentEventMap returns events within ±7 days of today, always including the
@@ -892,7 +962,18 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "event_key and team_number required", http.StatusBadRequest)
 		return
 	}
+	// Cards in the next-match section share team numbers with the full list, so
+	// their element ids carry a prefix to stay unique.
+	card := buildTeamAnalysisCard(eventKey, teamNum, r.URL.Query().Get("section"))
+	templates.SingleTeamAnalysisCard(card).Render(r.Context(), w)
+}
 
+// buildTeamAnalysisCard gathers everything a team's analysis card shows: the
+// AI verdict (cached or freshly generated), the pit profile, EPA/rank from
+// Statbotics/TBA, and recent match links. Shared by the normal card load and
+// by apiAddClarificationHandler, which needs the same card rebuilt right
+// after adding context that changes what the AI read.
+func buildTeamAnalysisCard(eventKey, teamNum, section string) templates.TeamAnalysisCard {
 	// The pit profile only depends on the pit notes, so fetch it alongside the
 	// match analysis. A failure just leaves the pit row off the card.
 	pitCh := make(chan templates.PitProfile, 1)
@@ -918,9 +999,7 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 		eventKey, teamNum).Scan(&card.HasNotes)
 	db.QueryRow(`SELECT EXISTS(SELECT 1 FROM pit_scouting WHERE team_number = ?)`, teamNum).Scan(&card.HasPitNotes)
 
-	// Cards in the next-match section share team numbers with the full list, so
-	// their element ids carry a prefix to stay unique.
-	card.Section = r.URL.Query().Get("section")
+	card.Section = section
 	card.EPA, card.HasEPA = teamTotalEPA(eventKey, teamNum)
 	addTrustInfo(&card)
 
@@ -944,7 +1023,7 @@ func apiAnalyzeTeamHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("recent matches for %s at %s: %v", teamNum, eventKey, err)
 	}
 
-	templates.SingleTeamAnalysisCard(card).Render(r.Context(), w)
+	return card
 }
 
 // nextQualFor returns our team's first unplayed qual match.
@@ -1038,6 +1117,22 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	groups, err := buildTeamNoteGroups(eventKey, teamNum)
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+
+	section := r.URL.Query().Get("section")
+	clar := clarificationsFor(eventKey, teamNum, "field")
+	templates.TeamNotesPanel(eventKey, teamNum, section, groups, clar).Render(r.Context(), w)
+}
+
+// buildTeamNoteGroups reads every match-scouting submission for a team at an
+// event and groups it into one card per match. Shared by apiTeamNotesHandler
+// and apiAddClarificationHandler, which needs the panel rebuilt right after a
+// clarification is added.
+func buildTeamNoteGroups(eventKey, teamNum string) ([]templates.TeamNoteGroup, error) {
 	rows, err := db.Query(`
 		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(ai_generated, 0), COALESCE(single_team, 0),
 			COALESCE(has_checklist, 0), COALESCE(broke, 0), COALESCE(played_defense, 0), COALESCE(was_defended, 0), COALESCE(auto_type, '')
@@ -1045,8 +1140,7 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 		WHERE event_key = ? AND team_number = ?
 		ORDER BY match_num ASC`, eventKey, teamNum)
 	if err != nil {
-		http.Error(w, "db error", http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -1070,8 +1164,7 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 		groups = append(groups, teamNoteGroupFor(eventKey, teamNum, notes[i:j]))
 		i = j
 	}
-
-	templates.TeamNotesPanel(groups).Render(r.Context(), w)
+	return groups, nil
 }
 
 // teamNoteGroupFor builds one match's card: its notes, plus enough context —
@@ -1164,13 +1257,28 @@ func apiTeamPitNotesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	notes, err := buildPitNotes(teamNum)
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+
+	eventKey := r.URL.Query().Get("event_key")
+	section := r.URL.Query().Get("section")
+	clar := clarificationsFor("", teamNum, "pit")
+	templates.TeamPitNotesPanel(eventKey, teamNum, section, notes, clar).Render(r.Context(), w)
+}
+
+// buildPitNotes reads every pit-scouting summary for a team, newest first.
+// Shared by apiTeamPitNotesHandler and apiAddClarificationHandler, which
+// needs the panel rebuilt right after a clarification is added.
+func buildPitNotes(teamNum string) ([]templates.PitNote, error) {
 	rows, err := db.Query(`
 		SELECT created_at, summary FROM pit_scouting
 		WHERE team_number = ?
 		ORDER BY created_at DESC`, teamNum)
 	if err != nil {
-		http.Error(w, "db error", http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -1182,8 +1290,66 @@ func apiTeamPitNotesHandler(w http.ResponseWriter, r *http.Request) {
 		n.CreatedAt = createdAt.Format("Jan 2, 3:04 PM") + " UTC"
 		notes = append(notes, n)
 	}
+	return notes, nil
+}
 
-	templates.TeamPitNotesPanel(notes).Render(r.Context(), w)
+// apiAddClarificationHandler saves a strategy-team clarification on a team's
+// pit or field notes — context the AI (or a human) misread, like "2.5
+// cycles" meaning during auto rather than the whole match. It's appended
+// after the notes it clarifies (see clarificationsBlock), never rewriting
+// the original scout's words, and every clarification is visible in the
+// panel it belongs to, never a silent edit. Saving invalidates that team's
+// cached analysis (the notes text — and so its hash — just changed) and
+// rebuilds the card immediately, with the panel just used reopened already
+// populated instead of collapsing back to closed.
+func apiAddClarificationHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	eventKey := r.FormValue("event_key")
+	teamNum := r.FormValue("team_number")
+	noteType := r.FormValue("note_type")
+	section := r.FormValue("section")
+	text := strings.TrimSpace(r.FormValue("text"))
+	author := strings.TrimSpace(r.FormValue("author"))
+
+	if eventKey == "" || teamNum == "" || text == "" || (noteType != "pit" && noteType != "field") {
+		http.Error(w, "event_key, team_number, a non-empty clarification, and a valid note_type are required", http.StatusBadRequest)
+		return
+	}
+
+	// Pit notes aren't scoped to an event (see pit_scouting/pitNotesFor), so a
+	// pit clarification isn't either — it applies no matter which event's
+	// analysis is reading the pit notes.
+	storedEventKey := eventKey
+	if noteType == "pit" {
+		storedEventKey = ""
+	}
+	if _, err := db.Exec(`
+		INSERT INTO note_clarifications (event_key, team_number, note_type, clarification, author)
+		VALUES (?, ?, ?, ?, ?)`,
+		storedEventKey, teamNum, noteType, text, author); err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+
+	card := buildTeamAnalysisCard(eventKey, teamNum, section)
+	if noteType == "field" {
+		if groups, err := buildTeamNoteGroups(eventKey, teamNum); err == nil {
+			card.OpenNotesPanel = templates.TeamNotesPanel(eventKey, teamNum, section, groups, clarificationsFor(eventKey, teamNum, "field"))
+		} else {
+			log.Printf("rebuilding notes panel for %s at %s: %v", teamNum, eventKey, err)
+		}
+	} else {
+		if notes, err := buildPitNotes(teamNum); err == nil {
+			card.OpenPitNotesPanel = templates.TeamPitNotesPanel(eventKey, teamNum, section, notes, clarificationsFor("", teamNum, "pit"))
+		} else {
+			log.Printf("rebuilding pit notes panel for %s: %v", teamNum, err)
+		}
+	}
+	templates.SingleTeamAnalysisCard(card).Render(r.Context(), w)
 }
 
 // apiSearchTeamsHandler returns a JSON array of team numbers at the event whose

@@ -1,5 +1,7 @@
 package templates
 
+import "github.com/a-h/templ"
+
 // OurTeam is the team this scouting app belongs to.
 const OurTeam = "6238"
 
@@ -78,6 +80,12 @@ type TeamAnalysisCard struct {
 	HasEPAPct       bool   // EPA percentile among this event's teams is known
 	EPATopPct       int    // 1 = best EPA at the event, 50 = median, 100 = worst
 	Disagreement    string // set when the notes-based verdict and EPA differ a lot
+
+	// Pre-rendered notes/pit-notes panel content, set only when this card is
+	// being re-shown right after a clarification was added, so the panel just
+	// used reopens already populated instead of collapsing back to closed.
+	OpenNotesPanel    templ.Component
+	OpenPitNotesPanel templ.Component
 }
 
 type MatchLink struct {
@@ -128,6 +136,16 @@ type PitTeam struct {
 type PitNote struct {
 	CreatedAt string
 	Summary   string
+}
+
+// Clarification is context the strategy team added on top of a team's notes
+// because the AI (or a human skimming the raw notes) misread them — e.g. "2.5
+// cycles" meaning during auto, not the whole match. It's appended after the
+// notes it clarifies rather than rewriting the original scout's words.
+type Clarification struct {
+	Text   string
+	Author string // "" if not given
+	When   string
 }
 
 type MatchPlannerPageData struct {

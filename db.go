@@ -120,4 +120,22 @@ func initDB() {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_scout_ai_fill_dedupe
       ON scout_submissions(event_key, match_num, team_number)
       WHERE ai_generated = 1;`)
+
+	// Strategy-team clarifications on a team's notes (e.g. "2.5 cycles" meant
+	// during auto, not the whole match) — appended after the notes they
+	// clarify (see clarificationsBlock) instead of rewriting a scout's own
+	// words. note_type is 'pit' or 'field'. A pit clarification isn't scoped
+	// to an event, matching pit_scouting itself (a team's pit interview isn't
+	// re-done every event); a field clarification is, matching
+	// scout_submissions.
+	db.Exec(`
+    CREATE TABLE IF NOT EXISTS note_clarifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_key TEXT NOT NULL DEFAULT '',
+      team_number TEXT NOT NULL,
+      note_type TEXT NOT NULL,
+      clarification TEXT NOT NULL,
+      author TEXT NOT NULL DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`)
 }
