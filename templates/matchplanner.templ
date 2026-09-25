@@ -33,6 +33,7 @@ templ MatchPlannerPage(data MatchPlannerPageData) {
 								class="ps-field font-data font-semibold" />
 						</div>
 						<button type="submit" class="btn btn-primary">
+							@iconTarget("w-4 h-4")
 							Plan match
 						</button>
 					</form>
@@ -51,9 +52,18 @@ templ MatchPlannerPage(data MatchPlannerPageData) {
 			</div>
 
 			<div class="mt-6 flex gap-2 justify-center flex-wrap">
-				<a href={ templ.SafeURL("/next-match?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">Next match</a>
-				<a href={ templ.SafeURL("/pick-list?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">Pick list</a>
-				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">Home</a>
+				<a href={ templ.SafeURL("/next-match?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">
+					@iconFlag("w-4 h-4")
+					Next match
+				</a>
+				<a href={ templ.SafeURL("/pick-list?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">
+					@iconBars("w-4 h-4")
+					Pick list
+				</a>
+				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">
+					@iconHome("w-4 h-4")
+					Home
+				</a>
 			</div>
 		</main>
 	}

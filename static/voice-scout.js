@@ -31,11 +31,13 @@
   };
 
   var toggleBtn = document.getElementById('voice-toggle');
+  var toggleLabelEl = document.getElementById('voice-toggle-label');
   var statusEl = document.getElementById('voice-status');
   var talkingEl = document.getElementById('voice-talking');
   var talkingTeamEl = document.getElementById('voice-talking-team');
   var captionEl = document.getElementById('voice-caption');
   var nextBtn = document.getElementById('next-match-btn');
+  var nextBtnLabelEl = document.getElementById('next-match-label');
   var review = document.getElementById('review-overlay');
   var reviewTranscript = document.getElementById('review-transcript');
   var reviewTeams = document.getElementById('review-teams');
@@ -56,7 +58,7 @@
     var bar = document.getElementById('voice-bar');
     if (bar) bar.classList.toggle('is-listening', !!listening);
     if (toggleBtn) {
-      toggleBtn.textContent = listening ? 'Stop listening' : 'Start listening';
+      if (toggleLabelEl) toggleLabelEl.textContent = listening ? 'Stop listening' : 'Start listening';
       toggleBtn.setAttribute('aria-pressed', listening ? 'true' : 'false');
     }
   }
@@ -257,7 +259,7 @@
         voice.ready = true;
         voice.used = true;
         setStatus(oneRobot ? 'Listening.' : 'Listening — tap a notes box, then talk.', true);
-        if (nextBtn) nextBtn.textContent = 'Review & next →';
+        if (nextBtnLabelEl) nextBtnLabelEl.textContent = 'Review & next';
         sendFocus(oneRobot ? focusTeam : voice.talkingAbout);
       } else if (msg.type === 'interim') {
         voice.interim = msg.text || '';

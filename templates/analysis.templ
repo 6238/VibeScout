@@ -131,9 +131,18 @@ templ NextMatchPage(data EventPageData) {
 			</div>
 
 			<div class="mt-6 flex flex-wrap gap-2 justify-center">
-				<a href={ templ.SafeURL("/pick-list?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">Pick list</a>
-				<a href={ templ.SafeURL("/match-planner?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">Plan a different match</a>
-				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">‹ Home</a>
+				<a href={ templ.SafeURL("/pick-list?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">
+					@iconBars("w-4 h-4")
+					Pick list
+				</a>
+				<a href={ templ.SafeURL("/match-planner?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">
+					@iconTarget("w-4 h-4")
+					Plan a different match
+				</a>
+				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">
+					@iconHome("w-4 h-4")
+					Home
+				</a>
 			</div>
 		</main>
 	}
@@ -155,27 +164,30 @@ templ PickListPage(data EventPageData) {
 						hx-swap="innerHTML">
 						<input type="hidden" id="event-key" name="event_key" value={ data.EventKey }/>
 						<button type="submit" class="btn btn-primary btn-block btn-lg">
+							@iconSparkle("w-5 h-5")
 							Run analysis
 						</button>
 					</form>
 
-					<div class="mt-4">
-						<label for="team-search" class="ps-label">Search teams</label>
-						<input id="team-search" type="search" autocomplete="off" placeholder="Team number or keyword in scout / pit notes"
-							class="ps-field"/>
-						<p id="team-search-status" class="text-xs text-[var(--ps-muted)] mt-1"></p>
-					</div>
+					<div class="mt-4 grid sm:grid-cols-2 gap-4">
+						<div>
+							<label for="team-search" class="ps-label">Search teams</label>
+							<input id="team-search" type="search" autocomplete="off" placeholder="Team number or keyword in scout / pit notes"
+								class="ps-field"/>
+							<p id="team-search-status" class="text-xs text-[var(--ps-muted)] mt-1"></p>
+						</div>
 
-					<div class="mt-4">
-						<label for="team-sort" class="ps-label">Sort teams</label>
-						<select id="team-sort" class="ps-field">
-							<option value="epa">EPA (best first)</option>
-							<option value="team">Team number</option>
-							<option value="reliability">Reliability (scouted)</option>
-							<option value="scoring">Scoring (scouted)</option>
-							<option value="matches">Matches scouted</option>
-						</select>
-						<p class="text-xs text-[var(--ps-muted)] mt-1">EPA is measured over every match. Scouted ratings are only as good as the number of matches scouted.</p>
+						<div>
+							<label for="team-sort" class="ps-label">Sort teams</label>
+							<select id="team-sort" class="ps-field">
+								<option value="epa">EPA (best first)</option>
+								<option value="team">Team number</option>
+								<option value="reliability">Reliability (scouted)</option>
+								<option value="scoring">Scoring (scouted)</option>
+								<option value="matches">Matches scouted</option>
+							</select>
+							<p class="text-xs text-[var(--ps-muted)] mt-1">EPA over every match; scouted ratings are only as good as matches scouted.</p>
+						</div>
 					</div>
 				</div>
 
@@ -260,8 +272,14 @@ templ PickListPage(data EventPageData) {
 			</script>
 
 			<div class="mt-6 flex flex-wrap gap-2 justify-center">
-				<a href={ templ.SafeURL("/next-match?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">Next match</a>
-				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">‹ Home</a>
+				<a href={ templ.SafeURL("/next-match?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">
+					@iconFlag("w-4 h-4")
+					Next match
+				</a>
+				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">
+					@iconHome("w-4 h-4")
+					Home
+				</a>
 			</div>
 		</main>
 	}

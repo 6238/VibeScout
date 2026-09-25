@@ -57,12 +57,18 @@ templ PitScoutPage(eventKey string, eventName string) {
 						</div>
 
 						<div>
-							<label for="pit-summary" class="ps-label">Ask about</label>
-							<ol class="list-decimal list-inside text-base leading-snug text-[var(--ps-ink)] bg-[var(--ps-input)] border border-[var(--ps-border-soft)] rounded-[var(--ps-radius-md)] px-3 py-2 mb-2 space-y-1">
-								for _, q := range pitScoutQuestions {
-									<li>{ q }</li>
-								}
-							</ol>
+							<details class="group mb-2">
+								<summary class="ps-label mb-0 cursor-pointer select-none list-none flex items-center gap-1.5">
+									@iconChevronRight("w-3.5 h-3.5 transition-transform group-open:rotate-90")
+									{ fmt.Sprintf("Ask about (%d questions)", len(pitScoutQuestions)) }
+								</summary>
+								<ol class="list-decimal list-inside text-base leading-snug text-[var(--ps-ink)] bg-[var(--ps-input)] border border-[var(--ps-border-soft)] rounded-[var(--ps-radius-md)] px-3 py-2 mt-2 space-y-1">
+									for _, q := range pitScoutQuestions {
+										<li>{ q }</li>
+									}
+								</ol>
+							</details>
+							<label for="pit-summary" class="ps-label">Notes</label>
 							<textarea id="pit-summary" name="summary" rows="8" required placeholder="Summary of their answers..."
 								class="ps-field"></textarea>
 						</div>
@@ -74,7 +80,8 @@ templ PitScoutPage(eventKey string, eventName string) {
 						<div id="pit-clarifications" class="hidden space-y-1.5"></div>
 
 						<button id="pit-submit" type="submit" class="btn btn-primary btn-block btn-lg">
-							Save pit scouting
+							@iconNut("w-5 h-5")
+							<span id="pit-submit-label">Save pit scouting</span>
 						</button>
 					</form>
 					<div id="pit-result" class="mt-3 text-center font-semibold text-sm text-[var(--ps-ink)]"></div>
@@ -100,7 +107,10 @@ templ PitScoutPage(eventKey string, eventName string) {
 			</div>
 
 			<div class="mt-4 text-center">
-				<a href={ templ.SafeURL("/?event_key=" + eventKey) } class="btn btn-ghost btn-sm">‹ Home</a>
+				<a href={ templ.SafeURL("/?event_key=" + eventKey) } class="btn btn-ghost btn-sm">
+				@iconHome("w-4 h-4")
+				Home
+			</a>
 			</div>
 			<script>
 				(function() {
@@ -111,7 +121,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 					var suggest = document.getElementById('pit-team-suggest');
 					var summary = document.getElementById('pit-summary');
 					var status = document.getElementById('pit-edit-status');
-					var submit = document.getElementById('pit-submit');
+					var submit = document.getElementById('pit-submit-label');
 					var result = document.getElementById('pit-result');
 					var clarifications = document.getElementById('pit-clarifications');
 

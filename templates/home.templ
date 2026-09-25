@@ -58,65 +58,35 @@ templ homeTile(action string, label string) {
     </button>
 }
 
-// Small linear icons, hand-drawn to match the app's own line weight rather
-// than standing in with emoji or an icon-font glyph.
-templ iconClipboard(class string) {
-    <svg class={ class } viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="5.5" y="4.5" width="13" height="16" rx="2"></rect>
-        <path d="M9 4.5V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v.5"></path>
-        <path d="M9 12.5l2 2 4-4.5"></path>
-    </svg>
-}
-
-templ iconFlag(class string) {
-    <svg class={ class } viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 21V4"></path>
-        <path d="M6 4.5h12l-3.3 4L18 12.5H6"></path>
-    </svg>
-}
-
-templ iconBars(class string) {
-    <svg class={ class } viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 20v-5.5"></path>
-        <path d="M12 20V9"></path>
-        <path d="M19 20V4.5"></path>
-    </svg>
-}
-
-templ iconNut(class string) {
-    <svg class={ class } viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="12,3.5 18.5,7.5 18.5,15.5 12,19.5 5.5,15.5 5.5,7.5"></polygon>
-        <circle cx="12" cy="11.5" r="3"></circle>
-    </svg>
-}
-
 templ FieldScout(data FieldScoutData) {
     @Layout("Vibe Scout | Field Scouting") {
         <main class="flex flex-col items-center justify-center min-h-screen px-4 py-6">
-            <div class="ps-card max-w-md w-full p-6 text-center">
+            <div class="ps-card max-w-md sm:max-w-lg w-full p-6 text-center">
                 <h1 class="text-2xl font-extrabold text-[var(--ps-ink)] mb-1 tracking-tight">Field Scouting</h1>
                 <p class="text-sm font-medium text-[var(--ps-muted)] mb-4">{ data.EventName }</p>
 
                 <form id="field-form" action="/scout" method="GET" class="space-y-4">
                     <input type="hidden" id="field-event" name="event_key" value={ data.EventKey }/>
 
-                    <div class="text-left">
-                        <label for="field-scouter" class="ps-label">Scouter</label>
-                        <div class="relative">
-                            <input id="field-scouter" type="text" name="scouter" value={ data.ScouterName } required maxlength="40"
-                                placeholder="Your name" autocomplete="off" autocapitalize="words" spellcheck="false"
-                                role="combobox" aria-autocomplete="list" aria-controls="field-scouter-suggest" aria-expanded="false"
-                                class="ps-field font-semibold"/>
-                            <ul id="field-scouter-suggest" role="listbox"
-                                class="hidden absolute z-20 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-[var(--ps-input)] border border-[var(--ps-border)] rounded-lg shadow-lg text-left"></ul>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="text-left sm:col-span-2">
+                            <label for="field-scouter" class="ps-label">Scouter</label>
+                            <div class="relative">
+                                <input id="field-scouter" type="text" name="scouter" value={ data.ScouterName } required maxlength="40"
+                                    placeholder="Your name" autocomplete="off" autocapitalize="words" spellcheck="false"
+                                    role="combobox" aria-autocomplete="list" aria-controls="field-scouter-suggest" aria-expanded="false"
+                                    class="ps-field font-semibold"/>
+                                <ul id="field-scouter-suggest" role="listbox"
+                                    class="hidden absolute z-20 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-[var(--ps-input)] border border-[var(--ps-border)] rounded-lg shadow-lg text-left"></ul>
+                            </div>
+                            @templ.JSONScript("field-scouters", data.Scouters)
                         </div>
-                        @templ.JSONScript("field-scouters", data.Scouters)
-                    </div>
 
-                    <div class="text-left">
-                        <label for="field-match" class="ps-label">Match number</label>
-                        <input id="field-match" type="number" name="match_num" value={ strconv.Itoa(data.MatchNum) } min="1" required
-                               class="ps-field font-data font-semibold" />
+                        <div class="text-left">
+                            <label for="field-match" class="ps-label">Match #</label>
+                            <input id="field-match" type="number" name="match_num" value={ strconv.Itoa(data.MatchNum) } min="1" required
+                                   class="ps-field font-data font-semibold" />
+                        </div>
                     </div>
 
                     <div class="text-left">
@@ -124,14 +94,16 @@ templ FieldScout(data FieldScoutData) {
                         <div class="grid grid-cols-2 gap-3">
                             <label class="mode-option">
                                 <input type="radio" name="mode" value="three" class="sr-only peer" checked?={ data.Mode == "three" }/>
-                                <span class="block p-4 rounded-[var(--ps-radius-md)] border border-[var(--ps-border)] bg-[var(--ps-input)] text-center cursor-pointer transition peer-checked:bg-[var(--ps-red-strong)] peer-checked:border-[var(--ps-red-strong)] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ps-gold)]">
+                                <span class="flex flex-col items-center gap-1 p-4 rounded-[var(--ps-radius-md)] border border-[var(--ps-border)] bg-[var(--ps-input)] text-center cursor-pointer transition peer-checked:bg-[var(--ps-red-strong)] peer-checked:border-[var(--ps-red-strong)] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ps-gold)]">
+                                    @iconLayers("w-6 h-6")
                                     <span class="block font-bold text-base">3 robots</span>
                                     <span class="block text-sm opacity-80">Pick an alliance</span>
                                 </span>
                             </label>
                             <label class="mode-option">
                                 <input type="radio" name="mode" value="one" class="sr-only peer" checked?={ data.Mode == "one" }/>
-                                <span class="block p-4 rounded-[var(--ps-radius-md)] border border-[var(--ps-border)] bg-[var(--ps-input)] text-center cursor-pointer transition peer-checked:bg-[var(--ps-red-strong)] peer-checked:border-[var(--ps-red-strong)] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ps-gold)]">
+                                <span class="flex flex-col items-center gap-1 p-4 rounded-[var(--ps-radius-md)] border border-[var(--ps-border)] bg-[var(--ps-input)] text-center cursor-pointer transition peer-checked:bg-[var(--ps-red-strong)] peer-checked:border-[var(--ps-red-strong)] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ps-gold)]">
+                                    @iconCrosshair("w-6 h-6")
                                     <span class="block font-bold text-base">1 robot</span>
                                     <span class="block text-sm opacity-80">Pick a team</span>
                                 </span>
@@ -159,7 +131,10 @@ templ FieldScout(data FieldScoutData) {
                 </form>
             </div>
             <div class="mt-6 text-center">
-                <a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">‹ Home</a>
+                <a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">
+                    @iconHome("w-4 h-4")
+                    Home
+                </a>
             </div>
             <script>
                 (function() {

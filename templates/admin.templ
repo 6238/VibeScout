@@ -75,7 +75,10 @@ templ AdminPage(events []string) {
 				<div id="result" class="mt-4 text-[var(--ps-ink)] font-semibold text-sm"></div>
 
 				<div class="mt-8">
-					<a href="/" class="btn btn-ghost btn-sm">‹ Back to home</a>
+					<a href="/" class="btn btn-ghost btn-sm">
+					@iconHome("w-4 h-4")
+					Back to home
+				</a>
 				</div>
 			</div>
 		</main>

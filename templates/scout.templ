@@ -40,7 +40,8 @@ templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []Scout
 			<div id="voice-bar" class="max-w-4xl mx-auto mb-4 section-card p-4">
 				<div class="flex flex-wrap items-center gap-3">
 					<button id="voice-toggle" type="button" aria-pressed="false" class="btn btn-primary">
-						Start listening
+						@iconMic("w-4 h-4")
+						<span id="voice-toggle-label">Start listening</span>
 					</button>
 					<div class="flex-1 min-w-[12rem]">
 						<p id="voice-status" class="text-sm font-semibold text-[var(--ps-ink)]">Mic off — tap to dictate notes.</p>
@@ -113,7 +114,8 @@ templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []Scout
 			<!-- Submit -->
 			<div class="fixed bottom-0 left-0 right-0 p-4 bg-[var(--ps-surface)]/95 backdrop-blur-md flex justify-center z-50">
 				<button id="next-match-btn" onclick="nextMatch()" class="btn btn-primary btn-lg px-12">
-					Next match
+					@iconFlag("w-5 h-5")
+					<span id="next-match-label">Next match</span>
 				</button>
 			</div>
 
