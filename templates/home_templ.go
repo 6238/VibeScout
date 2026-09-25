@@ -46,7 +46,7 @@ func Home(events map[string]string, selectedEvent string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<main class=\"flex flex-col items-center justify-center min-h-screen px-4\"><div class=\"max-w-md w-full bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-8 shadow-2xl text-center\"><h1 class=\"text-4xl font-black text-[#5D4037] mb-6 tracking-tight uppercase\">Vibe Scout</h1><!-- Each button sends the chosen event to its own page --><form method=\"GET\" action=\"/field-scout\" class=\"space-y-4\"><div class=\"text-left\"><label for=\"home-event\" class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Event</label> <select id=\"home-event\" name=\"event_key\" class=\"w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<main class=\"flex flex-col items-center justify-center min-h-screen px-4\"><div class=\"ps-card max-w-md w-full p-8 text-center\"><h1 class=\"text-3xl font-extrabold text-[var(--ps-ink)] mb-6 tracking-tight\">Vibe Scout</h1><!-- Each button sends the chosen event to its own page --><form method=\"GET\" action=\"/field-scout\" class=\"space-y-4\"><div class=\"text-left\"><label for=\"home-event\" class=\"ps-label\">Event</label> <select id=\"home-event\" name=\"event_key\" class=\"ps-field font-medium\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -92,7 +92,7 @@ func Home(events map[string]string, selectedEvent string) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</select></div><button type=\"submit\" formaction=\"/field-scout\" class=\"w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-5 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]\">Field Scouting</button> <button type=\"submit\" formaction=\"/next-match\" class=\"w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-5 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]\">Next Match</button> <button type=\"submit\" formaction=\"/pick-list\" class=\"w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-5 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]\">Pick List</button> <button type=\"submit\" formaction=\"/pit-scout\" class=\"w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-5 rounded-2xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]\">Pit Scouting</button></form></div></main>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</select></div><button type=\"submit\" formaction=\"/field-scout\" class=\"btn btn-primary btn-block btn-lg\">Field Scouting</button> <button type=\"submit\" formaction=\"/next-match\" class=\"btn btn-secondary btn-block btn-lg\">Next Match</button> <button type=\"submit\" formaction=\"/pick-list\" class=\"btn btn-secondary btn-block btn-lg\">Pick List</button> <button type=\"submit\" formaction=\"/pit-scout\" class=\"btn btn-secondary btn-block btn-lg\">Pit Scouting</button></form></div></main>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -139,14 +139,14 @@ func FieldScout(data FieldScoutData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<main class=\"flex flex-col items-center justify-center min-h-screen px-4 py-6\"><div class=\"max-w-md w-full bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-2xl text-center\"><h1 class=\"text-4xl font-black text-[#5D4037] mb-1 tracking-tight uppercase\">Field Scouting</h1><p class=\"text-sm font-bold text-[#A1887F] mb-4\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<main class=\"flex flex-col items-center justify-center min-h-screen px-4 py-6\"><div class=\"ps-card max-w-md w-full p-6 text-center\"><h1 class=\"text-2xl font-extrabold text-[var(--ps-ink)] mb-1 tracking-tight\">Field Scouting</h1><p class=\"text-sm font-medium text-[var(--ps-muted)] mb-4\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(data.EventName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 48, Col: 81}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 48, Col: 91}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -165,7 +165,7 @@ func FieldScout(data FieldScoutData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\"><div class=\"text-left\"><label for=\"field-scouter\" class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Scouter</label><div class=\"relative\"><input id=\"field-scouter\" type=\"text\" name=\"scouter\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\"><div class=\"text-left\"><label for=\"field-scouter\" class=\"ps-label\">Scouter</label><div class=\"relative\"><input id=\"field-scouter\" type=\"text\" name=\"scouter\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -178,7 +178,7 @@ func FieldScout(data FieldScoutData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" required maxlength=\"40\" placeholder=\"Your name\" autocomplete=\"off\" autocapitalize=\"words\" spellcheck=\"false\" role=\"combobox\" aria-autocomplete=\"list\" aria-controls=\"field-scouter-suggest\" aria-expanded=\"false\" class=\"w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold\"><ul id=\"field-scouter-suggest\" role=\"listbox\" class=\"hidden absolute z-20 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl shadow-lg text-left\"></ul></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" required maxlength=\"40\" placeholder=\"Your name\" autocomplete=\"off\" autocapitalize=\"words\" spellcheck=\"false\" role=\"combobox\" aria-autocomplete=\"list\" aria-controls=\"field-scouter-suggest\" aria-expanded=\"false\" class=\"ps-field font-semibold\"><ul id=\"field-scouter-suggest\" role=\"listbox\" class=\"hidden absolute z-20 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-[var(--ps-input)] border border-[var(--ps-border)] rounded-lg shadow-lg text-left\"></ul></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -186,7 +186,7 @@ func FieldScout(data FieldScoutData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div><div class=\"text-left\"><label for=\"field-match\" class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Match #</label> <input id=\"field-match\" type=\"number\" name=\"match_num\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div><div class=\"text-left\"><label for=\"field-match\" class=\"ps-label\">Match number</label> <input id=\"field-match\" type=\"number\" name=\"match_num\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -199,7 +199,7 @@ func FieldScout(data FieldScoutData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" min=\"1\" required class=\"w-full p-4 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold\"></div><div class=\"text-left\"><span class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Scouting Mode</span><div class=\"grid grid-cols-2 gap-3\"><label class=\"mode-option\"><input type=\"radio\" name=\"mode\" value=\"three\" class=\"sr-only peer\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" min=\"1\" required class=\"ps-field font-data font-semibold\"></div><div class=\"text-left\"><span class=\"ps-label\">Scouting mode</span><div class=\"grid grid-cols-2 gap-3\"><label class=\"mode-option\"><input type=\"radio\" name=\"mode\" value=\"three\" class=\"sr-only peer\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -209,7 +209,7 @@ func FieldScout(data FieldScoutData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "> <span class=\"block p-4 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]\"><span class=\"block font-black text-lg uppercase tracking-wide\">3 Robot</span> <span class=\"block text-sm opacity-80\">pick an alliance</span></span></label> <label class=\"mode-option\"><input type=\"radio\" name=\"mode\" value=\"one\" class=\"sr-only peer\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "> <span class=\"block p-4 rounded-[var(--ps-radius-md)] border border-[var(--ps-border)] bg-[var(--ps-input)] text-center cursor-pointer transition peer-checked:bg-[var(--ps-red-strong)] peer-checked:border-[var(--ps-red-strong)] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ps-gold)]\"><span class=\"block font-bold text-base\">3 robots</span> <span class=\"block text-sm opacity-80\">Pick an alliance</span></span></label> <label class=\"mode-option\"><input type=\"radio\" name=\"mode\" value=\"one\" class=\"sr-only peer\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -219,7 +219,7 @@ func FieldScout(data FieldScoutData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "> <span class=\"block p-4 rounded-xl border-2 border-[#D2B48C] bg-[#FFFBF5] text-center cursor-pointer transition peer-checked:bg-[#5D4037] peer-checked:border-[#5D4037] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#8D6E63]\"><span class=\"block font-black text-lg uppercase tracking-wide\">1 Robot</span> <span class=\"block text-sm opacity-80\">pick a team</span></span></label></div></div><!-- Three-robot mode: each alliance button submits the form with its alliance --><div id=\"field-alliance-picker\" class=\"hidden text-left\" hx-get=\"/api/match-alliances\" hx-include=\"#field-event, #field-match\" hx-trigger=\"load, input delay:400ms from:#field-match\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div><!-- One-robot mode: each team button submits the form with its team --><div id=\"field-team-picker\" class=\"hidden text-left\" hx-get=\"/api/match-teams\" hx-include=\"#field-event, #field-match\" hx-trigger=\"load, input delay:400ms from:#field-match\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[#A1887F] ml-2\">Loading teams...</p></div></form></div><div class=\"mt-6 text-center\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "> <span class=\"block p-4 rounded-[var(--ps-radius-md)] border border-[var(--ps-border)] bg-[var(--ps-input)] text-center cursor-pointer transition peer-checked:bg-[var(--ps-red-strong)] peer-checked:border-[var(--ps-red-strong)] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ps-gold)]\"><span class=\"block font-bold text-base\">1 robot</span> <span class=\"block text-sm opacity-80\">Pick a team</span></span></label></div></div><!-- Three-robot mode: each alliance button submits the form with its alliance --><div id=\"field-alliance-picker\" class=\"hidden text-left\" hx-get=\"/api/match-alliances\" hx-include=\"#field-event, #field-match\" hx-trigger=\"load, input delay:400ms from:#field-match\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[var(--ps-muted)] ml-1\">Loading teams…</p></div><!-- One-robot mode: each team button submits the form with its team --><div id=\"field-team-picker\" class=\"hidden text-left\" hx-get=\"/api/match-teams\" hx-include=\"#field-event, #field-match\" hx-trigger=\"load, input delay:400ms from:#field-match\" hx-swap=\"innerHTML\"><p class=\"text-sm text-[var(--ps-muted)] ml-1\">Loading teams…</p></div></form></div><div class=\"mt-6 text-center\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -232,7 +232,7 @@ func FieldScout(data FieldScoutData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"text-[#A1887F] hover:text-[#5D4037] font-bold\">← Home</a></div><script>\r\n                (function() {\r\n                    var form = document.getElementById('field-form');\r\n                    var alliancePicker = document.getElementById('field-alliance-picker');\r\n                    var teamPicker = document.getElementById('field-team-picker');\r\n                    function applyMode() {\r\n                        var mode = form.querySelector('input[name=mode]:checked').value;\r\n                        alliancePicker.classList.toggle('hidden', mode !== 'three');\r\n                        teamPicker.classList.toggle('hidden', mode !== 'one');\r\n                    }\r\n                    form.querySelectorAll('input[name=mode]').forEach(function(r) { r.addEventListener('change', applyMode); });\r\n                    applyMode();\r\n\r\n                    // ── Scouter name type-ahead ──\r\n                    var input = document.getElementById('field-scouter');\r\n                    var suggest = document.getElementById('field-scouter-suggest');\r\n                    var scouters = JSON.parse(document.getElementById('field-scouters').textContent) || [];\r\n                    var items = [];      // names currently listed\r\n                    var highlighted = -1;\r\n\r\n                    // Remember the name on this device so the scouter doesn't retype it\r\n                    if (!input.value) {\r\n                        try { input.value = localStorage.getItem('vibescout.scouter') || ''; } catch (e) {}\r\n                    }\r\n                    form.addEventListener('submit', function() {\r\n                        input.value = input.value.replace(/\\s+/g, ' ').trim();\r\n                        try { localStorage.setItem('vibescout.scouter', input.value); } catch (e) {}\r\n                    });\r\n\r\n                    function close() {\r\n                        suggest.classList.add('hidden');\r\n                        input.setAttribute('aria-expanded', 'false');\r\n                        highlighted = -1;\r\n                    }\r\n                    function render() {\r\n                        var q = input.value.trim().toLowerCase();\r\n                        var starts = [], contains = [];\r\n                        scouters.forEach(function(n) {\r\n                            var i = n.toLowerCase().indexOf(q);\r\n                            if (i === 0) starts.push(n); else if (i > 0) contains.push(n);\r\n                        });\r\n                        var names = starts.concat(contains).slice(0, 8);\r\n                        var exact = scouters.some(function(n) { return n.toLowerCase() === q; });\r\n                        items = names.slice();\r\n                        suggest.innerHTML = '';\r\n                        names.forEach(function(n) {\r\n                            var li = document.createElement('li');\r\n                            li.setAttribute('role', 'option');\r\n                            li.className = 'px-3 py-2 cursor-pointer font-bold text-[#5D4037]';\r\n                            li.textContent = n;\r\n                            suggest.appendChild(li);\r\n                        });\r\n                        if (q !== '' && !exact) {\r\n                            var typed = input.value.replace(/\\s+/g, ' ').trim();\r\n                            items.push(typed);\r\n                            var li = document.createElement('li');\r\n                            li.setAttribute('role', 'option');\r\n                            li.className = 'px-3 py-2 cursor-pointer font-bold text-[#8D6E63] border-t border-[#D2B48C]';\r\n                            li.textContent = '+ New scouter \"' + typed + '\"';\r\n                            suggest.appendChild(li);\r\n                        }\r\n                        if (items.length === 0 || (exact && names.length === 1)) { close(); return; }\r\n                        highlighted = q === '' ? -1 : 0;\r\n                        paint();\r\n                        suggest.classList.remove('hidden');\r\n                        input.setAttribute('aria-expanded', 'true');\r\n                    }\r\n                    function paint() {\r\n                        Array.prototype.forEach.call(suggest.children, function(li, i) {\r\n                            li.classList.toggle('bg-[#F2E8D5]', i === highlighted);\r\n                            li.setAttribute('aria-selected', i === highlighted ? 'true' : 'false');\r\n                        });\r\n                    }\r\n                    function pick(i) {\r\n                        input.value = items[i];\r\n                        close();\r\n                    }\r\n\r\n                    input.addEventListener('input', render);\r\n                    input.addEventListener('focus', render);\r\n                    input.addEventListener('blur', close);\r\n                    input.addEventListener('keydown', function(e) {\r\n                        var open = !suggest.classList.contains('hidden');\r\n                        if (e.key === 'ArrowDown' && open) {\r\n                            e.preventDefault();\r\n                            highlighted = Math.min(highlighted + 1, items.length - 1);\r\n                            paint();\r\n                        } else if (e.key === 'ArrowUp' && open) {\r\n                            e.preventDefault();\r\n                            highlighted = Math.max(highlighted - 1, 0);\r\n                            paint();\r\n                        } else if (e.key === 'Enter' && open && highlighted >= 0) {\r\n                            e.preventDefault();\r\n                            pick(highlighted);\r\n                        } else if (e.key === 'Escape') {\r\n                            close();\r\n                        }\r\n                    });\r\n                    // mousedown so it fires before the input loses focus\r\n                    suggest.addEventListener('mousedown', function(e) {\r\n                        var li = e.target.closest('li');\r\n                        if (!li) return;\r\n                        e.preventDefault();\r\n                        pick(Array.prototype.indexOf.call(suggest.children, li));\r\n                    });\r\n                })();\r\n            </script></main>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"btn btn-ghost btn-sm\">‹ Home</a></div><script>\n                (function() {\n                    var form = document.getElementById('field-form');\n                    var alliancePicker = document.getElementById('field-alliance-picker');\n                    var teamPicker = document.getElementById('field-team-picker');\n                    function applyMode() {\n                        var mode = form.querySelector('input[name=mode]:checked').value;\n                        alliancePicker.classList.toggle('hidden', mode !== 'three');\n                        teamPicker.classList.toggle('hidden', mode !== 'one');\n                    }\n                    form.querySelectorAll('input[name=mode]').forEach(function(r) { r.addEventListener('change', applyMode); });\n                    applyMode();\n\n                    // ── Scouter name type-ahead ──\n                    var input = document.getElementById('field-scouter');\n                    var suggest = document.getElementById('field-scouter-suggest');\n                    var scouters = JSON.parse(document.getElementById('field-scouters').textContent) || [];\n                    var items = [];      // names currently listed\n                    var highlighted = -1;\n\n                    // Remember the name on this device so the scouter doesn't retype it\n                    if (!input.value) {\n                        try { input.value = localStorage.getItem('vibescout.scouter') || ''; } catch (e) {}\n                    }\n                    form.addEventListener('submit', function() {\n                        input.value = input.value.replace(/\\s+/g, ' ').trim();\n                        try { localStorage.setItem('vibescout.scouter', input.value); } catch (e) {}\n                    });\n\n                    function close() {\n                        suggest.classList.add('hidden');\n                        input.setAttribute('aria-expanded', 'false');\n                        highlighted = -1;\n                    }\n                    function render() {\n                        var q = input.value.trim().toLowerCase();\n                        var starts = [], contains = [];\n                        scouters.forEach(function(n) {\n                            var i = n.toLowerCase().indexOf(q);\n                            if (i === 0) starts.push(n); else if (i > 0) contains.push(n);\n                        });\n                        var names = starts.concat(contains).slice(0, 8);\n                        var exact = scouters.some(function(n) { return n.toLowerCase() === q; });\n                        items = names.slice();\n                        suggest.innerHTML = '';\n                        names.forEach(function(n) {\n                            var li = document.createElement('li');\n                            li.setAttribute('role', 'option');\n                            li.className = 'px-3 py-2 cursor-pointer font-semibold text-[var(--ps-ink)]';\n                            li.textContent = n;\n                            suggest.appendChild(li);\n                        });\n                        if (q !== '' && !exact) {\n                            var typed = input.value.replace(/\\s+/g, ' ').trim();\n                            items.push(typed);\n                            var li = document.createElement('li');\n                            li.setAttribute('role', 'option');\n                            li.className = 'px-3 py-2 cursor-pointer font-semibold text-[var(--ps-ink-soft)] border-t border-[var(--ps-border)]';\n                            li.textContent = 'Add scouter \"' + typed + '\"';\n                            suggest.appendChild(li);\n                        }\n                        if (items.length === 0 || (exact && names.length === 1)) { close(); return; }\n                        highlighted = q === '' ? -1 : 0;\n                        paint();\n                        suggest.classList.remove('hidden');\n                        input.setAttribute('aria-expanded', 'true');\n                    }\n                    function paint() {\n                        Array.prototype.forEach.call(suggest.children, function(li, i) {\n                            li.classList.toggle('bg-[var(--ps-panel)]', i === highlighted);\n                            li.setAttribute('aria-selected', i === highlighted ? 'true' : 'false');\n                        });\n                    }\n                    function pick(i) {\n                        input.value = items[i];\n                        close();\n                    }\n\n                    input.addEventListener('input', render);\n                    input.addEventListener('focus', render);\n                    input.addEventListener('blur', close);\n                    input.addEventListener('keydown', function(e) {\n                        var open = !suggest.classList.contains('hidden');\n                        if (e.key === 'ArrowDown' && open) {\n                            e.preventDefault();\n                            highlighted = Math.min(highlighted + 1, items.length - 1);\n                            paint();\n                        } else if (e.key === 'ArrowUp' && open) {\n                            e.preventDefault();\n                            highlighted = Math.max(highlighted - 1, 0);\n                            paint();\n                        } else if (e.key === 'Enter' && open && highlighted >= 0) {\n                            e.preventDefault();\n                            pick(highlighted);\n                        } else if (e.key === 'Escape') {\n                            close();\n                        }\n                    });\n                    // mousedown so it fires before the input loses focus\n                    suggest.addEventListener('mousedown', function(e) {\n                        var li = e.target.closest('li');\n                        if (!li) return;\n                        e.preventDefault();\n                        pick(Array.prototype.indexOf.call(suggest.children, li));\n                    });\n                })();\n            </script></main>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -267,14 +267,14 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 			templ_7745c5c3_Var12 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<span class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Pick a team · Match ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<span class=\"ps-label\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var13 string
-		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(matchNum))
+		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs("Pick a team for match " + strconv.Itoa(matchNum))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 226, Col: 122}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 226, Col: 78}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {
@@ -308,11 +308,11 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 				return templ_7745c5c3_Err
 			}
 			for _, t := range teams {
-				var templ_7745c5c3_Var15 = []any{"relative p-4 rounded-xl border-2 border-b-4 font-black text-xl transition active:scale-95 disabled:opacity-50 disabled:active:scale-100",
+				var templ_7745c5c3_Var15 = []any{"relative p-4 rounded-[var(--ps-radius-md)] border-2 font-black text-xl transition active:scale-95 disabled:opacity-50 disabled:active:scale-100",
 					templ.KV("bg-red-50 border-red-300 text-red-800", t.Alliance == "Red" && !t.Soonest && !t.NeedsData),
 					templ.KV("bg-blue-50 border-blue-300 text-blue-800", t.Alliance == "Blue" && !t.Soonest && !t.NeedsData),
-					templ.KV("bg-yellow-100 border-yellow-400 text-[#4E342E]", t.NeedsData && !t.Soonest),
-					templ.KV("bg-amber-300 border-amber-500 text-[#4E342E] ring-2 ring-amber-400 ring-offset-1 ring-offset-[#F2E8D5]", t.Soonest)}
+					templ.KV("bg-yellow-100 border-yellow-400 text-[var(--ps-ink)]", t.NeedsData && !t.Soonest),
+					templ.KV("bg-amber-300 border-amber-500 text-[var(--ps-ink)] ring-2 ring-amber-400 ring-offset-1 ring-offset-[var(--ps-surface)]", t.Soonest)}
 				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var15...)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -370,7 +370,7 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var19 = []any{"block text-xs font-bold uppercase tracking-wide whitespace-nowrap",
+				var templ_7745c5c3_Var19 = []any{"block text-xs font-bold whitespace-nowrap",
 					templ.KV("text-red-600", t.Alliance == "Red" && !t.Soonest && !t.NeedsData),
 					templ.KV("text-blue-600", t.Alliance == "Blue" && !t.Soonest && !t.NeedsData)}
 				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var19...)
@@ -425,14 +425,14 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 					return templ_7745c5c3_Err
 				}
 				if t.NeedsData {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "<span class=\"block text-[10px] font-bold uppercase tracking-wide whitespace-nowrap text-yellow-800\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "<span class=\"block text-[10px] font-bold whitespace-nowrap text-yellow-800\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var23 string
-					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(t.Scouted) + "/" + strconv.Itoa(t.PlayedBefore) + " scouted")
+					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(t.Scouted) + " of " + strconv.Itoa(t.PlayedBefore) + " scouted")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 252, Col: 103}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 252, Col: 106}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 					if templ_7745c5c3_Err != nil {
@@ -448,20 +448,20 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "</div><p class=\"text-xs text-[#A1887F] ml-2 mt-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "</div><p class=\"text-xs text-[var(--ps-muted)] ml-2 mt-2 flex flex-wrap gap-x-4 gap-y-1\"><span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var24 string
-			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs("Q# = next match with or against " + OurTeam + ".")
+			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs("Q# is the next match with or against " + OurTeam + ".")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 259, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 259, Col: 75}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, " <span class=\"whitespace-nowrap\"><span class=\"inline-block w-3 h-3 align-middle rounded bg-amber-300 border border-amber-500\"></span> = soonest</span> <span class=\"whitespace-nowrap\"><span class=\"inline-block w-3 h-3 align-middle rounded bg-yellow-100 border border-yellow-400\"></span> = needs data</span></p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</span> <span class=\"whitespace-nowrap inline-flex items-center gap-1.5\"><span class=\"inline-block w-3 h-3 rounded bg-amber-300 border border-amber-500\"></span> Soonest</span> <span class=\"whitespace-nowrap inline-flex items-center gap-1.5\"><span class=\"inline-block w-3 h-3 rounded bg-yellow-100 border border-yellow-400\"></span> Needs data</span></p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -491,14 +491,14 @@ func AlliancePicker(redTeams, blueTeams []string, matchNum int, errMsg string) t
 			templ_7745c5c3_Var25 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<span class=\"block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1\">Pick an alliance · Match ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<span class=\"ps-label\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var26 string
-		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(matchNum))
+		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs("Pick an alliance for match " + strconv.Itoa(matchNum))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 273, Col: 127}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 273, Col: 83}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 		if templ_7745c5c3_Err != nil {
@@ -569,7 +569,7 @@ func allianceButton(alliance string, teamNums []string) templ.Component {
 			templ_7745c5c3_Var28 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		var templ_7745c5c3_Var29 = []any{"p-5 rounded-xl border-2 border-b-4 font-black text-lg transition active:scale-95",
+		var templ_7745c5c3_Var29 = []any{"p-5 rounded-[var(--ps-radius-md)] border-2 font-black text-lg transition active:scale-95",
 			templ.KV("bg-red-50 border-red-300 text-red-800", alliance == "Red"),
 			templ.KV("bg-blue-50 border-blue-300 text-blue-800", alliance == "Blue")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var29...)
@@ -602,14 +602,14 @@ func allianceButton(alliance string, teamNums []string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "\"><span class=\"block uppercase tracking-wide\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "\"><span class=\"block\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var32 string
 		templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(alliance)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 289, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 289, Col: 38}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 		if templ_7745c5c3_Err != nil {
@@ -620,9 +620,9 @@ func allianceButton(alliance string, teamNums []string) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var33 string
-		templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(strings.Join(teamNums, " · "))
+		templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(strings.Join(teamNums, ", "))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 290, Col: 96}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/home.templ`, Line: 290, Col: 94}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 		if templ_7745c5c3_Err != nil {

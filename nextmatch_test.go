@@ -75,7 +75,7 @@ func TestNextMatchSectionRenders(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := buf.String()
-	for _, want := range []string{"Next Match: Q5", "do the thing", "team_number=4", "team_number=9", "section=next-", "72%", "Favored", "81 – 66"} {
+	for _, want := range []string{"Next match: Q5", "do the thing", "team_number=4", "team_number=9", "section=next-", "72%", "Favored", "81–66"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered section missing %q", want)
 		}

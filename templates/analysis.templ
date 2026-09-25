@@ -7,7 +7,8 @@ import (
 )
 
 // verdictClasses returns the Tailwind classes for a verdict badge, color-coded
-// from good (green) to bad (red).
+// from good (green) to bad (red) — a meaningful scale, not decoration, so it
+// keeps its own semantic colors rather than the brand palette.
 func verdictClasses(verdict string) string {
 	switch verdict {
 	case "Elite Pick":
@@ -60,9 +61,9 @@ func outlookClasses(winPct int) string {
 // It shows nothing when the briefing has no summary.
 templ TLDRBox(text string) {
 	if text != "" {
-		<div class="rounded-xl bg-[#5D4037] text-white px-4 py-3 shadow-md">
-			<p class="text-xs font-black uppercase tracking-widest text-[#D2B48C] mb-1">TL;DR</p>
-			<p class="text-base font-bold leading-snug">{ text }</p>
+		<div class="rounded-[var(--ps-radius-md)] bg-[var(--ps-red-strong)] text-white px-4 py-3 shadow-md">
+			<p class="text-xs font-bold text-[var(--ps-gold-soft)] mb-1">Bottom line</p>
+			<p class="text-base font-semibold leading-snug">{ text }</p>
 		</div>
 	}
 }
@@ -87,9 +88,9 @@ templ StrategyText(s string) {
 			if l.Blank {
 				<div class="h-2"></div>
 			} else if l.Section {
-				<p class="mt-3 first:mt-0"><span class="font-black text-[#5D4037] uppercase tracking-wide text-xs">{ l.Label }</span> { l.Text }</p>
+				<p class="mt-3 first:mt-0"><span class="font-bold text-[var(--ps-ink)] text-sm">{ l.Label }</span> { l.Text }</p>
 			} else if l.Label != "" {
-				<p class="ml-3"><span class="font-black text-[#5D4037]">{ l.Label }:</span> { l.Text }</p>
+				<p class="ml-3"><span class="font-bold text-[var(--ps-ink)]">{ l.Label }:</span> { l.Text }</p>
 			} else {
 				<p>{ l.Text }</p>
 			}
@@ -116,23 +117,23 @@ templ NextMatchPage(data EventPageData) {
 	@Layout("Vibe Scout | Next Match") {
 		<main class="container mx-auto px-4 py-8">
 			<div class="max-w-4xl mx-auto">
-				<p class="text-sm font-bold text-[#A1887F] mb-3 text-center">{ data.EventName }</p>
+				<p class="text-sm font-medium text-[var(--ps-muted)] mb-3 text-center">{ data.EventName }</p>
 				<div
 					id="next-match"
 					hx-get={ "/api/next-match?event_key=" + data.EventKey }
 					hx-trigger="load"
 					hx-swap="innerHTML"
 					class="mb-6">
-					<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl text-center text-[#A1887F] font-bold animate-pulse">
-						Loading next match...
+					<div class="ps-card p-6 text-center text-[var(--ps-muted)] font-semibold animate-pulse">
+						Loading next match…
 					</div>
 				</div>
 			</div>
 
-			<div class="text-center mt-6 flex flex-wrap gap-x-6 gap-y-2 justify-center">
-				<a href={ templ.SafeURL("/pick-list?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Pick List →</a>
-				<a href={ templ.SafeURL("/match-planner?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Plan a different match →</a>
-				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">← Back to Home</a>
+			<div class="mt-6 flex flex-wrap gap-2 justify-center">
+				<a href={ templ.SafeURL("/pick-list?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">Pick list</a>
+				<a href={ templ.SafeURL("/match-planner?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">Plan a different match</a>
+				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">‹ Home</a>
 			</div>
 		</main>
 	}
@@ -144,37 +145,37 @@ templ PickListPage(data EventPageData) {
 	@Layout("Vibe Scout | Pick List") {
 		<main class="container mx-auto px-4 py-8">
 			<div class="max-w-4xl mx-auto">
-				<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl mb-6">
-					<h1 class="text-3xl font-black text-[#5D4037] mb-1 text-center tracking-tight uppercase">Pick List</h1>
-					<p class="text-sm font-bold text-[#A1887F] mb-4 text-center">{ data.EventName }</p>
+				<div class="ps-card p-6 mb-6">
+					<h1 class="text-2xl font-extrabold text-[var(--ps-ink)] mb-1 text-center tracking-tight">Pick list</h1>
+					<p class="text-sm font-medium text-[var(--ps-muted)] mb-4 text-center">{ data.EventName }</p>
 
 					<form
 						hx-post="/api/run-analysis"
 						hx-target="#analysis-results"
 						hx-swap="innerHTML">
 						<input type="hidden" id="event-key" name="event_key" value={ data.EventKey }/>
-						<button type="submit" class="w-full bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-3 px-6 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
-							Run Analysis
+						<button type="submit" class="btn btn-primary btn-block btn-lg">
+							Run analysis
 						</button>
 					</form>
 
 					<div class="mt-4">
-						<label for="team-search" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Search Teams</label>
-						<input id="team-search" type="search" autocomplete="off" placeholder="Team # or keyword in scout / pit notes"
-							class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700"/>
-						<p id="team-search-status" class="text-xs text-[#A1887F] ml-2 mt-1"></p>
+						<label for="team-search" class="ps-label">Search teams</label>
+						<input id="team-search" type="search" autocomplete="off" placeholder="Team number or keyword in scout / pit notes"
+							class="ps-field"/>
+						<p id="team-search-status" class="text-xs text-[var(--ps-muted)] mt-1"></p>
 					</div>
 
 					<div class="mt-4">
-						<label for="team-sort" class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Sort Teams</label>
-						<select id="team-sort" class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700">
+						<label for="team-sort" class="ps-label">Sort teams</label>
+						<select id="team-sort" class="ps-field">
 							<option value="epa">EPA (best first)</option>
 							<option value="team">Team number</option>
 							<option value="reliability">Reliability (scouted)</option>
 							<option value="scoring">Scoring (scouted)</option>
 							<option value="matches">Matches scouted</option>
 						</select>
-						<p class="text-xs text-[#A1887F] ml-2 mt-1">EPA is measured over every match. Scouted ratings are only as good as the number of matches scouted.</p>
+						<p class="text-xs text-[var(--ps-muted)] mt-1">EPA is measured over every match. Scouted ratings are only as good as the number of matches scouted.</p>
 					</div>
 				</div>
 
@@ -258,9 +259,9 @@ templ PickListPage(data EventPageData) {
 				})();
 			</script>
 
-			<div class="text-center mt-6 flex gap-6 justify-center">
-				<a href={ templ.SafeURL("/next-match?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Next Match →</a>
-				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">← Back to Home</a>
+			<div class="mt-6 flex flex-wrap gap-2 justify-center">
+				<a href={ templ.SafeURL("/next-match?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">Next match</a>
+				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">‹ Home</a>
 			</div>
 		</main>
 	}
@@ -268,41 +269,41 @@ templ PickListPage(data EventPageData) {
 
 templ NextMatchSection(d NextMatchData) {
 	if d.MatchNum == 0 {
-		<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl text-center">
-			<h2 class="text-xl font-black text-[#5D4037] uppercase tracking-tight">Next Match</h2>
+		<div class="ps-card p-6 text-center">
+			<h2 class="text-lg font-extrabold text-[var(--ps-ink)]">Next match</h2>
 			if d.PlanError != "" {
 				<p class="text-sm text-red-600 mt-2">{ d.PlanError }</p>
 			} else {
-				<p class="text-sm text-[#A1887F] mt-2">{ "Team " + OurTeam + " has no unplayed qualification matches on the schedule." }</p>
+				<p class="text-sm text-[var(--ps-muted)] mt-2">{ "Team " + OurTeam + " has no unplayed qualification matches on the schedule." }</p>
 			}
 		</div>
 	} else {
-		<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl space-y-4">
+		<div class="ps-card p-6 space-y-4">
 			{{ tldr, rest := SplitTLDR(d.Plan.Strategy) }}
 			<div class="flex flex-wrap justify-between items-baseline gap-2">
-				<h2 class="text-2xl font-black text-[#5D4037] uppercase tracking-tight">{ "Next Match: " + d.Label }</h2>
-				<span class="text-sm font-bold text-[#A1887F]">{ "We're on " + d.Plan.OurAlliance }</span>
+				<h2 class="text-xl font-extrabold text-[var(--ps-ink)] tracking-tight">{ "Next match: " + d.Label }</h2>
+				<span class="text-sm font-semibold text-[var(--ps-muted)]">{ "We're on " + d.Plan.OurAlliance }</span>
 			</div>
 
 			@TLDRBox(tldr)
 
 			if d.HasPrediction {
-				<div class="bg-white rounded-xl p-4 border border-[#D2B48C]" title="Statbotics' forecast for this match, from our side">
+				<div class="ps-panel p-4" title="Statbotics' forecast for this match, from our side">
 					<div class="flex flex-wrap justify-between items-center gap-2 mb-2">
-						<span class={ "text-sm font-black px-3 py-1 rounded-full uppercase tracking-wide", outlookClasses(d.WinPct) }>{ d.Outlook }</span>
-						<span class="text-2xl font-black text-[#5D4037]">{ fmt.Sprintf("%d%%", d.WinPct) } <span class="text-xs font-bold text-[#A1887F] uppercase">to win</span></span>
+						<span class={ "text-sm font-bold px-3 py-1 rounded-full", outlookClasses(d.WinPct) }>{ d.Outlook }</span>
+						<span class="text-2xl font-extrabold text-[var(--ps-ink)]">{ fmt.Sprintf("%d%%", d.WinPct) } <span class="text-xs font-semibold text-[var(--ps-muted)]">to win</span></span>
 					</div>
 					<div class="h-2 rounded-full overflow-hidden bg-stone-200">
-						<div class="h-full rounded-full bg-[#8D6E63]" style={ fmt.Sprintf("width: %d%%", d.WinPct) }></div>
+						<div class="h-full rounded-full bg-[var(--ps-gold-strong)]" style={ fmt.Sprintf("width: %d%%", d.WinPct) }></div>
 					</div>
-					<p class="text-xs font-bold text-[#A1887F] mt-2">
-						{ fmt.Sprintf("Predicted score: %.0f – %.0f (us – them) · Statbotics", d.OurScore, d.TheirScore) }
+					<p class="text-xs font-medium text-[var(--ps-muted)] mt-2">
+						{ fmt.Sprintf("Predicted score: %.0f–%.0f (us–them), from Statbotics.", d.OurScore, d.TheirScore) }
 					</p>
 				</div>
 			}
 
-			<div class="bg-white rounded-xl p-4 border border-[#D2B48C]">
-				<p class="text-xs font-bold text-[#A1887F] uppercase mb-2">Strategy</p>
+			<div class="ps-panel p-4">
+				<p class="text-xs font-bold text-[var(--ps-muted)] mb-2">Strategy</p>
 				if d.PlanError != "" {
 					<p class="text-sm text-red-600">{ d.PlanError }</p>
 				} else {
@@ -311,7 +312,7 @@ templ NextMatchSection(d NextMatchData) {
 			</div>
 
 			<div>
-				<h3 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest mb-2">Partners</h3>
+				<h3 class="text-sm font-bold text-[var(--ps-muted)] mb-2">Partners</h3>
 				<div class="space-y-4">
 					for _, t := range d.Partners {
 						@nextMatchSlot(d.EventKey, t)
@@ -319,7 +320,7 @@ templ NextMatchSection(d NextMatchData) {
 				</div>
 			</div>
 			<div>
-				<h3 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest mb-2">Opponents</h3>
+				<h3 class="text-sm font-bold text-[var(--ps-muted)] mb-2">Opponents</h3>
 				<div class="space-y-4">
 					for _, t := range d.Opponents {
 						@nextMatchSlot(d.EventKey, t)
@@ -337,27 +338,27 @@ templ nextMatchSlot(eventKey string, team string) {
 		hx-get={ "/api/analyze-team?section=next-&event_key=" + eventKey + "&team_number=" + team }
 		hx-trigger="load"
 		hx-swap="outerHTML"
-		class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md animate-pulse">
-		<div class="h-6 w-28 bg-[#D2B48C44] rounded mb-3"></div>
-		<div class="h-4 bg-[#D2B48C44] rounded w-full mb-2"></div>
-		<div class="h-4 bg-[#D2B48C44] rounded w-3/4"></div>
+		class="ps-card p-5 animate-pulse">
+		<div class="h-6 w-28 bg-[var(--ps-border)]/27 rounded mb-3"></div>
+		<div class="h-4 bg-[var(--ps-border)]/27 rounded w-full mb-2"></div>
+		<div class="h-4 bg-[var(--ps-border)]/27 rounded w-3/4"></div>
 	</div>
 }
 
 templ GeminiAnalysisProgressContainer(teams []string, eventKey string) {
 	if len(teams) == 0 {
-		<div class="text-center py-12 text-[#A1887F]">
+		<div class="text-center py-12 text-[var(--ps-muted)]">
 			<p class="text-xl font-bold">No scouting data found for this event.</p>
 			<p class="text-sm mt-2">Scout some matches first, then run analysis.</p>
 		</div>
 	} else {
-		<div id="progress-container" data-total={ strconv.Itoa(len(teams)) } class="mb-6 bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-2xl p-4">
+		<div id="progress-container" data-total={ strconv.Itoa(len(teams)) } class="mb-6 ps-card p-4">
 			<div class="flex justify-between items-center mb-2">
-				<span class="text-sm font-bold text-[#5D4037] uppercase">Analyzing Teams</span>
-				<span id="progress-text" class="text-sm font-black text-[#5D4037]">0 / { strconv.Itoa(len(teams)) }</span>
+				<span class="text-sm font-bold text-[var(--ps-ink)]">Analyzing teams</span>
+				<span id="progress-text" class="text-sm font-bold text-[var(--ps-ink)] font-data">0 / { strconv.Itoa(len(teams)) }</span>
 			</div>
-			<div class="h-3 rounded-full overflow-hidden bg-[#D2B48C55]">
-				<div id="progress-bar" class="h-full rounded-full bg-[#8D6E63] transition-all duration-300" style="width: 0%"></div>
+			<div class="h-2.5 rounded-full overflow-hidden bg-[var(--ps-border)]/33">
+				<div id="progress-bar" class="h-full rounded-full bg-[var(--ps-gold-strong)] transition-all duration-300" style="width: 0%"></div>
 			</div>
 		</div>
 		<div class="space-y-4">
@@ -369,18 +370,18 @@ templ GeminiAnalysisProgressContainer(teams []string, eventKey string) {
 					hx-get={ "/api/analyze-team?event_key=" + eventKey + "&team_number=" + team }
 					hx-trigger="load"
 					hx-swap="outerHTML"
-					class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md animate-pulse">
+					class="ps-card p-5 animate-pulse">
 					<div class="flex justify-between items-center mb-4">
-						<div class="h-6 w-28 bg-[#D2B48C44] rounded"></div>
-						<div class="h-5 w-16 bg-[#D2B48C44] rounded-full"></div>
+						<div class="h-6 w-28 bg-[var(--ps-border)]/27 rounded"></div>
+						<div class="h-5 w-16 bg-[var(--ps-border)]/27 rounded-full"></div>
 					</div>
 					<div class="grid grid-cols-3 gap-3 mb-4">
-						<div class="h-8 bg-[#D2B48C44] rounded"></div>
-						<div class="h-8 bg-[#D2B48C44] rounded"></div>
-						<div class="h-8 bg-[#D2B48C44] rounded"></div>
+						<div class="h-8 bg-[var(--ps-border)]/27 rounded"></div>
+						<div class="h-8 bg-[var(--ps-border)]/27 rounded"></div>
+						<div class="h-8 bg-[var(--ps-border)]/27 rounded"></div>
 					</div>
-					<div class="h-4 bg-[#D2B48C44] rounded w-full mb-2"></div>
-					<div class="h-4 bg-[#D2B48C44] rounded w-3/4"></div>
+					<div class="h-4 bg-[var(--ps-border)]/27 rounded w-full mb-2"></div>
+					<div class="h-4 bg-[var(--ps-border)]/27 rounded w-3/4"></div>
 				</div>
 			}
 		</div>
@@ -411,14 +412,14 @@ templ GeminiAnalysisProgressContainer(teams []string, eventKey string) {
 // pitProfileRow shows what the team told us in the pit. It is styled quietly and
 // labeled self-reported because it counts for less than what we saw in matches.
 templ pitProfileRow(p PitProfile) {
-	<div class="mb-4 rounded-xl bg-[#F2E8D5]/60 border border-dashed border-[#D2B48C] px-3 py-2">
+	<div class="mb-4 rounded-[var(--ps-radius-md)] bg-[var(--ps-surface)]/60 border border-dashed border-[var(--ps-border)] px-3 py-2">
 		<div class="flex flex-wrap items-center gap-1.5 mb-1">
-			<span class="text-xs font-bold uppercase text-[#A1887F]" title="From the pit interview. The team's own claims, weighted less than match scouting.">Pit (self-reported)</span>
+			<span class="text-xs font-semibold text-[var(--ps-muted)]" title="From the pit interview. The team's own claims, weighted less than match scouting.">Pit (self-reported)</span>
 			if p.Archetype != "" {
-				<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FFFBF5] text-[#5D4037] border border-[#8D6E63]">{ p.Archetype }</span>
+				<span class="ps-chip">{ p.Archetype }</span>
 			}
 			if p.Role != "" {
-				<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FFFBF5] text-[#5D4037] border border-[#D2B48C]">{ "Prefers " + p.Role }</span>
+				<span class="ps-chip">{ "Prefers " + p.Role }</span>
 			}
 		</div>
 		<dl class="grid sm:grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-stone-700 leading-snug">
@@ -434,7 +435,7 @@ templ pitProfileRow(p PitProfile) {
 templ pitFact(label string, value string) {
 	if value != "" {
 		<div>
-			<dt class="inline font-bold text-[#8D6E63]">{ label }: </dt>
+			<dt class="inline font-semibold text-[var(--ps-ink-soft)]">{ label }: </dt>
 			<dd class="inline">{ value }</dd>
 		</div>
 	}
@@ -448,18 +449,18 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 		data-matches={ strconv.Itoa(card.Matches) }
 		data-scoring={ strconv.Itoa(card.Scoring) }
 		data-reliability={ strconv.Itoa(card.Reliability) }
-		class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md">
+		class="ps-card p-5">
 		<!-- Header row -->
 		<div class="flex flex-wrap justify-between items-center gap-2 mb-4">
 			<div class="flex flex-wrap items-baseline gap-2">
-				<h2 class="text-xl font-black text-[#5D4037] whitespace-nowrap">Team { card.TeamNumber }</h2>
+				<h2 class="text-xl font-extrabold text-[var(--ps-ink)] whitespace-nowrap">Team { card.TeamNumber }</h2>
 				if card.HasEPA {
-					<span class="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-[#5D4037] text-white" title="Statbotics total points EPA this season">
+					<span class="ps-chip" title="Statbotics total points EPA this season">
 						{ fmt.Sprintf("EPA %.1f", card.EPA) }
 					</span>
 				}
 				if card.HasEPAPct {
-					<span class="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-[#F2E8D5] text-[#5D4037] border border-[#8D6E63]" title="Where this team's EPA ranks among the teams at this event">
+					<span class="ps-chip" title="Where this team's EPA ranks among the teams at this event">
 						{ fmt.Sprintf("EPA top %d%%", card.EPATopPct) }
 					</span>
 				}
@@ -472,35 +473,35 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 					</span>
 				}
 				if card.LowData {
-					<span class="text-xs font-black px-3 py-1 rounded-full uppercase tracking-wide whitespace-nowrap bg-stone-100 text-stone-600 border border-stone-300" title="Fewer than 3 scouted matches, so no verdict is shown. Use EPA.">
+					<span class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap bg-stone-100 text-stone-600 border border-stone-300" title="Fewer than 3 scouted matches, so no verdict is shown. Use EPA.">
 						Low data
 					</span>
 				} else if card.Verdict != "" {
-					<span class={ "text-xs font-black px-3 py-1 rounded-full uppercase tracking-wide whitespace-nowrap", verdictClasses(card.Verdict) }
+					<span class={ "text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap", verdictClasses(card.Verdict) }
 						title="The AI's read of our scouting notes only. It is not a rating of the team.">
 						{ "Notes: " + card.Verdict }
 					</span>
 				}
 				if card.HasRank {
-					<span class="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-[#8D6E63] text-white" title="Current qualification rank at this event">
+					<span class="ps-chip-gold" title="Current qualification rank at this event">
 						{ fmt.Sprintf("Rank %d", card.Rank) }
 					</span>
 				}
 			</div>
 			if len(card.RecentMatches) > 0 {
 				<div class="flex flex-wrap items-center gap-1.5">
-					<span class="text-xs font-bold uppercase text-[#A1887F] whitespace-nowrap">Latest Matches</span>
+					<span class="text-xs font-semibold text-[var(--ps-muted)] whitespace-nowrap">Latest matches</span>
 					for _, m := range card.RecentMatches {
-						<span class="inline-flex rounded-full overflow-hidden border border-[#8D6E63]">
+						<span class="inline-flex rounded-full overflow-hidden border border-[var(--ps-border)]">
 							<a href={ templ.SafeURL(m.URL) } target="_blank" rel="noopener noreferrer"
 								title={ "Match " + m.Label + " on The Blue Alliance" }
-								class="text-xs font-bold px-2.5 py-1 whitespace-nowrap bg-[#FFFBF5] text-[#5D4037] hover:bg-[#8D6E63] hover:text-white transition">
-								{ m.Label } ↗
+								class="text-xs font-bold px-2.5 py-1 whitespace-nowrap bg-[var(--ps-input)] text-[var(--ps-ink)] hover:bg-[var(--ps-panel)] transition">
+								{ m.Label }
 							</a>
 							if m.HasWatch {
 								<a href={ templ.SafeURL(m.WatchURL) } target="_blank" rel="noopener noreferrer"
 									title={ "Watch " + m.Label + " on YouTube at the moment it happened — no waiting for the edited match video" }
-									class="text-xs font-bold px-2 py-1 whitespace-nowrap bg-[#5D4037] text-white hover:bg-[#8D6E63] transition border-l border-[#8D6E63]">
+									class="text-xs font-bold px-2 py-1 whitespace-nowrap bg-[var(--ps-red-strong)] text-white hover:bg-[var(--ps-ink)] transition border-l border-[var(--ps-ink)]/20">
 									▶
 								</a>
 							}
@@ -510,41 +511,41 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 			}
 			<div class="flex flex-wrap items-center gap-2">
 				if card.FromCache {
-					<span class="text-xs font-bold px-3 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-300">Cached</span>
+					<span class="ps-chip">Cached</span>
 				} else {
 					<span class="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-300">Fresh</span>
 				}
 				if card.HasNotes {
 					<button
-						class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap bg-[#F2E8D5] text-[#8D6E63] border border-[#D2B48C] hover:bg-[#D2B48C] transition"
+						class="btn btn-ghost btn-sm"
 						hx-get={ "/api/team-notes?event_key=" + card.EventKey + "&team_number=" + card.TeamNumber + "&section=" + card.Section }
 						hx-target={ "#" + panelID(card, "notes") }
 						hx-swap="innerHTML"
 						hx-on::before-request="var t = event.detail.target; if (t.innerHTML.trim() !== '') { t.innerHTML = ''; event.preventDefault(); }">
-						View Notes
+						View notes
 					</button>
 				}
 				if card.HasPitNotes {
 					<button
-						class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap bg-[#F2E8D5] text-[#8D6E63] border border-[#D2B48C] hover:bg-[#D2B48C] transition"
+						class="btn btn-ghost btn-sm"
 						hx-get={ "/api/team-pit-notes?team_number=" + card.TeamNumber + "&event_key=" + card.EventKey + "&section=" + card.Section }
 						hx-target={ "#" + panelID(card, "pit-notes") }
 						hx-swap="innerHTML"
 						hx-on::before-request="var t = event.detail.target; if (t.innerHTML.trim() !== '') { t.innerHTML = ''; event.preventDefault(); }">
-						Pit Notes
+						Pit notes
 					</button>
 				}
 			</div>
 		</div>
 
 		if card.Disagreement != "" {
-			<p class="text-xs font-bold text-amber-800 bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 mb-3">
+			<p class="text-xs font-semibold text-amber-800 bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 mb-3">
 				⚠ { card.Disagreement }
 			</p>
 		}
 		if card.ChecklistN > 0 {
-			<p class="text-xs font-bold text-[#8D6E63] mb-3">
-				{ fmt.Sprintf("Checklist (%d matches): broke %d · played defense %d · was defended %d", card.ChecklistN, card.BrokeN, card.DefenseN, card.WasDefendedN) }
+			<p class="text-xs font-semibold text-[var(--ps-ink-soft)] mb-3">
+				{ fmt.Sprintf("Checklist (%d matches): broke %d, played defense %d, was defended %d.", card.ChecklistN, card.BrokeN, card.DefenseN, card.WasDefendedN) }
 			</p>
 		}
 
@@ -555,7 +556,7 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 		<!-- Score bars -->
 		<div class={ "grid grid-cols-3 gap-3 mb-4", templ.KV("opacity-50", card.LowData) }
 			title={ lowDataTitle(card.LowData) }>
-			@scoreBar("Scoring", card.Scoring, "#D2B48C", "#8D6E63")
+			@scoreBar("Scoring", card.Scoring, "var(--ps-gold)", "var(--ps-gold-strong)")
 			@scoreBar("Reliability", card.Reliability, "#A8D5A2", "#4CAF50")
 			@defenseBar(card.Defense)
 		</div>
@@ -567,24 +568,24 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 			<div class="space-y-3">
 				<div class="grid sm:grid-cols-2 gap-3">
 					<div>
-						<p class="text-xs font-bold uppercase text-[#A1887F] mb-0.5">Shooting</p>
+						<p class="text-xs font-bold text-[var(--ps-muted)] mb-0.5">Shooting</p>
 						<p class="text-sm text-stone-700 leading-snug">{ card.Shooting }</p>
 					</div>
 					<div>
-						<p class="text-xs font-bold uppercase text-[#A1887F] mb-0.5">Driving</p>
+						<p class="text-xs font-bold text-[var(--ps-muted)] mb-0.5">Driving</p>
 						<p class="text-sm text-stone-700 leading-snug">{ card.Driving }</p>
 					</div>
 					<div>
-						<p class="text-xs font-bold uppercase text-[#A1887F] mb-0.5">Auto</p>
+						<p class="text-xs font-bold text-[var(--ps-muted)] mb-0.5">Auto</p>
 						<p class="text-sm text-stone-700 leading-snug">{ card.Auto }</p>
 					</div>
 					<div>
-						<p class="text-xs font-bold uppercase text-[#A1887F] mb-0.5">Failures</p>
+						<p class="text-xs font-bold text-[var(--ps-muted)] mb-0.5">Failures</p>
 						<p class="text-sm text-stone-700 leading-snug">{ card.Failures }</p>
 					</div>
 				</div>
 				<div>
-					<p class="text-xs font-bold uppercase text-[#A1887F] mb-0.5">Recommendation</p>
+					<p class="text-xs font-bold text-[var(--ps-muted)] mb-0.5">Recommendation</p>
 					<p class="text-sm text-stone-700 leading-snug">{ card.Recommendation }</p>
 				</div>
 			</div>
@@ -605,22 +606,22 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 }
 
 templ closePanelButton() {
-	<button type="button" class="text-xs font-bold px-2 py-0.5 rounded-full text-[#8D6E63] hover:bg-[#D2B48C] transition"
+	<button type="button" class="btn btn-ghost btn-sm"
 		onclick="this.closest('[data-notes-panel]').parentElement.innerHTML = ''">
-		✕ Close
+		Close
 	</button>
 }
 
 templ TeamNotesPanel(eventKey, teamNum, section string, groups []TeamNoteGroup, clarifications []Clarification) {
 	if len(groups) == 0 {
 		<div data-notes-panel class="mt-4 flex justify-between items-center">
-			<p class="text-sm text-[#A1887F] italic">No scouting notes found.</p>
+			<p class="text-sm text-[var(--ps-muted)] italic">No scouting notes found.</p>
 			@closePanelButton()
 		</div>
 	} else {
-		<div data-notes-panel class="mt-4 border-t border-[#D2B48C] pt-4 space-y-4">
+		<div data-notes-panel class="mt-4 border-t border-[var(--ps-border)] pt-4 space-y-4">
 			<div class="flex justify-between items-center">
-				<h3 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest">Scout Notes</h3>
+				<h3 class="text-sm font-bold text-[var(--ps-muted)]">Scout notes</h3>
 				@closePanelButton()
 			</div>
 			for _, group := range groups {
@@ -638,27 +639,27 @@ templ TeamNotesPanel(eventKey, teamNum, section string, groups []TeamNoteGroup, 
 // so a disputed or surprising note can be checked against what actually
 // happened.
 templ teamNoteGroupCard(group TeamNoteGroup) {
-	<div class="bg-[#F2E8D5] rounded-xl px-4 py-3">
+	<div class="ps-panel px-4 py-3">
 		<div class="flex justify-between items-baseline gap-2 flex-wrap">
-			<span class="text-sm font-black text-[#5D4037] uppercase">Match { fmt.Sprintf("%d", group.MatchNum) }</span>
-			<div class="flex items-center gap-2 text-xs font-bold text-[#8D6E63]">
+			<span class="text-sm font-bold text-[var(--ps-ink)]">Match { fmt.Sprintf("%d", group.MatchNum) }</span>
+			<div class="flex items-center gap-2 text-xs font-semibold text-[var(--ps-ink-soft)]">
 				if group.ScoreText != "" {
 					<span>{ group.ScoreText }</span>
 				}
 				if group.Partners != "" {
-					<span class="text-[#A1887F]">with { group.Partners }</span>
+					<span class="text-[var(--ps-muted)]">with { group.Partners }</span>
 				}
 				if group.Opponents != "" {
-					<span class="text-[#A1887F]">vs { group.Opponents }</span>
+					<span class="text-[var(--ps-muted)]">vs { group.Opponents }</span>
 				}
 				if group.HasWatch {
 					<a href={ templ.SafeURL(group.WatchURL) } target="_blank" rel="noopener"
-						class="text-[#5D4037] bg-white border border-[#D2B48C] rounded-full px-2 py-0.5 hover:bg-[#FFFBF5]">▶ Watch</a>
+						class="text-[var(--ps-ink)] bg-white border border-[var(--ps-border)] rounded-full px-2 py-0.5 hover:bg-[var(--ps-input)]">▶ Watch</a>
 				}
 			</div>
 		</div>
 		if len(group.Conflicts) > 0 {
-			<p class="text-xs font-bold text-red-700 mt-1.5">⚠ Scouts disagreed on: { strings.Join(group.Conflicts, ", ") } — check the video above.</p>
+			<p class="text-xs font-semibold text-red-700 mt-1.5">⚠ Scouts disagreed on { strings.Join(group.Conflicts, ", ") } — check the video above.</p>
 		}
 		<div class="mt-2 space-y-2">
 			for _, note := range group.Notes {
@@ -669,20 +670,20 @@ templ teamNoteGroupCard(group TeamNoteGroup) {
 }
 
 templ teamNoteCard(note TeamNote, showMode bool) {
-	<div class="bg-[#FFFBF5]/70 rounded-lg px-3 py-2 border border-[#E0CDA8]">
+	<div class="bg-[var(--ps-input)]/70 rounded-[var(--ps-radius-sm)] px-3 py-2 border border-[var(--ps-border-soft)]">
 		<div class="flex justify-between items-baseline gap-2">
 			if note.AIGenerated {
-				<span class="text-xs font-bold text-[#A1887F]">Gemini (video)</span>
+				<span class="text-xs font-semibold text-[var(--ps-muted)]">Gemini (video)</span>
 			} else if note.ScouterName != "" {
-				<span class="text-xs font-bold text-[#A1887F] truncate">{ note.ScouterName }</span>
+				<span class="text-xs font-semibold text-[var(--ps-muted)] truncate">{ note.ScouterName }</span>
 			} else {
 				<span></span>
 			}
 			if showMode && !note.AIGenerated {
 				if note.SingleTeam {
-					<span class="text-xs font-bold text-[#8D6E63]">Focused on this robot</span>
+					<span class="text-xs font-semibold text-[var(--ps-ink-soft)]">Focused on this robot</span>
 				} else {
-					<span class="text-xs font-bold text-[#A1887F]">Watching multiple robots</span>
+					<span class="text-xs font-semibold text-[var(--ps-muted)]">Watching multiple robots</span>
 				}
 			}
 		</div>
@@ -692,7 +693,7 @@ templ teamNoteCard(note TeamNote, showMode bool) {
 				@checklistChip("Played defense", note.PlayedDefense, false)
 				@checklistChip("Was defended", note.WasDefended, false)
 				if note.AutoType != "" {
-					<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FFFBF5] text-[#5D4037] border border-[#D2B48C]">Auto: { note.AutoType }</span>
+					<span class="ps-chip">{ "Auto: " + note.AutoType }</span>
 				}
 			</div>
 		}
@@ -706,9 +707,9 @@ templ teamNoteCard(note TeamNote, showMode bool) {
 templ checklistChip(label string, yes bool, yesIsBad bool) {
 	<span class={ "text-xs font-bold px-2 py-0.5 rounded-full border",
 		templ.KV("bg-red-100 text-red-700 border-red-300", yes && yesIsBad),
-		templ.KV("bg-[#8D6E63] text-white border-[#8D6E63]", yes && !yesIsBad),
-		templ.KV("bg-transparent text-[#A1887F] border-[#D2B48C]", !yes) }>
-		{ label }: 
+		templ.KV("bg-[var(--ps-gold-pale)] text-[var(--ps-ink)] border-[var(--ps-gold-strong)]", yes && !yesIsBad),
+		templ.KV("bg-transparent text-[var(--ps-muted)] border-[var(--ps-border)]", !yes) }>
+		{ label }:
 		if yes {
 			Yes
 		} else {
@@ -720,18 +721,18 @@ templ checklistChip(label string, yes bool, yesIsBad bool) {
 templ TeamPitNotesPanel(eventKey, teamNum, section string, notes []PitNote, clarifications []Clarification) {
 	if len(notes) == 0 {
 		<div data-notes-panel class="mt-4 flex justify-between items-center">
-			<p class="text-sm text-[#A1887F] italic">No pit scouting notes found.</p>
+			<p class="text-sm text-[var(--ps-muted)] italic">No pit scouting notes found.</p>
 			@closePanelButton()
 		</div>
 	} else {
-		<div data-notes-panel class="mt-4 border-t border-[#D2B48C] pt-4 space-y-3">
+		<div data-notes-panel class="mt-4 border-t border-[var(--ps-border)] pt-4 space-y-3">
 			<div class="flex justify-between items-center">
-				<h3 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest">Pit Scouting</h3>
+				<h3 class="text-sm font-bold text-[var(--ps-muted)]">Pit scouting</h3>
 				@closePanelButton()
 			</div>
 			for _, note := range notes {
-				<div class="bg-[#F2E8D5] rounded-xl px-4 py-3">
-					<span class="text-xs font-bold text-[#8D6E63] uppercase">{ note.CreatedAt }</span>
+				<div class="ps-panel px-4 py-3">
+					<span class="text-xs font-semibold text-[var(--ps-ink-soft)]">{ note.CreatedAt }</span>
 					<p class="text-sm text-stone-700 mt-1 whitespace-pre-wrap">{ note.Summary }</p>
 				</div>
 			}
@@ -751,12 +752,12 @@ templ TeamPitNotesPanel(eventKey, teamNum, section string, notes []PitNote, clar
 templ clarificationsList(eventKey, teamNum, section, noteType string, items []Clarification) {
 	if len(items) > 0 {
 		<div class="space-y-1.5">
-			<h4 class="text-xs font-bold uppercase text-[#A1887F] tracking-widest">Clarifications</h4>
+			<h4 class="text-xs font-bold text-[var(--ps-muted)]">Clarifications</h4>
 			for _, c := range items {
-				<div class="flex items-start justify-between gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
-					<p class="text-sm text-stone-700">
+				<div class="flex items-start justify-between gap-2 ps-chip-gold rounded-[var(--ps-radius-sm)] px-3 py-1.5">
+					<p class="text-sm text-[var(--ps-ink)] font-normal">
 						{ c.Text }
-						<span class="text-xs text-[#A1887F]">
+						<span class="text-xs text-[var(--ps-muted)]">
 							—
 							if c.Author != "" {
 								{ c.Author },
@@ -775,7 +776,7 @@ templ clarificationsList(eventKey, teamNum, section, noteType string, items []Cl
 						<input type="hidden" name="section" value={ section }/>
 						<input type="hidden" name="note_type" value={ noteType }/>
 						<button type="submit" title="Delete this clarification"
-							class="shrink-0 text-xs font-bold text-red-700 hover:text-red-900 px-1">✕</button>
+							class="shrink-0 text-xs font-bold text-[var(--ps-red-strong)] hover:text-[var(--ps-ink)] px-1">✕</button>
 					</form>
 				</div>
 			}
@@ -799,7 +800,7 @@ templ clarificationForm(eventKey, teamNum, section, noteType string) {
 		<input type="hidden" name="team_number" value={ teamNum }/>
 		<input type="hidden" name="section" value={ section }/>
 		<input type="hidden" name="note_type" value={ noteType }/>
-		<label class="text-xs font-bold uppercase text-[#A1887F] tracking-widest">
+		<label class="text-xs font-bold text-[var(--ps-muted)]">
 			if noteType == "pit" {
 				Clarify these pit notes for the AI
 			} else {
@@ -808,12 +809,12 @@ templ clarificationForm(eventKey, teamNum, section, noteType string) {
 		</label>
 		<textarea name="text" rows="2" required
 			placeholder={ `e.g. "2.5 cycles" means during auto, not the whole match` }
-			class="w-full p-2 text-sm bg-white border border-[#D2B48C] rounded-lg resize-none"></textarea>
+			class="ps-field text-sm resize-none"></textarea>
 		<div class="flex flex-wrap gap-2 items-center">
 			<input type="text" name="author" placeholder="Your name (optional)"
-				class="flex-1 min-w-[8rem] p-2 text-sm bg-white border border-[#D2B48C] rounded-lg"/>
-			<button type="submit" class="text-xs font-bold px-3 py-1.5 rounded-full bg-[#5D4037] text-white hover:bg-[#8D6E63] transition whitespace-nowrap">
-				Save &amp; refresh analysis
+				class="ps-field text-sm flex-1 min-w-[8rem]"/>
+			<button type="submit" class="btn btn-primary btn-sm">
+				Save and refresh
 			</button>
 		</div>
 	</form>
@@ -821,7 +822,7 @@ templ clarificationForm(eventKey, teamNum, section, noteType string) {
 
 templ GeminiAnalysisResults(cards []TeamAnalysisCard) {
 	if len(cards) == 0 {
-		<div class="text-center py-12 text-[#A1887F]">
+		<div class="text-center py-12 text-[var(--ps-muted)]">
 			<p class="text-xl font-bold">No scouting data found for this event.</p>
 			<p class="text-sm mt-2">Scout some matches first, then run analysis.</p>
 		</div>
@@ -837,10 +838,10 @@ templ GeminiAnalysisResults(cards []TeamAnalysisCard) {
 templ scoreBar(label string, score int, trackColor string, fillColor string) {
 	<div>
 		<div class="flex justify-between items-center mb-1">
-			<span class="text-xs font-bold text-[#A1887F] uppercase">{ label }</span>
-			<span class="text-sm font-black text-[#5D4037]">{ strconv.Itoa(score) }/10</span>
+			<span class="text-xs font-semibold text-[var(--ps-muted)]">{ label }</span>
+			<span class="text-sm font-bold text-[var(--ps-ink)] font-data">{ strconv.Itoa(score) }/10</span>
 		</div>
-		<div class="h-2 rounded-full overflow-hidden" style={ fmt.Sprintf("background-color: %s33", trackColor) }>
+		<div class="h-2 rounded-full overflow-hidden" style={ fmt.Sprintf("background-color: color-mix(in srgb, %s 20%%, transparent)", trackColor) }>
 			<div class="h-full rounded-full transition-all" style={ fmt.Sprintf("width: %d%%; background-color: %s", score*10, fillColor) }></div>
 		</div>
 	</div>
@@ -849,11 +850,11 @@ templ scoreBar(label string, score int, trackColor string, fillColor string) {
 templ defenseBar(score int) {
 	<div>
 		<div class="flex justify-between items-center mb-1">
-			<span class="text-xs font-bold text-[#A1887F] uppercase">Defense</span>
+			<span class="text-xs font-semibold text-[var(--ps-muted)]">Defense</span>
 			if score == 0 {
-				<span class="text-xs font-bold text-stone-400">N/A</span>
+				<span class="text-xs font-semibold text-stone-400">N/A</span>
 			} else {
-				<span class="text-sm font-black text-[#5D4037]">{ strconv.Itoa(score) }/10</span>
+				<span class="text-sm font-bold text-[var(--ps-ink)] font-data">{ strconv.Itoa(score) }/10</span>
 			}
 		</div>
 		<div class="h-2 rounded-full overflow-hidden bg-orange-100">

@@ -3,25 +3,25 @@ package templates
 templ AdminPage(events []string) {
 	@Layout("Admin - Vibe Scout") {
 		<main class="container mx-auto px-4 py-8">
-			<div class="max-w-2xl mx-auto bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-3xl p-6">
-				<h1 class="text-3xl font-black text-[#5D4037] mb-6">Admin Panel</h1>
+			<div class="ps-card max-w-2xl mx-auto p-6">
+				<h1 class="text-2xl font-extrabold text-[var(--ps-ink)] mb-6">Admin panel</h1>
 
 				<div class="mb-8">
-					<h2 class="text-xl font-bold text-[#5D4037] mb-4">Clear Event Data</h2>
-					<select id="event-select" class="w-full p-3 border-2 border-[#D2B48C] rounded-xl mb-4 bg-[#FFFBF5]">
-						<option value="">Select an event...</option>
+					<h2 class="text-lg font-bold text-[var(--ps-ink)] mb-3">Clear event data</h2>
+					<select id="event-select" class="ps-field mb-3">
+						<option value="">Select an event…</option>
 						for _, event := range events {
 							<option value={ event }>{ event }</option>
 						}
 					</select>
-					<button onclick="clearEvent()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-xl transition">
-						Clear Event Data
+					<button onclick="clearEvent()" class="btn btn-danger">
+						Clear event data
 					</button>
 				</div>
 
 				<div class="mb-8">
-					<h2 class="text-xl font-bold text-[#5D4037] mb-4">Fill in Gemini Analysis</h2>
-					<p class="text-sm text-[#A1887F] mb-3">
+					<h2 class="text-lg font-bold text-[var(--ps-ink)] mb-3">Fill in Gemini analysis</h2>
+					<p class="text-sm text-[var(--ps-muted)] mb-3">
 						For a specific qual match, analyze every team using video. Leave the YouTube URL blank to
 						use the event's own webcast automatically (finds the right day and moment, and only sends
 						Gemini the few minutes around the match); paste a URL to override that, e.g. for an event
@@ -36,46 +36,46 @@ templ AdminPage(events []string) {
 						<input
 							name="event_key"
 							placeholder="Event key (e.g. 2026miket)"
-							class="w-full p-3 border-2 border-[#D2B48C] rounded-xl bg-[#FFFBF5] text-stone-700"/>
+							class="ps-field"/>
 						<input
 							name="match_num"
 							type="number"
 							min="1"
 							placeholder="Qual match number"
-							class="w-full p-3 border-2 border-[#D2B48C] rounded-xl bg-[#FFFBF5] text-stone-700"/>
+							class="ps-field font-data"/>
 						<input
 							name="youtube_url"
 							placeholder="YouTube URL — optional, leave blank to auto-detect from the event's webcast"
-							class="w-full p-3 border-2 border-[#D2B48C] rounded-xl bg-[#FFFBF5] text-stone-700"/>
+							class="ps-field"/>
 						<button
 							id="ai-fill-btn"
 							type="submit"
-							class="bg-[#8D6E63] hover:bg-[#6D4C41] text-white font-bold py-2 px-4 rounded-xl transition">
-							Fill in Gemini Analysis
+							class="btn btn-primary">
+							Fill in Gemini analysis
 						</button>
 					</form>
 					<div id="ai-fill-result" class="mt-4"></div>
 				</div>
 
 				<div class="mb-8">
-					<h2 class="text-xl font-bold text-[#5D4037] mb-2">Seed Test Data</h2>
-					<p class="text-sm text-[#A1887F] mb-3">Loads 9 fake teams with match observations into the <code class="bg-stone-100 px-1 rounded">2026test</code> event.</p>
-					<button onclick="seedTest()" class="bg-[#8D6E63] hover:bg-[#6D4C41] text-white font-bold py-2 px-4 rounded-xl transition">
-						Seed Test Event
+					<h2 class="text-lg font-bold text-[var(--ps-ink)] mb-2">Seed test data</h2>
+					<p class="text-sm text-[var(--ps-muted)] mb-3">Loads 9 fake teams with match observations into the <code class="bg-stone-100 px-1 rounded">2026test</code> event.</p>
+					<button onclick="seedTest()" class="btn btn-secondary">
+						Seed test event
 					</button>
 				</div>
 
 				<div>
-					<h2 class="text-xl font-bold text-[#5D4037] mb-4">Clear All Data</h2>
-					<button onclick="clearAll()" class="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-xl transition">
-						Clear Entire Database
+					<h2 class="text-lg font-bold text-[var(--ps-ink)] mb-3">Clear all data</h2>
+					<button onclick="clearAll()" class="btn btn-danger">
+						Clear entire database
 					</button>
 				</div>
 
-				<div id="result" class="mt-4 text-[#5D4037] font-bold"></div>
+				<div id="result" class="mt-4 text-[var(--ps-ink)] font-semibold text-sm"></div>
 
-				<div class="mt-8 text-center">
-					<a href="/" class="text-[#5D4037] hover:text-[#8D6E63] font-bold">← Back to Home</a>
+				<div class="mt-8">
+					<a href="/" class="btn btn-ghost btn-sm">‹ Back to home</a>
 				</div>
 			</div>
 		</main>
@@ -113,7 +113,7 @@ templ AdminPage(events []string) {
 
 templ AiFillProgressContainer(slots []AiFillSlot) {
 	if len(slots) == 0 {
-		<p class="text-[#A1887F] text-sm">No teams found in that match.</p>
+		<p class="text-[var(--ps-muted)] text-sm">No teams found in that match.</p>
 	} else {
 		<div class="space-y-2">
 			for _, slot := range slots {
@@ -121,7 +121,7 @@ templ AiFillProgressContainer(slots []AiFillSlot) {
 					hx-get={ slot.HXURL }
 					hx-trigger="load"
 					hx-swap="outerHTML"
-					class="bg-[#F2E8D5] border border-[#D2B48C] rounded-xl px-4 py-2 text-sm text-[#8D6E63] animate-pulse">
+					class="ps-panel border border-[var(--ps-border)] px-4 py-2 text-sm text-[var(--ps-ink-soft)] animate-pulse">
 					Team { slot.Team } — analyzing…
 				</div>
 			}

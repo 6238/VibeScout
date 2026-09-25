@@ -8,12 +8,153 @@ templ Layout(title string) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <script src="https://unpkg.com/htmx.org@1.9.10"></script>
         <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com"/>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet"/>
         <title>{ title }</title>
         <style>
-            body { background-color: #F7F0E6; } /* Sunbaked Cream */
+            /* Popcorn Penguins (FRC 6238) brand palette — sourced from the
+               team logo and popcornpenguins.com's own CSS custom properties.
+               The app is neutral by default (cream/surface/ink carry almost
+               everything); red and gold are accents spent deliberately — one
+               primary action per screen, small badges, focus states — not a
+               fill color for every button. ink/ink-soft/muted are the site's
+               near-black navy drawn into three text-emphasis steps; -strong
+               variants are darkened working steps for AA contrast against
+               cream (a button's white label, a hover/pressed state). */
+            :root {
+                --ps-ink: #0c0836;
+                --ps-ink-soft: #5d5390;
+                --ps-muted: #746b86;
+                --ps-red: #cf4c52;
+                --ps-red-strong: #7e373a;
+                --ps-red-light: #efccce;
+                --ps-gold: #edbd45;
+                --ps-gold-strong: #c99a2e;
+                --ps-gold-soft: #fade95;
+                --ps-gold-pale: #fdf3d7;
+                --ps-cream: #faf7f0;
+                --ps-surface: #f5f1e5;
+                --ps-panel: #ebe5d6;
+                --ps-input: #fefcf5;
+                --ps-border: #cbc4ae;
+                --ps-border-soft: #ded7c4;
+                --ps-white: #eeecf8;
+
+                --ps-radius-lg: 1.25rem;
+                --ps-radius-md: 0.75rem;
+                --ps-radius-sm: 0.5rem;
+                --ps-shadow-card: 0 1px 2px rgba(12,8,54,0.06), 0 8px 20px -12px rgba(12,8,54,0.18);
+                --ps-shadow-btn: 0 1px 2px rgba(12,8,54,0.12), 0 6px 14px -8px rgba(12,8,54,0.22);
+            }
+            body {
+                background-color: var(--ps-cream);
+                color: var(--ps-ink);
+                font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+            }
+            .font-data { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+            ::selection { background-color: var(--ps-red-strong); color: #fff; }
+            :focus-visible { outline: 2px solid var(--ps-gold-strong); outline-offset: 2px; }
+
+            /* ── Card: the app's one container shape. A flat surface at rest;
+                 weight comes from what's inside it, not from stacking more
+                 borders/shadows on top. ── */
+            .ps-card {
+                background-color: var(--ps-surface);
+                border: 1px solid var(--ps-border);
+                border-radius: var(--ps-radius-lg);
+                box-shadow: var(--ps-shadow-card);
+            }
+            .ps-panel {
+                background-color: var(--ps-panel);
+                border-radius: var(--ps-radius-md);
+            }
+
+            /* ── Buttons: three weights, spent deliberately. Primary is the
+                 one thing on a screen that should happen next — red, and
+                 there should rarely be more than one visible at a time.
+                 Secondary is the everyday action. Ghost is for a button that
+                 has to be there but shouldn't compete for attention. ── */
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                font-weight: 600;
+                font-size: 0.9375rem;
+                line-height: 1.2;
+                padding: 0.75rem 1.25rem;
+                border-radius: var(--ps-radius-md);
+                border: 1px solid transparent;
+                transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.05s ease;
+                cursor: pointer;
+                white-space: nowrap;
+            }
+            .btn:active { transform: scale(0.97); }
+            .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+            .btn-block { display: flex; width: 100%; }
+            .btn-lg { padding: 1rem 1.5rem; font-size: 1rem; }
+            .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.8125rem; border-radius: var(--ps-radius-sm); }
+
+            .btn-primary {
+                background-color: var(--ps-red-strong);
+                color: #fff;
+                box-shadow: var(--ps-shadow-btn);
+            }
+            .btn-primary:hover { background-color: var(--ps-ink); }
+
+            .btn-secondary {
+                background-color: var(--ps-input);
+                color: var(--ps-ink);
+                border-color: var(--ps-border);
+            }
+            .btn-secondary:hover { background-color: var(--ps-panel); border-color: var(--ps-ink-soft); }
+
+            .btn-ghost {
+                background-color: transparent;
+                color: var(--ps-ink-soft);
+            }
+            .btn-ghost:hover { background-color: var(--ps-panel); color: var(--ps-ink); }
+
+            .btn-danger { background-color: #b3261e; color: #fff; }
+            .btn-danger:hover { background-color: #8c1d17; }
+
+            /* ── Labels: sentence case, told apart by weight/color, not by
+                 shouting in small caps. ── */
+            .ps-label {
+                display: block;
+                font-size: 0.8125rem;
+                font-weight: 600;
+                color: var(--ps-muted);
+                margin-bottom: 0.25rem;
+            }
+            .ps-field {
+                width: 100%;
+                background-color: var(--ps-input);
+                border: 1px solid var(--ps-border);
+                border-radius: var(--ps-radius-md);
+                padding: 0.75rem 0.9rem;
+                color: var(--ps-ink);
+            }
+            .ps-field:focus { border-color: var(--ps-ink-soft); }
+
+            .ps-chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                font-size: 0.8125rem;
+                font-weight: 600;
+                padding: 0.2rem 0.6rem;
+                border-radius: 999px;
+                border: 1px solid var(--ps-border);
+                background-color: var(--ps-input);
+                color: var(--ps-ink-soft);
+            }
+            .ps-chip-gold { background-color: var(--ps-gold-pale); border-color: var(--ps-gold-strong); color: var(--ps-ink); }
+            .ps-chip-red { background-color: var(--ps-red-light); border-color: var(--ps-red); color: var(--ps-red-strong); }
         </style>
     </head>
-    <body class="font-sans text-stone-800">
+    <body>
         <!-- Loaded before the page content: both only attach listeners to
              document.body and don't touch page-specific elements, but a
              page's own inline script can run synchronously as soon as it's
