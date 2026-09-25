@@ -7,12 +7,14 @@ import (
 
 templ Home(events map[string]string, selectedEvent string) {
     @Layout("Vibe Scout | Home") {
-        <main class="flex flex-col items-center justify-center min-h-screen px-4">
-            <div class="ps-card max-w-md w-full p-8 text-center">
-                <h1 class="text-3xl font-extrabold text-[var(--ps-ink)] mb-6 tracking-tight">Vibe Scout</h1>
+        <main class="flex flex-col items-center justify-center min-h-screen px-4 py-8">
+            <div class="ps-card max-w-md sm:max-w-lg w-full p-6 sm:p-8 text-center">
+                <img src="/static/popcorn-penguins-logo.png" alt="Popcorn Penguins logo" class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-3"/>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-[var(--ps-ink)] tracking-tight">Vibe Scout</h1>
+                <p class="text-sm font-medium text-[var(--ps-muted)] mb-6">Popcorn Penguins, Team 6238</p>
 
-                <!-- Each button sends the chosen event to its own page -->
-                <form method="GET" action="/field-scout" class="space-y-4">
+                <!-- Each control sends the chosen event to its own page -->
+                <form method="GET" action="/field-scout" class="space-y-5">
                     <div class="text-left">
                         <label for="home-event" class="ps-label">Event</label>
                         <select id="home-event" name="event_key" class="ps-field font-medium">
@@ -23,21 +25,69 @@ templ Home(events map[string]string, selectedEvent string) {
                     </div>
 
                     <button type="submit" formaction="/field-scout" class="btn btn-primary btn-block btn-lg">
+                        @iconClipboard("w-5 h-5")
                         Field Scouting
                     </button>
-                    <button type="submit" formaction="/next-match" class="btn btn-secondary btn-block btn-lg">
-                        Next Match
-                    </button>
-                    <button type="submit" formaction="/pick-list" class="btn btn-secondary btn-block btn-lg">
-                        Pick List
-                    </button>
-                    <button type="submit" formaction="/pit-scout" class="btn btn-secondary btn-block btn-lg">
-                        Pit Scouting
-                    </button>
+
+                    <div class="grid grid-cols-3 gap-3">
+                        @homeTile("/next-match", "Next Match")  {
+                            @iconFlag("w-6 h-6")
+                        }
+                        @homeTile("/pick-list", "Pick List") {
+                            @iconBars("w-6 h-6")
+                        }
+                        @homeTile("/pit-scout", "Pit Scouting") {
+                            @iconNut("w-6 h-6")
+                        }
+                    </div>
                 </form>
             </div>
         </main>
     }
+}
+
+// homeTile is a secondary home-screen action: an icon over a short label,
+// equal weight to its siblings so the one actual primary action (Field
+// Scouting, styled separately above) stands out by contrast rather than by
+// being one of four identical buttons.
+templ homeTile(action string, label string) {
+    <button type="submit" formaction={ templ.SafeURL(action) }
+        class="btn btn-secondary flex-col gap-1.5 py-4 px-2 h-auto">
+        { children... }
+        <span class="text-xs font-semibold leading-tight">{ label }</span>
+    </button>
+}
+
+// Small linear icons, hand-drawn to match the app's own line weight rather
+// than standing in with emoji or an icon-font glyph.
+templ iconClipboard(class string) {
+    <svg class={ class } viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5.5" y="4.5" width="13" height="16" rx="2"></rect>
+        <path d="M9 4.5V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v.5"></path>
+        <path d="M9 12.5l2 2 4-4.5"></path>
+    </svg>
+}
+
+templ iconFlag(class string) {
+    <svg class={ class } viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 21V4"></path>
+        <path d="M6 4.5h12l-3.3 4L18 12.5H6"></path>
+    </svg>
+}
+
+templ iconBars(class string) {
+    <svg class={ class } viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 20v-5.5"></path>
+        <path d="M12 20V9"></path>
+        <path d="M19 20V4.5"></path>
+    </svg>
+}
+
+templ iconNut(class string) {
+    <svg class={ class } viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12,3.5 18.5,7.5 18.5,15.5 12,19.5 5.5,15.5 5.5,7.5"></polygon>
+        <circle cx="12" cy="11.5" r="3"></circle>
+    </svg>
 }
 
 templ FieldScout(data FieldScoutData) {
