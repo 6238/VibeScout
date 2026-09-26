@@ -478,8 +478,8 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 			}
 			for _, t := range teams {
 				var templ_7745c5c3_Var21 = []any{"relative p-4 rounded-[var(--ps-radius-md)] border-2 font-black text-xl transition active:scale-95 disabled:opacity-50 disabled:active:scale-100",
-					templ.KV("bg-red-50 border-red-300 text-red-800", t.Alliance == "Red" && !t.Soonest && !t.NeedsData),
-					templ.KV("bg-blue-50 border-blue-300 text-blue-800", t.Alliance == "Blue" && !t.Soonest && !t.NeedsData),
+					templ.KV("bg-[var(--ps-red-light)] border-[var(--ps-red)] text-[var(--ps-red-strong)]", t.Alliance == "Red" && !t.Soonest && !t.NeedsData),
+					templ.KV("bg-[var(--ps-blue-light)] border-[var(--ps-blue)] text-[var(--ps-blue-strong)]", t.Alliance == "Blue" && !t.Soonest && !t.NeedsData),
 					templ.KV("bg-yellow-100 border-yellow-400 text-[var(--ps-ink)]", t.NeedsData && !t.Soonest),
 					templ.KV("bg-amber-300 border-amber-500 text-[var(--ps-ink)] ring-2 ring-amber-400 ring-offset-1 ring-offset-[var(--ps-surface)]", t.Soonest)}
 				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var21...)
@@ -540,8 +540,8 @@ func MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) templ.Compon
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var25 = []any{"block text-xs font-bold whitespace-nowrap",
-					templ.KV("text-red-600", t.Alliance == "Red" && !t.Soonest && !t.NeedsData),
-					templ.KV("text-blue-600", t.Alliance == "Blue" && !t.Soonest && !t.NeedsData)}
+					templ.KV("text-[var(--ps-red-strong)]", t.Alliance == "Red" && !t.Soonest && !t.NeedsData),
+					templ.KV("text-[var(--ps-blue-strong)]", t.Alliance == "Blue" && !t.Soonest && !t.NeedsData)}
 				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var25...)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -739,8 +739,8 @@ func allianceButton(alliance string, teamNums []string) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		var templ_7745c5c3_Var35 = []any{"p-5 rounded-[var(--ps-radius-md)] border-2 font-black text-lg transition active:scale-95",
-			templ.KV("bg-red-50 border-red-300 text-red-800", alliance == "Red"),
-			templ.KV("bg-blue-50 border-blue-300 text-blue-800", alliance == "Blue")}
+			templ.KV("bg-[var(--ps-red-light)] border-[var(--ps-red)] text-[var(--ps-red-strong)]", alliance == "Red"),
+			templ.KV("bg-[var(--ps-blue-light)] border-[var(--ps-blue)] text-[var(--ps-blue-strong)]", alliance == "Blue")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var35...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

@@ -227,14 +227,14 @@ func MatchPlannerResults(cards []MatchPlanCard, ourTeam string) templ.Component 
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</div></div><!-- Alliance breakdown --><div class=\"grid grid-cols-2 gap-3 mb-4\"><div class=\"rounded-[var(--ps-radius-md)] p-3 border-2 bg-red-50 border-red-300\"><p class=\"text-xs font-bold text-red-600 mb-2\">Red alliance</p><div class=\"flex flex-wrap gap-2\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</div></div><!-- Alliance breakdown --><div class=\"grid grid-cols-2 gap-3 mb-4\"><div class=\"rounded-[var(--ps-radius-md)] p-3 border-2 bg-[var(--ps-red-light)] border-[var(--ps-red)]\"><p class=\"text-xs font-bold text-[var(--ps-red-strong)] mb-2\">Red alliance</p><div class=\"flex flex-wrap gap-2\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				for _, t := range card.RedTeams {
 					var templ_7745c5c3_Var11 = []any{"text-sm font-black px-2 py-1 rounded-lg",
-						templ.KV("bg-red-500 text-white", t == ourTeam),
-						templ.KV("bg-red-100 text-red-800", t != ourTeam)}
+						templ.KV("bg-[var(--ps-red)] text-white", t == ourTeam),
+						templ.KV("bg-[var(--ps-red-light)] text-[var(--ps-red-strong)]", t != ourTeam)}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var11...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -270,14 +270,14 @@ func MatchPlannerResults(cards []MatchPlanCard, ourTeam string) templ.Component 
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div></div><div class=\"rounded-[var(--ps-radius-md)] p-3 border-2 bg-blue-50 border-blue-300\"><p class=\"text-xs font-bold text-blue-600 mb-2\">Blue alliance</p><div class=\"flex flex-wrap gap-2\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div></div><div class=\"rounded-[var(--ps-radius-md)] p-3 border-2 bg-[var(--ps-blue-light)] border-[var(--ps-blue)]\"><p class=\"text-xs font-bold text-[var(--ps-blue-strong)] mb-2\">Blue alliance</p><div class=\"flex flex-wrap gap-2\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				for _, t := range card.BlueTeams {
 					var templ_7745c5c3_Var14 = []any{"text-sm font-black px-2 py-1 rounded-lg",
-						templ.KV("bg-blue-500 text-white", t == ourTeam),
-						templ.KV("bg-blue-100 text-blue-800", t != ourTeam)}
+						templ.KV("bg-[var(--ps-blue)] text-white", t == ourTeam),
+						templ.KV("bg-[var(--ps-blue-light)] text-[var(--ps-blue-strong)]", t != ourTeam)}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var14...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err

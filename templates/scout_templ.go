@@ -74,8 +74,8 @@ func ScoutPage(event, match, scouterName string, singleTeam bool, teams []ScoutT
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var5 = []any{"px-3 py-1 rounded-full font-bold text-sm border",
-				templ.KV("bg-red-50 border-red-300 text-red-700", teams[0].Alliance == "Red"),
-				templ.KV("bg-blue-50 border-blue-300 text-blue-700", teams[0].Alliance == "Blue")}
+				templ.KV("bg-[var(--ps-red-light)] border-[var(--ps-red)] text-[var(--ps-red-strong)]", teams[0].Alliance == "Red"),
+				templ.KV("bg-[var(--ps-blue-light)] border-[var(--ps-blue)] text-[var(--ps-blue-strong)]", teams[0].Alliance == "Blue")}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var5...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -227,8 +227,8 @@ func ScoutPage(event, match, scouterName string, singleTeam bool, teams []ScoutT
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var15 = []any{"block text-sm font-bold mb-2 text-center",
-					templ.KV("text-red-700", team.Alliance == "Red"),
-					templ.KV("text-blue-700", team.Alliance == "Blue")}
+					templ.KV("text-[var(--ps-red-strong)]", team.Alliance == "Red"),
+					templ.KV("text-[var(--ps-blue-strong)]", team.Alliance == "Blue")}
 				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var15...)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -294,8 +294,8 @@ func ScoutPage(event, match, scouterName string, singleTeam bool, teams []ScoutT
 				}
 				if singleTeam {
 					var templ_7745c5c3_Var19 = []any{"w-full p-3 text-sm bg-white border-2 rounded-[var(--ps-radius-md)] resize-none focus:outline-none focus:border-[var(--ps-gold-strong)]",
-						templ.KV("border-red-300", team.Alliance == "Red"),
-						templ.KV("border-blue-300", team.Alliance == "Blue")}
+						templ.KV("border-[var(--ps-red)]", team.Alliance == "Red"),
+						templ.KV("border-[var(--ps-blue)]", team.Alliance == "Blue")}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var19...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -332,8 +332,8 @@ func ScoutPage(event, match, scouterName string, singleTeam bool, teams []ScoutT
 					}
 				} else {
 					var templ_7745c5c3_Var22 = []any{"w-full p-3 text-sm bg-white border-2 rounded-[var(--ps-radius-md)] resize-none focus:outline-none focus:border-[var(--ps-gold-strong)]",
-						templ.KV("border-red-300", team.Alliance == "Red"),
-						templ.KV("border-blue-300", team.Alliance == "Blue")}
+						templ.KV("border-[var(--ps-red)]", team.Alliance == "Red"),
+						templ.KV("border-[var(--ps-blue)]", team.Alliance == "Blue")}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var22...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err

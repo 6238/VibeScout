@@ -30,6 +30,15 @@ templ Layout(title string) {
                 --ps-red: #cf4c52;
                 --ps-red-strong: #7e373a;
                 --ps-red-light: #efccce;
+                /* Red Alliance / Blue Alliance is a real FRC convention (every
+                   match has one of each), so it stays red-vs-blue rather than
+                   being reskinned into the brand palette — but paired at the
+                   same muted saturation/lightness as the red family above
+                   instead of Tailwind's default primary blue, which read as
+                   two opposite, clashing hues jammed together. */
+                --ps-blue: #4f7396;
+                --ps-blue-strong: #2f4a63;
+                --ps-blue-light: #dde6ee;
                 --ps-gold: #edbd45;
                 --ps-gold-strong: #c99a2e;
                 --ps-gold-soft: #fade95;

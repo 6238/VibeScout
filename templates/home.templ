@@ -256,14 +256,14 @@ templ MatchTeamPicker(teams []PickTeam, matchNum int, errMsg string) {
             for _, t := range teams {
                 <button type="submit" name="team" value={ t.Number } disabled?={ t.IsUs }
                     class={ "relative p-4 rounded-[var(--ps-radius-md)] border-2 font-black text-xl transition active:scale-95 disabled:opacity-50 disabled:active:scale-100",
-                        templ.KV("bg-red-50 border-red-300 text-red-800", t.Alliance == "Red" && !t.Soonest && !t.NeedsData),
-                        templ.KV("bg-blue-50 border-blue-300 text-blue-800", t.Alliance == "Blue" && !t.Soonest && !t.NeedsData),
+                        templ.KV("bg-[var(--ps-red-light)] border-[var(--ps-red)] text-[var(--ps-red-strong)]", t.Alliance == "Red" && !t.Soonest && !t.NeedsData),
+                        templ.KV("bg-[var(--ps-blue-light)] border-[var(--ps-blue)] text-[var(--ps-blue-strong)]", t.Alliance == "Blue" && !t.Soonest && !t.NeedsData),
                         templ.KV("bg-yellow-100 border-yellow-400 text-[var(--ps-ink)]", t.NeedsData && !t.Soonest),
                         templ.KV("bg-amber-300 border-amber-500 text-[var(--ps-ink)] ring-2 ring-amber-400 ring-offset-1 ring-offset-[var(--ps-surface)]", t.Soonest) }>
                     { t.Number }
                     <span class={ "block text-xs font-bold whitespace-nowrap",
-                        templ.KV("text-red-600", t.Alliance == "Red" && !t.Soonest && !t.NeedsData),
-                        templ.KV("text-blue-600", t.Alliance == "Blue" && !t.Soonest && !t.NeedsData) }>
+                        templ.KV("text-[var(--ps-red-strong)]", t.Alliance == "Red" && !t.Soonest && !t.NeedsData),
+                        templ.KV("text-[var(--ps-blue-strong)]", t.Alliance == "Blue" && !t.Soonest && !t.NeedsData) }>
                         if t.IsUs {
                             Us
                         } else if t.NextWithUs != 0 {
@@ -309,8 +309,8 @@ templ AlliancePicker(redTeams, blueTeams []string, matchNum int, errMsg string) 
 templ allianceButton(alliance string, teamNums []string) {
     <button type="submit" name="alliance" value={ alliance }
         class={ "p-5 rounded-[var(--ps-radius-md)] border-2 font-black text-lg transition active:scale-95",
-            templ.KV("bg-red-50 border-red-300 text-red-800", alliance == "Red"),
-            templ.KV("bg-blue-50 border-blue-300 text-blue-800", alliance == "Blue") }>
+            templ.KV("bg-[var(--ps-red-light)] border-[var(--ps-red)] text-[var(--ps-red-strong)]", alliance == "Red"),
+            templ.KV("bg-[var(--ps-blue-light)] border-[var(--ps-blue)] text-[var(--ps-blue-strong)]", alliance == "Blue") }>
         <span class="block">{ alliance }</span>
         <span class="block text-base font-bold opacity-80 mt-1">{ strings.Join(teamNums, ", ") }</span>
     </button>
