@@ -133,6 +133,12 @@ templ Layout(title string) {
             .btn-danger { background-color: #b3261e; color: #fff; }
             .btn-danger:hover { background-color: #8c1d17; }
 
+            /* A save/submit button's own brief confirmation — a scout does
+               this exact tap dozens of times a day, and a quiet color pop is
+               a lot more reassuring than the button just silently resetting. */
+            @keyframes ps-save-pop { 0% { transform: scale(1); } 45% { transform: scale(1.045); } 100% { transform: scale(1); } }
+            .btn.btn-saved { background-color: #2f7a4f; animation: ps-save-pop 0.35s ease; }
+
             /* ── Labels: sentence case, told apart by weight/color, not by
                  shouting in small caps. ── */
             .ps-label {
@@ -166,6 +172,19 @@ templ Layout(title string) {
             }
             .ps-chip-gold { background-color: var(--ps-gold-pale); border-color: var(--ps-gold-strong); color: var(--ps-ink); }
             .ps-chip-red { background-color: var(--ps-red-light); border-color: var(--ps-red); color: var(--ps-red-strong); }
+
+            /* A panel that just loaded (View Notes, Pit Notes, a clarification
+               list) settles in instead of popping into existence. */
+            @keyframes ps-panel-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+            .ps-panel-in { animation: ps-panel-in 0.25s ease-out; }
+
+            /* A score bar reveals from empty to its real value once, the
+               moment its card lands, instead of appearing pre-filled. The
+               bar's width is set once, immediately, at its real final size
+               (never animated — animating width/height thrashes layout);
+               what animates is transform: scaleX, which only ever touches
+               compositing. See the animateFills() script below. */
+            [data-reveal] { transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
         </style>
     </head>
     <body>
@@ -175,6 +194,29 @@ templ Layout(title string) {
              parsed and may call window.offlineSync/etc. immediately (not
              just from an event handler) — so these have to exist first. -->
         <script src="/static/read-cache.js"></script>
+        <script>
+            // Score bars render at their real final width immediately (see
+            // scoreBar/defenseBar) but start scaled to nothing (data-reveal),
+            // so this just grows them into view via transform — never
+            // touching width/layout — the moment each card lands. Runs on
+            // every htmx swap (team cards load into slots one at a time) and
+            // on first paint, and never re-triggers a bar it's already run.
+            // A short setTimeout, not requestAnimationFrame: the initial
+            // scaleX(0) has to actually commit to a rendered frame before the
+            // transition to scaleX(1) can animate rather than jump, and rAF
+            // callbacks can be starved entirely in a backgrounded tab — a
+            // real risk right after a navigation or an htmx swap.
+            (function () {
+                function animateFills(root) {
+                    (root || document).querySelectorAll('[data-reveal]:not([data-reveal-done])').forEach(function (bar) {
+                        bar.setAttribute('data-reveal-done', '1');
+                        setTimeout(function () { bar.style.transform = 'scaleX(1)'; }, 30);
+                    });
+                }
+                document.addEventListener('DOMContentLoaded', function () { animateFills(document); });
+                document.body.addEventListener('htmx:afterSettle', function (e) { animateFills(e.target); });
+            })();
+        </script>
         <script src="/static/offline-sync.js"></script>
         { children... }
     </body>

@@ -202,11 +202,22 @@ templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []Scout
 				// confirms it, including after this page has moved on.
 				window.offlineSync.queue('scout', '/api/save-scout', submission);
 
+				// A quick, satisfying confirmation before the page moves on —
+				// a scout does this exact tap 10-12 times a match, every match.
+				const nextBtn = document.getElementById('next-match-btn');
+				const nextLabel = document.getElementById('next-match-label');
+				if (nextBtn && nextLabel) {
+					nextBtn.classList.add('btn-saved');
+					nextLabel.textContent = 'Saved';
+				}
+
 				// Both modes pick a team/alliance each match, so always return to
 				// Field Scouting to pick again for the next one.
 				const next = new URLSearchParams({ event_key: eventKey, match_num: matchNum + 1, scouter: scouter });
 				next.set('mode', pickedTeam ? 'one' : 'three');
-				window.location.href = '/field-scout?' + next;
+				setTimeout(function () {
+					window.location.href = '/field-scout?' + next;
+				}, 380);
 			}
 			window.saveAndAdvance = saveAndAdvance;
 		</script>

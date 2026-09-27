@@ -632,12 +632,12 @@ templ closePanelButton() {
 
 templ TeamNotesPanel(eventKey, teamNum, section string, groups []TeamNoteGroup, clarifications []Clarification) {
 	if len(groups) == 0 {
-		<div data-notes-panel class="mt-4 flex justify-between items-center">
+		<div data-notes-panel class="ps-panel-in mt-4 flex justify-between items-center">
 			<p class="text-sm text-[var(--ps-muted)] italic">No scouting notes found.</p>
 			@closePanelButton()
 		</div>
 	} else {
-		<div data-notes-panel class="mt-4 border-t border-[var(--ps-border)] pt-4 space-y-4">
+		<div data-notes-panel class="ps-panel-in mt-4 border-t border-[var(--ps-border)] pt-4 space-y-4">
 			<div class="flex justify-between items-center">
 				<h3 class="text-sm font-bold text-[var(--ps-muted)]">Scout notes</h3>
 				@closePanelButton()
@@ -738,12 +738,12 @@ templ checklistChip(label string, yes bool, yesIsBad bool) {
 
 templ TeamPitNotesPanel(eventKey, teamNum, section string, notes []PitNote, clarifications []Clarification) {
 	if len(notes) == 0 {
-		<div data-notes-panel class="mt-4 flex justify-between items-center">
+		<div data-notes-panel class="ps-panel-in mt-4 flex justify-between items-center">
 			<p class="text-sm text-[var(--ps-muted)] italic">No pit scouting notes found.</p>
 			@closePanelButton()
 		</div>
 	} else {
-		<div data-notes-panel class="mt-4 border-t border-[var(--ps-border)] pt-4 space-y-3">
+		<div data-notes-panel class="ps-panel-in mt-4 border-t border-[var(--ps-border)] pt-4 space-y-3">
 			<div class="flex justify-between items-center">
 				<h3 class="text-sm font-bold text-[var(--ps-muted)]">Pit scouting</h3>
 				@closePanelButton()
@@ -860,7 +860,7 @@ templ scoreBar(label string, score int, trackColor string, fillColor string) {
 			<span class="text-sm font-bold text-[var(--ps-ink)] font-data">{ strconv.Itoa(score) }/10</span>
 		</div>
 		<div class="h-2 rounded-full overflow-hidden" style={ fmt.Sprintf("background-color: color-mix(in srgb, %s 20%%, transparent)", trackColor) }>
-			<div class="h-full rounded-full transition-all" style={ fmt.Sprintf("width: %d%%; background-color: %s", score*10, fillColor) }></div>
+			<div class="h-full rounded-full origin-left" data-reveal style={ fmt.Sprintf("width: %d%%; background-color: %s; transform: scaleX(0)", score*10, fillColor) }></div>
 		</div>
 	</div>
 }
@@ -879,7 +879,7 @@ templ defenseBar(score int) {
 			if score == 0 {
 				<div class="h-full w-0 rounded-full bg-orange-400"></div>
 			} else {
-				<div class="h-full rounded-full transition-all bg-orange-400" style={ fmt.Sprintf("width: %d%%", score*10) }></div>
+				<div class="h-full rounded-full bg-orange-400 origin-left" data-reveal style={ fmt.Sprintf("width: %d%%; transform: scaleX(0)", score*10) }></div>
 			}
 		</div>
 	</div>

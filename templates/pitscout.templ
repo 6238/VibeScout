@@ -121,6 +121,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 					var suggest = document.getElementById('pit-team-suggest');
 					var summary = document.getElementById('pit-summary');
 					var status = document.getElementById('pit-edit-status');
+					var submitBtn = document.getElementById('pit-submit');
 					var submit = document.getElementById('pit-submit-label');
 					var result = document.getElementById('pit-result');
 					var clarifications = document.getElementById('pit-clarifications');
@@ -396,6 +397,13 @@ templ PitScoutPage(eventKey string, eventName string) {
 
 						window.offlineSync.queue('pit', '/api/save-pit-scout',
 							{ team_number: teamNumber, summary: summaryText }, 'form');
+
+						// A quick, satisfying confirmation right on the button —
+						// this exact tap happens dozens of times over an event.
+						submitBtn.classList.remove('btn-saved');
+						void submitBtn.offsetWidth; // force reflow so back-to-back saves each restart the pop
+						submitBtn.classList.add('btn-saved');
+						setTimeout(function() { submitBtn.classList.remove('btn-saved'); }, 700);
 
 						form.reset();
 						showTeamError('');

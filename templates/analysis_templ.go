@@ -1834,7 +1834,7 @@ func TeamNotesPanel(eventKey, teamNum, section string, groups []TeamNoteGroup, c
 		}
 		ctx = templ.ClearChildren(ctx)
 		if len(groups) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 142, "<div data-notes-panel class=\"mt-4 flex justify-between items-center\"><p class=\"text-sm text-[var(--ps-muted)] italic\">No scouting notes found.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 142, "<div data-notes-panel class=\"ps-panel-in mt-4 flex justify-between items-center\"><p class=\"text-sm text-[var(--ps-muted)] italic\">No scouting notes found.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1847,7 +1847,7 @@ func TeamNotesPanel(eventKey, teamNum, section string, groups []TeamNoteGroup, c
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 144, "<div data-notes-panel class=\"mt-4 border-t border-[var(--ps-border)] pt-4 space-y-4\"><div class=\"flex justify-between items-center\"><h3 class=\"text-sm font-bold text-[var(--ps-muted)]\">Scout notes</h3>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 144, "<div data-notes-panel class=\"ps-panel-in mt-4 border-t border-[var(--ps-border)] pt-4 space-y-4\"><div class=\"flex justify-between items-center\"><h3 class=\"text-sm font-bold text-[var(--ps-muted)]\">Scout notes</h3>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -2282,7 +2282,7 @@ func TeamPitNotesPanel(eventKey, teamNum, section string, notes []PitNote, clari
 		}
 		ctx = templ.ClearChildren(ctx)
 		if len(notes) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 183, "<div data-notes-panel class=\"mt-4 flex justify-between items-center\"><p class=\"text-sm text-[var(--ps-muted)] italic\">No pit scouting notes found.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 183, "<div data-notes-panel class=\"ps-panel-in mt-4 flex justify-between items-center\"><p class=\"text-sm text-[var(--ps-muted)] italic\">No pit scouting notes found.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -2295,7 +2295,7 @@ func TeamPitNotesPanel(eventKey, teamNum, section string, notes []PitNote, clari
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 185, "<div data-notes-panel class=\"mt-4 border-t border-[var(--ps-border)] pt-4 space-y-3\"><div class=\"flex justify-between items-center\"><h3 class=\"text-sm font-bold text-[var(--ps-muted)]\">Pit scouting</h3>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 185, "<div data-notes-panel class=\"ps-panel-in mt-4 border-t border-[var(--ps-border)] pt-4 space-y-3\"><div class=\"flex justify-between items-center\"><h3 class=\"text-sm font-bold text-[var(--ps-muted)]\">Pit scouting</h3>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -2757,14 +2757,14 @@ func scoreBar(label string, score int, trackColor string, fillColor string) temp
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 219, "\"><div class=\"h-full rounded-full transition-all\" style=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 219, "\"><div class=\"h-full rounded-full origin-left\" data-reveal style=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var130 string
-		templ_7745c5c3_Var130, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("width: %d%%; background-color: %s", score*10, fillColor))
+		templ_7745c5c3_Var130, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("width: %d%%; background-color: %s; transform: scaleX(0)", score*10, fillColor))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/analysis.templ`, Line: 863, Col: 128}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/analysis.templ`, Line: 863, Col: 159}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var130))
 		if templ_7745c5c3_Err != nil {
@@ -2837,14 +2837,14 @@ func defenseBar(score int) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 227, "<div class=\"h-full rounded-full transition-all bg-orange-400\" style=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 227, "<div class=\"h-full rounded-full bg-orange-400 origin-left\" data-reveal style=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var133 string
-			templ_7745c5c3_Var133, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("width: %d%%", score*10))
+			templ_7745c5c3_Var133, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("width: %d%%; transform: scaleX(0)", score*10))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/analysis.templ`, Line: 882, Col: 110}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/analysis.templ`, Line: 882, Col: 141}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var133))
 			if templ_7745c5c3_Err != nil {
