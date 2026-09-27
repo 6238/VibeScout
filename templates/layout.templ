@@ -29,6 +29,7 @@ templ Layout(title string) {
                 --ps-muted: #746b86;
                 --ps-red: #cf4c52;
                 --ps-red-strong: #7e373a;
+                --ps-red-deep: #582225;
                 --ps-red-light: #efccce;
                 /* Red Alliance / Blue Alliance is a real FRC convention (every
                    match has one of each), so it stays red-vs-blue rather than
@@ -111,7 +112,10 @@ templ Layout(title string) {
                 color: #fff;
                 box-shadow: var(--ps-shadow-btn);
             }
-            .btn-primary:hover { background-color: var(--ps-ink); }
+            /* A darker step of the same red, not --ps-ink: ink is a navy
+               blue (from the logo), and hovering a red button into blue
+               read as the button changing color/meaning, not darkening. */
+            .btn-primary:hover { background-color: var(--ps-red-deep); }
 
             .btn-secondary {
                 background-color: var(--ps-input);

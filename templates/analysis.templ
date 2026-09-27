@@ -519,7 +519,7 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 							if m.HasWatch {
 								<a href={ templ.SafeURL(m.WatchURL) } target="_blank" rel="noopener noreferrer"
 									title={ "Watch " + m.Label + " on YouTube at the moment it happened — no waiting for the edited match video" }
-									class="text-xs font-bold px-2 py-1 whitespace-nowrap bg-[var(--ps-red-strong)] text-white hover:bg-[var(--ps-ink)] transition border-l border-[var(--ps-ink)]/20">
+									class="text-xs font-bold px-2 py-1 whitespace-nowrap bg-[var(--ps-red-strong)] text-white hover:bg-[var(--ps-red-deep)] transition border-l border-[var(--ps-ink)]/20">
 									▶
 								</a>
 							}
@@ -794,7 +794,7 @@ templ clarificationsList(eventKey, teamNum, section, noteType string, items []Cl
 						<input type="hidden" name="section" value={ section }/>
 						<input type="hidden" name="note_type" value={ noteType }/>
 						<button type="submit" title="Delete this clarification"
-							class="shrink-0 text-xs font-bold text-[var(--ps-red-strong)] hover:text-[var(--ps-ink)] px-1">✕</button>
+							class="shrink-0 text-xs font-bold text-[var(--ps-red-strong)] hover:text-[var(--ps-red-deep)] px-1">✕</button>
 					</form>
 				</div>
 			}

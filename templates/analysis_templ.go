@@ -1443,7 +1443,7 @@ func SingleTeamAnalysisCard(card TeamAnalysisCard) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 106, "\" class=\"text-xs font-bold px-2 py-1 whitespace-nowrap bg-[var(--ps-red-strong)] text-white hover:bg-[var(--ps-ink)] transition border-l border-[var(--ps-ink)]/20\">▶</a>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 106, "\" class=\"text-xs font-bold px-2 py-1 whitespace-nowrap bg-[var(--ps-red-strong)] text-white hover:bg-[var(--ps-red-deep)] transition border-l border-[var(--ps-ink)]/20\">▶</a>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -2509,7 +2509,7 @@ func clarificationsList(eventKey, teamNum, section, noteType string, items []Cla
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 201, "\"> <button type=\"submit\" title=\"Delete this clarification\" class=\"shrink-0 text-xs font-bold text-[var(--ps-red-strong)] hover:text-[var(--ps-ink)] px-1\">✕</button></form></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 201, "\"> <button type=\"submit\" title=\"Delete this clarification\" class=\"shrink-0 text-xs font-bold text-[var(--ps-red-strong)] hover:text-[var(--ps-red-deep)] px-1\">✕</button></form></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

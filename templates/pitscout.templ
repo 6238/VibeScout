@@ -172,7 +172,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 							var del = document.createElement('button');
 							del.type = 'button';
 							del.title = 'Delete this clarification';
-							del.className = 'shrink-0 text-xs font-bold text-[var(--ps-red-strong)] hover:text-[var(--ps-ink)] px-1';
+							del.className = 'shrink-0 text-xs font-bold text-[var(--ps-red-strong)] hover:text-[var(--ps-red-deep)] px-1';
 							del.textContent = '✕';
 							del.addEventListener('click', function() {
 								if (!confirm("Delete this clarification? This can't be undone.")) return;
