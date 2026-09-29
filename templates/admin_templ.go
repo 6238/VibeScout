@@ -41,7 +41,7 @@ func AdminPage(events []string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<main class=\"container mx-auto px-4 py-8\"><div class=\"max-w-2xl mx-auto bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-3xl p-6\"><h1 class=\"text-3xl font-black text-[#5D4037] mb-6\">Admin Panel</h1><div class=\"mb-8\"><h2 class=\"text-xl font-bold text-[#5D4037] mb-4\">Clear Event Data</h2><select id=\"event-select\" class=\"w-full p-3 border-2 border-[#D2B48C] rounded-xl mb-4 bg-[#FFFBF5]\"><option value=\"\">Select an event...</option> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<main class=\"container mx-auto px-4 py-8\"><div class=\"ps-card max-w-2xl mx-auto p-6\"><h1 class=\"text-2xl font-extrabold text-[var(--ps-ink)] mb-6\">Admin panel</h1><div class=\"mb-8\"><h2 class=\"text-lg font-bold text-[var(--ps-ink)] mb-3\">Clear event data</h2><select id=\"event-select\" class=\"ps-field mb-3\"><option value=\"\">Select an event…</option> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -77,7 +77,15 @@ func AdminPage(events []string) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</select> <button onclick=\"clearEvent()\" class=\"bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-xl transition\">Clear Event Data</button></div><div class=\"mb-8\"><h2 class=\"text-xl font-bold text-[#5D4037] mb-4\">Fill in Gemini Analysis</h2><p class=\"text-sm text-[#A1887F] mb-3\">For a specific qual match, analyze every team using video. Leave the YouTube URL blank to use the event's own webcast automatically (finds the right day and moment, and only sends Gemini the few minutes around the match); paste a URL to override that, e.g. for an event with no webcast on TBA. Teams that already have human scouting notes for that match are skipped.</p><form hx-post=\"/api/admin/fill-ai-scout\" hx-target=\"#ai-fill-result\" hx-swap=\"innerHTML\" hx-indicator=\"#ai-fill-btn\" class=\"space-y-3\"><input name=\"event_key\" placeholder=\"Event key (e.g. 2026miket)\" class=\"w-full p-3 border-2 border-[#D2B48C] rounded-xl bg-[#FFFBF5] text-stone-700\"> <input name=\"match_num\" type=\"number\" min=\"1\" placeholder=\"Qual match number\" class=\"w-full p-3 border-2 border-[#D2B48C] rounded-xl bg-[#FFFBF5] text-stone-700\"> <input name=\"youtube_url\" placeholder=\"YouTube URL — optional, leave blank to auto-detect from the event's webcast\" class=\"w-full p-3 border-2 border-[#D2B48C] rounded-xl bg-[#FFFBF5] text-stone-700\"> <button id=\"ai-fill-btn\" type=\"submit\" class=\"bg-[#8D6E63] hover:bg-[#6D4C41] text-white font-bold py-2 px-4 rounded-xl transition\">Fill in Gemini Analysis</button></form><div id=\"ai-fill-result\" class=\"mt-4\"></div></div><div class=\"mb-8\"><h2 class=\"text-xl font-bold text-[#5D4037] mb-2\">Seed Test Data</h2><p class=\"text-sm text-[#A1887F] mb-3\">Loads 9 fake teams with match observations into the <code class=\"bg-stone-100 px-1 rounded\">2026test</code> event.</p><button onclick=\"seedTest()\" class=\"bg-[#8D6E63] hover:bg-[#6D4C41] text-white font-bold py-2 px-4 rounded-xl transition\">Seed Test Event</button></div><div><h2 class=\"text-xl font-bold text-[#5D4037] mb-4\">Clear All Data</h2><button onclick=\"clearAll()\" class=\"bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-xl transition\">Clear Entire Database</button></div><div id=\"result\" class=\"mt-4 text-[#5D4037] font-bold\"></div><div class=\"mt-8 text-center\"><a href=\"/\" class=\"text-[#5D4037] hover:text-[#8D6E63] font-bold\">← Back to Home</a></div></div></main><script>\r\n\t\t\tasync function clearEvent() {\r\n\t\t\t\tconst eventKey = document.getElementById('event-select').value;\r\n\t\t\t\tif (!eventKey) return alert('Select an event');\r\n\t\t\t\tif (!confirm('Delete all data for ' + eventKey + '?')) return;\r\n\r\n\t\t\t\tconst resp = await fetch('/api/admin/clear-event', {\r\n\t\t\t\t\tmethod: 'POST',\r\n\t\t\t\t\theaders: {'Content-Type': 'application/json'},\r\n\t\t\t\t\tbody: JSON.stringify({event_key: eventKey})\r\n\t\t\t\t});\r\n\t\t\t\tdocument.getElementById('result').textContent = await resp.text();\r\n\t\t\t}\r\n\r\n\t\t\tasync function seedTest() {\r\n\t\t\t\tif (!confirm('Seed test event? This will overwrite any existing 2026test data.')) return;\r\n\r\n\t\t\t\tconst resp = await fetch('/api/admin/seed-test', {method: 'POST'});\r\n\t\t\t\tdocument.getElementById('result').textContent = await resp.text();\r\n\t\t\t}\r\n\r\n\t\t\tasync function clearAll() {\r\n\t\t\t\tif (!confirm('Delete ALL data? This cannot be undone!')) return;\r\n\r\n\t\t\t\tconst resp = await fetch('/api/admin/clear-all', {method: 'POST'});\r\n\t\t\t\tdocument.getElementById('result').textContent = await resp.text();\r\n\t\t\t}\r\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</select> <button onclick=\"clearEvent()\" class=\"btn btn-danger\">Clear event data</button></div><div class=\"mb-8\"><h2 class=\"text-lg font-bold text-[var(--ps-ink)] mb-3\">Fill in Gemini analysis</h2><p class=\"text-sm text-[var(--ps-muted)] mb-3\">For a specific qual match, analyze every team using video. Leave the YouTube URL blank to use the event's own webcast automatically (finds the right day and moment, and only sends Gemini the few minutes around the match); paste a URL to override that, e.g. for an event with no webcast on TBA. Teams that already have human scouting notes for that match are skipped.</p><form hx-post=\"/api/admin/fill-ai-scout\" hx-target=\"#ai-fill-result\" hx-swap=\"innerHTML\" hx-indicator=\"#ai-fill-btn\" class=\"space-y-3\"><input name=\"event_key\" placeholder=\"Event key (e.g. 2026miket)\" class=\"ps-field\"> <input name=\"match_num\" type=\"number\" min=\"1\" placeholder=\"Qual match number\" class=\"ps-field font-data\"> <input name=\"youtube_url\" placeholder=\"YouTube URL — optional, leave blank to auto-detect from the event's webcast\" class=\"ps-field\"> <button id=\"ai-fill-btn\" type=\"submit\" class=\"btn btn-primary\">Fill in Gemini analysis</button></form><div id=\"ai-fill-result\" class=\"mt-4\"></div></div><div class=\"mb-8\"><h2 class=\"text-lg font-bold text-[var(--ps-ink)] mb-2\">Seed test data</h2><p class=\"text-sm text-[var(--ps-muted)] mb-3\">Loads 9 fake teams with match observations into the <code class=\"bg-stone-100 px-1 rounded\">2026test</code> event.</p><button onclick=\"seedTest()\" class=\"btn btn-secondary\">Seed test event</button></div><div><h2 class=\"text-lg font-bold text-[var(--ps-ink)] mb-3\">Clear all data</h2><button onclick=\"clearAll()\" class=\"btn btn-danger\">Clear entire database</button></div><div id=\"result\" class=\"mt-4 text-[var(--ps-ink)] font-semibold text-sm\"></div><div class=\"mt-8\"><a href=\"/\" class=\"btn btn-ghost btn-sm\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = iconHome("w-4 h-4").Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "Back to home</a></div></div></main><script>\n\t\t\tasync function clearEvent() {\n\t\t\t\tconst eventKey = document.getElementById('event-select').value;\n\t\t\t\tif (!eventKey) return alert('Select an event');\n\t\t\t\tif (!confirm('Delete all data for ' + eventKey + '?')) return;\n\n\t\t\t\tconst resp = await fetch('/api/admin/clear-event', {\n\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\theaders: {'Content-Type': 'application/json'},\n\t\t\t\t\tbody: JSON.stringify({event_key: eventKey})\n\t\t\t\t});\n\t\t\t\tdocument.getElementById('result').textContent = await resp.text();\n\t\t\t}\n\n\t\t\tasync function seedTest() {\n\t\t\t\tif (!confirm('Seed test event? This will overwrite any existing 2026test data.')) return;\n\n\t\t\t\tconst resp = await fetch('/api/admin/seed-test', {method: 'POST'});\n\t\t\t\tdocument.getElementById('result').textContent = await resp.text();\n\t\t\t}\n\n\t\t\tasync function clearAll() {\n\t\t\t\tif (!confirm('Delete ALL data? This cannot be undone!')) return;\n\n\t\t\t\tconst resp = await fetch('/api/admin/clear-all', {method: 'POST'});\n\t\t\t\tdocument.getElementById('result').textContent = await resp.text();\n\t\t\t}\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -113,48 +121,48 @@ func AiFillProgressContainer(slots []AiFillSlot) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if len(slots) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<p class=\"text-[#A1887F] text-sm\">No teams found in that match.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<p class=\"text-[var(--ps-muted)] text-sm\">No teams found in that match.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div class=\"space-y-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"space-y-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, slot := range slots {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div hx-get=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div hx-get=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(slot.HXURL)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 121, Col: 24}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 124, Col: 24}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" hx-trigger=\"load\" hx-swap=\"outerHTML\" class=\"bg-[#F2E8D5] border border-[#D2B48C] rounded-xl px-4 py-2 text-sm text-[#8D6E63] animate-pulse\">Team ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" hx-trigger=\"load\" hx-swap=\"outerHTML\" class=\"ps-panel border border-[var(--ps-border)] px-4 py-2 text-sm text-[var(--ps-ink-soft)] animate-pulse\">Team ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(slot.Team)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 125, Col: 21}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 128, Col: 21}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, " — analyzing…</div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, " — analyzing…</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -185,82 +193,82 @@ func AiFillTeamResult(r AiFillTeamResultData) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if r.Skipped {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"bg-stone-100 border border-stone-300 rounded-xl px-4 py-2 text-sm text-stone-500\">Team ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"bg-stone-100 border border-stone-300 rounded-xl px-4 py-2 text-sm text-stone-500\">Team ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(r.Team)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 135, Col: 16}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 138, Col: 16}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, " — skipped (human notes already exist)</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, " — skipped (human notes already exist)</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else if r.Success {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div class=\"bg-green-50 border border-green-300 rounded-xl px-4 py-2 text-sm text-green-800\"><span class=\"font-bold\">Team ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"bg-green-50 border border-green-300 rounded-xl px-4 py-2 text-sm text-green-800\"><span class=\"font-bold\">Team ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(r.Team)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 139, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 142, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, " — AI notes saved</span><p class=\"mt-1 whitespace-pre-wrap text-xs text-stone-600\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, " — AI notes saved</span><p class=\"mt-1 whitespace-pre-wrap text-xs text-stone-600\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(r.Notes)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 140, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 143, Col: 71}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<div class=\"bg-red-50 border border-red-300 rounded-xl px-4 py-2 text-sm text-red-800\"><span class=\"font-bold\">Team ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<div class=\"bg-red-50 border border-red-300 rounded-xl px-4 py-2 text-sm text-red-800\"><span class=\"font-bold\">Team ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(r.Team)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 144, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 147, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, " — error</span><p class=\"mt-1 text-xs\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, " — error</span><p class=\"mt-1 text-xs\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(r.Notes)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 145, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/admin.templ`, Line: 148, Col: 36}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

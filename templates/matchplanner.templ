@@ -12,9 +12,9 @@ templ MatchPlannerPage(data MatchPlannerPageData) {
 
 		<main class="container mx-auto px-4 py-8">
 			<div class="max-w-4xl mx-auto">
-				<div class="bg-[#F2E8D5] border-2 border-[#D2B48C] rounded-3xl p-6 shadow-xl mb-6">
-					<h1 class="text-3xl font-black text-[#5D4037] mb-1 text-center tracking-tight uppercase">Match Planner</h1>
-					<p class="text-sm font-bold text-[#A1887F] mb-4 text-center">{ data.EventName }</p>
+				<div class="ps-card p-6 mb-6">
+					<h1 class="text-2xl font-extrabold text-[var(--ps-ink)] mb-1 tracking-tight">Match planner</h1>
+					<p class="text-sm font-medium text-[var(--ps-muted)] mb-4">{ data.EventName }</p>
 
 					<form class="flex gap-3 items-end flex-wrap"
 						hx-post="/api/match-plan"
@@ -23,37 +23,47 @@ templ MatchPlannerPage(data MatchPlannerPageData) {
 						hx-indicator="#loading">
 						<input type="hidden" name="event_key" value={ data.EventKey }/>
 						<div class="w-28">
-							<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Team #</label>
+							<label class="ps-label">Team</label>
 							<input type="text" name="team_number" placeholder="e.g. 254" required
-								class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold" />
+								class="ps-field font-data font-semibold" />
 						</div>
 						<div class="w-24">
-							<label class="block text-xs font-bold uppercase text-[#A1887F] ml-2 mb-1">Match #</label>
+							<label class="ps-label">Match</label>
 							<input type="number" name="match_num" placeholder="e.g. 5" min="1" required
-								class="w-full p-3 bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-xl text-stone-700 font-bold" />
+								class="ps-field font-data font-semibold" />
 						</div>
-						<button type="submit" class="bg-[#D2B48C] hover:bg-[#B99976] text-[#4E342E] font-extrabold py-3 px-6 rounded-xl shadow-lg transition active:scale-95 uppercase tracking-widest border-b-4 border-[#B99976]">
-							Plan Match
+						<button type="submit" class="btn btn-primary">
+							@iconTarget("w-4 h-4")
+							Plan match
 						</button>
 					</form>
 				</div>
 
 				<!-- Loading indicator -->
-				<div id="loading" class="htmx-indicator items-center justify-center gap-3 py-12 text-[#A1887F]">
+				<div id="loading" class="htmx-indicator items-center justify-center gap-3 py-12 text-[var(--ps-muted)]">
 					<svg class="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
 						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
 					</svg>
-					<span class="font-bold text-lg">Generating match plans...</span>
+					<span class="font-semibold text-lg">Generating match plans…</span>
 				</div>
 
 				<div id="plan-results"></div>
 			</div>
 
-			<div class="text-center mt-6 flex gap-6 justify-center">
-				<a href={ templ.SafeURL("/next-match?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">← Next Match</a>
-				<a href={ templ.SafeURL("/pick-list?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Pick List</a>
-				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="text-[#A1887F] hover:text-[#5D4037] font-bold">Home</a>
+			<div class="mt-6 flex gap-2 justify-center flex-wrap">
+				<a href={ templ.SafeURL("/next-match?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">
+					@iconFlag("w-4 h-4")
+					Next match
+				</a>
+				<a href={ templ.SafeURL("/pick-list?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">
+					@iconBars("w-4 h-4")
+					Pick list
+				</a>
+				<a href={ templ.SafeURL("/?event_key=" + data.EventKey) } class="btn btn-ghost btn-sm">
+					@iconHome("w-4 h-4")
+					Home
+				</a>
 			</div>
 		</main>
 	}
@@ -61,48 +71,47 @@ templ MatchPlannerPage(data MatchPlannerPageData) {
 
 templ MatchPlannerResults(cards []MatchPlanCard, ourTeam string) {
 	if len(cards) == 0 {
-		<div class="text-center py-12 text-[#A1887F]">
+		<div class="text-center py-12 text-[var(--ps-muted)]">
 			<p class="text-xl font-bold">Team { ourTeam } not found in this event's schedule.</p>
 			<p class="text-sm mt-2">Check the team number and event, or the schedule may not be available yet.</p>
 		</div>
 	} else {
 		<div class="space-y-4">
 			for _, card := range cards {
-				<div class="bg-[#FFFBF5] border-2 border-[#D2B48C] rounded-2xl p-5 shadow-md">
+				<div class="ps-card p-5">
 					<!-- Match header -->
 					<div class="flex justify-between items-center mb-4">
-						<h2 class="text-xl font-black text-[#5D4037]">Match { strconv.Itoa(card.MatchNum) }</h2>
+						<h2 class="text-lg font-extrabold text-[var(--ps-ink)]">Match { strconv.Itoa(card.MatchNum) }</h2>
 						<div class="flex items-center gap-2">
 							if card.FromCache {
-								<span class="text-xs font-bold px-3 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-300">Cached</span>
+								<span class="ps-chip">Cached</span>
 							} else {
-								<span class="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-300">Fresh</span>
+								<span class="ps-chip ps-chip-gold">Fresh</span>
 							}
 						</div>
 					</div>
 
 					<!-- Alliance breakdown -->
 					<div class="grid grid-cols-2 gap-3 mb-4">
-						<div class={ "rounded-xl p-3 border-2",
-							templ.KV("bg-red-50 border-red-300", true) }>
-							<p class="text-xs font-bold text-red-600 uppercase mb-2">Red Alliance</p>
+						<div class="rounded-[var(--ps-radius-md)] p-3 border-2 bg-[var(--ps-red-light)] border-[var(--ps-red)]">
+							<p class="text-xs font-bold text-[var(--ps-red-strong)] mb-2">Red alliance</p>
 							<div class="flex flex-wrap gap-2">
 								for _, t := range card.RedTeams {
 									<span class={ "text-sm font-black px-2 py-1 rounded-lg",
-										templ.KV("bg-red-500 text-white", t == ourTeam),
-										templ.KV("bg-red-100 text-red-800", t != ourTeam) }>
+										templ.KV("bg-[var(--ps-red)] text-white", t == ourTeam),
+										templ.KV("bg-[var(--ps-red-light)] text-[var(--ps-red-strong)]", t != ourTeam) }>
 										{ t }
 									</span>
 								}
 							</div>
 						</div>
-						<div class="rounded-xl p-3 border-2 bg-blue-50 border-blue-300">
-							<p class="text-xs font-bold text-blue-600 uppercase mb-2">Blue Alliance</p>
+						<div class="rounded-[var(--ps-radius-md)] p-3 border-2 bg-[var(--ps-blue-light)] border-[var(--ps-blue)]">
+							<p class="text-xs font-bold text-[var(--ps-blue-strong)] mb-2">Blue alliance</p>
 							<div class="flex flex-wrap gap-2">
 								for _, t := range card.BlueTeams {
 									<span class={ "text-sm font-black px-2 py-1 rounded-lg",
-										templ.KV("bg-blue-500 text-white", t == ourTeam),
-										templ.KV("bg-blue-100 text-blue-800", t != ourTeam) }>
+										templ.KV("bg-[var(--ps-blue)] text-white", t == ourTeam),
+										templ.KV("bg-[var(--ps-blue-light)] text-[var(--ps-blue-strong)]", t != ourTeam) }>
 										{ t }
 									</span>
 								}
@@ -111,8 +120,8 @@ templ MatchPlannerResults(cards []MatchPlanCard, ourTeam string) {
 					</div>
 
 					<!-- Strategy -->
-					<div class="bg-white rounded-xl p-4 border border-[#D2B48C]">
-						<p class="text-xs font-bold text-[#A1887F] uppercase mb-2">Strategy</p>
+					<div class="ps-panel p-4">
+						<p class="text-xs font-bold text-[var(--ps-muted)] mb-2">Strategy</p>
 						@StrategyBody(card.Strategy)
 					</div>
 				</div>

@@ -8,18 +8,215 @@ templ Layout(title string) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <script src="https://unpkg.com/htmx.org@1.9.10"></script>
         <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com"/>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+        <link rel="icon" type="image/png" href="/static/popcorn-penguins-logo.png"/>
         <title>{ title }</title>
         <style>
-            body { background-color: #F7F0E6; } /* Sunbaked Cream */
+            /* Popcorn Penguins (FRC 6238) brand palette — sourced from the
+               team logo and popcornpenguins.com's own CSS custom properties.
+               The app is neutral by default (cream/surface/ink carry almost
+               everything); red and gold are accents spent deliberately — one
+               primary action per screen, small badges, focus states — not a
+               fill color for every button. ink/ink-soft/muted are the site's
+               near-black navy drawn into three text-emphasis steps; -strong
+               variants are darkened working steps for AA contrast against
+               cream (a button's white label, a hover/pressed state). */
+            :root {
+                --ps-ink: #0c0836;
+                --ps-ink-soft: #5d5390;
+                --ps-muted: #746b86;
+                --ps-red: #cf4c52;
+                --ps-red-strong: #7e373a;
+                --ps-red-deep: #582225;
+                --ps-red-light: #efccce;
+                /* Red Alliance / Blue Alliance is a real FRC convention (every
+                   match has one of each), so it stays red-vs-blue rather than
+                   being reskinned into the brand palette — but paired at the
+                   same muted saturation/lightness as the red family above
+                   instead of Tailwind's default primary blue, which read as
+                   two opposite, clashing hues jammed together. */
+                --ps-blue: #4f7396;
+                --ps-blue-strong: #2f4a63;
+                --ps-blue-light: #dde6ee;
+                --ps-gold: #edbd45;
+                --ps-gold-strong: #c99a2e;
+                --ps-gold-soft: #fade95;
+                --ps-gold-pale: #fdf3d7;
+                --ps-cream: #faf7f0;
+                --ps-surface: #f5f1e5;
+                --ps-panel: #ebe5d6;
+                --ps-input: #fefcf5;
+                --ps-border: #cbc4ae;
+                --ps-border-soft: #ded7c4;
+                --ps-white: #eeecf8;
+
+                --ps-radius-lg: 1.25rem;
+                --ps-radius-md: 0.75rem;
+                --ps-radius-sm: 0.5rem;
+                --ps-shadow-card: 0 1px 2px rgba(12,8,54,0.06), 0 8px 20px -12px rgba(12,8,54,0.18);
+                --ps-shadow-btn: 0 1px 2px rgba(12,8,54,0.12), 0 6px 14px -8px rgba(12,8,54,0.22);
+            }
+            body {
+                background-color: var(--ps-cream);
+                color: var(--ps-ink);
+                font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+            }
+            .font-data { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+            ::selection { background-color: var(--ps-red-strong); color: #fff; }
+            :focus-visible { outline: 2px solid var(--ps-gold-strong); outline-offset: 2px; }
+
+            /* ── Card: the app's one container shape. A flat surface at rest;
+                 weight comes from what's inside it, not from stacking more
+                 borders/shadows on top. ── */
+            .ps-card {
+                background-color: var(--ps-surface);
+                border: 1px solid var(--ps-border);
+                border-radius: var(--ps-radius-lg);
+                box-shadow: var(--ps-shadow-card);
+            }
+            .ps-panel {
+                background-color: var(--ps-panel);
+                border-radius: var(--ps-radius-md);
+            }
+
+            /* ── Buttons: three weights, spent deliberately. Primary is the
+                 one thing on a screen that should happen next — red, and
+                 there should rarely be more than one visible at a time.
+                 Secondary is the everyday action. Ghost is for a button that
+                 has to be there but shouldn't compete for attention. ── */
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                font-weight: 600;
+                font-size: 0.9375rem;
+                line-height: 1.2;
+                padding: 0.75rem 1.25rem;
+                border-radius: var(--ps-radius-md);
+                border: 1px solid transparent;
+                transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.05s ease;
+                cursor: pointer;
+                white-space: nowrap;
+            }
+            .btn:active { transform: scale(0.97); }
+            .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+            .btn-block { display: flex; width: 100%; }
+            .btn-lg { padding: 1rem 1.5rem; font-size: 1rem; }
+            .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.8125rem; border-radius: var(--ps-radius-sm); }
+
+            .btn-primary {
+                background-color: var(--ps-red-strong);
+                color: #fff;
+                box-shadow: var(--ps-shadow-btn);
+            }
+            /* A darker step of the same red, not --ps-ink: ink is a navy
+               blue (from the logo), and hovering a red button into blue
+               read as the button changing color/meaning, not darkening. */
+            .btn-primary:hover { background-color: var(--ps-red-deep); }
+
+            .btn-secondary {
+                background-color: var(--ps-input);
+                color: var(--ps-ink);
+                border-color: var(--ps-border);
+            }
+            .btn-secondary:hover { background-color: var(--ps-panel); border-color: var(--ps-ink-soft); }
+
+            .btn-ghost {
+                background-color: transparent;
+                color: var(--ps-ink-soft);
+            }
+            .btn-ghost:hover { background-color: var(--ps-panel); color: var(--ps-ink); }
+
+            .btn-danger { background-color: #b3261e; color: #fff; }
+            .btn-danger:hover { background-color: #8c1d17; }
+
+            /* A save/submit button's own brief confirmation — a scout does
+               this exact tap dozens of times a day, and a quiet color pop is
+               a lot more reassuring than the button just silently resetting. */
+            @keyframes ps-save-pop { 0% { transform: scale(1); } 45% { transform: scale(1.045); } 100% { transform: scale(1); } }
+            .btn.btn-saved { background-color: #2f7a4f; animation: ps-save-pop 0.35s ease; }
+
+            /* ── Labels: sentence case, told apart by weight/color, not by
+                 shouting in small caps. ── */
+            .ps-label {
+                display: block;
+                font-size: 0.8125rem;
+                font-weight: 600;
+                color: var(--ps-muted);
+                margin-bottom: 0.25rem;
+            }
+            .ps-field {
+                width: 100%;
+                background-color: var(--ps-input);
+                border: 1px solid var(--ps-border);
+                border-radius: var(--ps-radius-md);
+                padding: 0.75rem 0.9rem;
+                color: var(--ps-ink);
+            }
+            .ps-field:focus { border-color: var(--ps-ink-soft); }
+
+            .ps-chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                font-size: 0.8125rem;
+                font-weight: 600;
+                padding: 0.2rem 0.6rem;
+                border-radius: 999px;
+                border: 1px solid var(--ps-border);
+                background-color: var(--ps-input);
+                color: var(--ps-ink-soft);
+            }
+            .ps-chip-gold { background-color: var(--ps-gold-pale); border-color: var(--ps-gold-strong); color: var(--ps-ink); }
+            .ps-chip-red { background-color: var(--ps-red-light); border-color: var(--ps-red); color: var(--ps-red-strong); }
+
+            /* A panel that just loaded (View Notes, Pit Notes, a clarification
+               list) settles in instead of popping into existence. */
+            @keyframes ps-panel-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+            .ps-panel-in { animation: ps-panel-in 0.25s ease-out; }
+
+            /* A score bar reveals from empty to its real value once, the
+               moment its card lands, instead of appearing pre-filled. The
+               bar's width is set once, immediately, at its real final size
+               (never animated — animating width/height thrashes layout);
+               what animates is transform: scaleX, which only ever touches
+               compositing. See the animateFills() script below. */
+            [data-reveal] { transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
         </style>
     </head>
-    <body class="font-sans text-stone-800">
+    <body>
         <!-- Loaded before the page content: both only attach listeners to
              document.body and don't touch page-specific elements, but a
              page's own inline script can run synchronously as soon as it's
              parsed and may call window.offlineSync/etc. immediately (not
              just from an event handler) — so these have to exist first. -->
         <script src="/static/read-cache.js"></script>
+        <script>
+            // Score bars render at their real final width immediately (see
+            // scoreBar/defenseBar) but start scaled to nothing (data-reveal),
+            // so this just grows them into view via transform — never
+            // touching width/layout — the moment each card lands. Runs on
+            // every htmx swap (team cards load into slots one at a time) and
+            // on first paint, and never re-triggers a bar it's already run.
+            // A short setTimeout, not requestAnimationFrame: the initial
+            // scaleX(0) has to actually commit to a rendered frame before the
+            // transition to scaleX(1) can animate rather than jump, and rAF
+            // callbacks can be starved entirely in a backgrounded tab — a
+            // real risk right after a navigation or an htmx swap.
+            (function () {
+                function animateFills(root) {
+                    (root || document).querySelectorAll('[data-reveal]:not([data-reveal-done])').forEach(function (bar) {
+                        bar.setAttribute('data-reveal-done', '1');
+                        setTimeout(function () { bar.style.transform = 'scaleX(1)'; }, 30);
+                    });
+                }
+                document.addEventListener('DOMContentLoaded', function () { animateFills(document); });
+                document.body.addEventListener('htmx:afterSettle', function (e) { animateFills(e.target); });
+            })();
+        </script>
         <script src="/static/offline-sync.js"></script>
         { children... }
     </body>
