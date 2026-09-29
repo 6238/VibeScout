@@ -29,6 +29,10 @@ EPA Breakdown (Statbotics, current season):
 
 Match observations:
 {{.Notes}}
+{{if .VideoNotes}}
+Video review notes (a scout rewatched this team's matches afterward, calmly and completely, rather than live during the event — treat this at least as reliable as the live match observations above, and use any match numbers it mentions to cross-reference or clarify what the live notes for that same match said):
+{{.VideoNotes}}
+{{end}}
 {{if .PitNotes}}
 Pit scouting interview (our scouts' summary of the team's own answers — SELF-REPORTED, low weight):
 {{.PitNotes}}

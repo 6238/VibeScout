@@ -1,6 +1,10 @@
 package templates
 
-import "github.com/a-h/templ"
+import (
+	"strings"
+
+	"github.com/a-h/templ"
+)
 
 // OurTeam is the team this scouting app belongs to.
 const OurTeam = "6238"
@@ -136,6 +140,49 @@ type PitTeam struct {
 type PitNote struct {
 	CreatedAt string
 	Summary   string
+}
+
+// VideoScoutNotes is one team's structured video-review summary: the same
+// four categories the AI analysis itself reports on, filled in directly by
+// someone who watched every one of the team's matches deliberately — after
+// the fact, unhurried — rather than live during the event.
+type VideoScoutNotes struct {
+	Shooting string
+	Driving  string
+	Auto     string
+	Failures string
+}
+
+// Empty reports whether nothing has been written yet, so callers can tell a
+// team that hasn't been reviewed from one reviewed with nothing to say.
+func (n VideoScoutNotes) Empty() bool {
+	return strings.TrimSpace(n.Shooting) == "" && strings.TrimSpace(n.Driving) == "" &&
+		strings.TrimSpace(n.Auto) == "" && strings.TrimSpace(n.Failures) == ""
+}
+
+// VideoScoutMatchRow is one of a team's qualification matches on the video
+// scouting review page: enough context to find and watch it, plus any quick
+// note already tagged to it.
+type VideoScoutMatchRow struct {
+	MatchNum  int
+	Label     string // e.g. "Q12"
+	Partners  string
+	Opponents string
+	ScoreText string // "" if not played yet
+	WatchURL  string
+	HasWatch  bool
+	Note      string
+	HasNote   bool
+}
+
+// VideoScoutReviewData is everything the video scouting review page needs
+// for one team at one event.
+type VideoScoutReviewData struct {
+	EventKey   string
+	EventName  string
+	TeamNumber string
+	Notes      VideoScoutNotes
+	Matches    []VideoScoutMatchRow
 }
 
 // Clarification is context the strategy team added on top of a team's notes

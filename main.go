@@ -304,6 +304,11 @@ func main() {
 	http.HandleFunc("/api/search-teams", apiSearchTeamsHandler)
 	http.HandleFunc("/match-planner", matchPlannerPageHandler)
 	http.HandleFunc("/api/match-plan", apiMatchPlanHandler)
+	http.HandleFunc("/video-scout", videoScoutPageHandler)
+	http.HandleFunc("/video-scout/review", videoScoutReviewPageHandler)
+	http.HandleFunc("/api/video-scout-teams", apiVideoScoutTeamsHandler)
+	http.HandleFunc("/api/save-video-scout", apiSaveVideoScoutHandler)
+	http.HandleFunc("/api/save-video-scout-match-note", apiSaveVideoScoutMatchNoteHandler)
 	http.HandleFunc("/510c53c3", adminHandler)
 	http.HandleFunc("/api/admin/clear-event", clearEventHandler)
 	http.HandleFunc("/api/admin/clear-all", clearAllHandler)
@@ -1468,7 +1473,7 @@ type teamAnalysisJSON struct {
 
 // analysisPromptVersion is mixed into the cache key so edits to the prompt's
 // output shape invalidate previously cached analyses.
-const analysisPromptVersion = "v7"
+const analysisPromptVersion = "v8"
 
 func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard, error) {
 	combined, err := combineTeamNotes(eventKey, teamNum)
@@ -1476,7 +1481,11 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 		return templates.TeamAnalysisCard{}, err
 	}
 	pitNotes := pitNotesFor(teamNum)
+	videoNotes := videoScoutBlock(eventKey, teamNum)
 	hashInput := analysisPromptVersion + "\n" + combined
+	if videoNotes != "" {
+		hashInput += "\n[video]\n" + videoNotes
+	}
 	if pitNotes != "" {
 		hashInput += "\n[pit]\n" + pitNotes
 	}
@@ -1510,7 +1519,7 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 		// If JSON parse fails, fall through to regenerate
 	}
 
-	result, err := callGeminiTeamAnalysis(teamNum, eventKey, combined, pitNotes, scoutStatsFor(eventKey, teamNum))
+	result, err := callGeminiTeamAnalysis(teamNum, eventKey, combined, videoNotes, pitNotes, scoutStatsFor(eventKey, teamNum))
 	if err != nil {
 		return templates.TeamAnalysisCard{}, err
 	}
@@ -1869,12 +1878,13 @@ type teamAnalysisPromptData struct {
 	TeamNum      string
 	EventKey     string
 	Notes        string
+	VideoNotes   string
 	PitNotes     string
 	EPABreakdown string
 	Stats        string
 }
 
-func callGeminiTeamAnalysis(teamNum, eventKey, notes, pitNotes string, stats scoutStats) (teamAnalysisJSON, error) {
+func callGeminiTeamAnalysis(teamNum, eventKey, notes, videoNotes, pitNotes string, stats scoutStats) (teamAnalysisJSON, error) {
 	tmpl, err := template.New("team_analysis").Parse(teamAnalysisPromptTmpl)
 	if err != nil {
 		return teamAnalysisJSON{}, fmt.Errorf("failed to parse team analysis prompt: %w", err)
@@ -1884,6 +1894,7 @@ func callGeminiTeamAnalysis(teamNum, eventKey, notes, pitNotes string, stats sco
 		TeamNum:      teamNum,
 		EventKey:     eventKey,
 		Notes:        notes,
+		VideoNotes:   videoNotes,
 		PitNotes:     pitNotes,
 		EPABreakdown: fetchStatboticsEPA(eventKey, teamNum),
 		Stats:        stats.promptText(),
