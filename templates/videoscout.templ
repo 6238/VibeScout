@@ -123,8 +123,11 @@ templ videoTeamButton(eventKey string, t PitTeam) {
 }
 
 // VideoScoutReviewPage is the main review screen for one team: every
-// qualification match it played (with a link to go watch it), a click-to-open
-// quick note per match, and the four big structured categories.
+// qualification match it played (with a link to go watch it) showing any
+// note tagged to it so far, and the four big structured categories - the
+// only actual text boxes on the page. A match's note is written by
+// selecting a phrase in one of those boxes and tapping that match's pill
+// (see videoNoteField), not by typing directly into the match card.
 templ VideoScoutReviewPage(data VideoScoutReviewData) {
 	@Layout("Vibe Scout | Video Scouting") {
 		<main class="max-w-3xl mx-auto p-3 pb-10">
@@ -202,34 +205,17 @@ templ VideoScoutReviewPage(data VideoScoutReviewData) {
 					}, 900);
 				});
 
-				document.querySelectorAll('[data-quickbox-toggle]').forEach(function(toggle) {
-					toggle.addEventListener('click', function() {
-						var card = toggle.closest('[data-match-card]');
-						var editor = card.querySelector('[data-quickbox-editor]');
-						var opening = editor.classList.contains('hidden');
-						editor.classList.toggle('hidden');
-						if (opening) { editor.querySelector('textarea').focus(); }
-					});
-				});
-
-				// Reflects a match's note text into its card (the toggle preview
-				// and the manual editor textarea) without a page reload. Shared by
-				// the manual "Save note" button below and the tag pills further
-				// down, since both end up changing the same underlying note.
+				// Reflects a match's note text into its card's read-only display
+				// (there's no editable box per match - only the four big
+				// category boxes are actual text inputs) without a page reload.
+				// Shared by the clear button below and the tag pills further down,
+				// since both end up changing the same underlying note.
 				function applyMatchNote(matchNum, note) {
 					var card = document.querySelector('[data-match-card][data-match="' + matchNum + '"]');
 					if (!card) return;
-					card.querySelector('[data-quickbox-editor] textarea').value = note;
-					var toggle = card.querySelector('[data-quickbox-toggle]');
-					if (note.trim() === '') {
-						toggle.textContent = '+ Add a quick note for this match';
-						toggle.classList.remove('bg-[var(--ps-gold-pale)]', 'border-[var(--ps-gold-strong)]', 'text-[var(--ps-ink)]');
-						toggle.classList.add('bg-[var(--ps-input)]', 'border-[var(--ps-border)]', 'text-[var(--ps-muted)]');
-					} else {
-						toggle.textContent = note;
-						toggle.classList.remove('bg-[var(--ps-input)]', 'border-[var(--ps-border)]', 'text-[var(--ps-muted)]');
-						toggle.classList.add('bg-[var(--ps-gold-pale)]', 'border-[var(--ps-gold-strong)]', 'text-[var(--ps-ink)]');
-					}
+					var display = card.querySelector('[data-note-display]');
+					display.querySelector('[data-note-text]').textContent = note;
+					display.classList.toggle('hidden', note.trim() === '');
 				}
 
 				function saveMatchNote(matchNum, note) {
@@ -243,12 +229,10 @@ templ VideoScoutReviewPage(data VideoScoutReviewData) {
 					applyMatchNote(matchNum, note);
 				}
 
-				document.querySelectorAll('[data-quickbox-save]').forEach(function(saveBtn) {
-					saveBtn.addEventListener('click', function() {
-						var card = saveBtn.closest('[data-match-card]');
-						var textarea = card.querySelector('[data-quickbox-editor] textarea');
-						saveMatchNote(card.getAttribute('data-match'), textarea.value.trim());
-						card.querySelector('[data-quickbox-editor]').classList.add('hidden');
+				document.querySelectorAll('[data-note-clear]').forEach(function(clearBtn) {
+					clearBtn.addEventListener('click', function() {
+						var card = clearBtn.closest('[data-match-card]');
+						saveMatchNote(card.getAttribute('data-match'), '');
 					});
 				});
 
@@ -289,7 +273,7 @@ templ VideoScoutReviewPage(data VideoScoutReviewData) {
 
 							var matchNum = pill.getAttribute('data-tag-match');
 							var card = document.querySelector('[data-match-card][data-match="' + matchNum + '"]');
-							var existing = card ? card.querySelector('[data-quickbox-editor] textarea').value.trim() : '';
+							var existing = card ? card.querySelector('[data-note-text]').textContent.trim() : '';
 							var line = '[' + categoryLabels[cat] + '] ' + snippet;
 							saveMatchNote(matchNum, existing ? existing + '\n' + line : line);
 
@@ -330,24 +314,14 @@ templ videoMatchRow(m VideoScoutMatchRow) {
 				}
 			</div>
 		</div>
-		<button
-			type="button"
-			data-quickbox-toggle
-			class={ "mt-2 text-left w-full text-sm rounded-[var(--ps-radius-sm)] px-3 py-1.5 border transition",
+		<div
+			data-note-display
+			class={ "mt-2 flex items-start justify-between gap-2 text-sm rounded-[var(--ps-radius-sm)] px-3 py-1.5 border",
 				templ.KV("bg-[var(--ps-gold-pale)] border-[var(--ps-gold-strong)] text-[var(--ps-ink)]", m.HasNote),
-				templ.KV("bg-[var(--ps-input)] border-[var(--ps-border)] text-[var(--ps-muted)]", !m.HasNote) }
+				templ.KV("hidden", !m.HasNote) }
 		>
-			if m.HasNote {
-				{ m.Note }
-			} else {
-				+ Add a quick note for this match
-			}
-		</button>
-		<div class="hidden mt-2 flex flex-col gap-2" data-quickbox-editor>
-			<textarea rows="2" class="ps-field text-sm resize-none" placeholder={ "In match " + m.Label + "..." }>{ m.Note }</textarea>
-			<div class="flex justify-end">
-				<button type="button" data-quickbox-save class="btn btn-primary btn-sm">Save note</button>
-			</div>
+			<span data-note-text class="whitespace-pre-line flex-1">{ m.Note }</span>
+			<button type="button" data-note-clear class="text-[var(--ps-muted)] hover:text-[var(--ps-red-deep)] font-bold leading-none shrink-0" aria-label="Remove this note" title="Remove this note">✕</button>
 		</div>
 	</div>
 }
