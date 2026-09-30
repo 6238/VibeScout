@@ -1473,7 +1473,7 @@ type teamAnalysisJSON struct {
 
 // analysisPromptVersion is mixed into the cache key so edits to the prompt's
 // output shape invalidate previously cached analyses.
-const analysisPromptVersion = "v8"
+const analysisPromptVersion = "v9"
 
 func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard, error) {
 	combined, err := combineTeamNotes(eventKey, teamNum)

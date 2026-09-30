@@ -19,6 +19,8 @@ Be accurate, not harsh and not generous. Never guess to fill a gap. If the notes
 
 Reading the match observations: each line covers one match. A match two scouts both covered is marked "(scouted by 2 people)"; one of them may be labeled "focused scout (watching only this robot)" — trust that account somewhat more, since the other scout was splitting attention across a whole alliance, but don't discard the second account, it may have caught something the first missed. If a line says scouts "disagreed" on a checklist answer (broke, played defense, or was defended), treat that specific fact as uncertain rather than picking a side — mention the disagreement in the relevant field (usually failures) instead of quietly going with one account.
 
+Whenever two different parts of the notes below reference the same match number, cross-reference them: agreement between them is a good sign, and a real contradiction is worth naming directly (and in which field) rather than silently going with one side.
+
 Event: {{.EventKey}}
 Team: {{.TeamNum}}
 
@@ -30,7 +32,6 @@ EPA Breakdown (Statbotics, current season):
 Match observations:
 {{.Notes}}
 {{if .VideoNotes}}
-Video review notes (a scout rewatched this team's matches afterward, calmly and completely, rather than live during the event — treat this at least as reliable as the live match observations above, and use any match numbers it mentions to cross-reference or clarify what the live notes for that same match said):
 {{.VideoNotes}}
 {{end}}
 {{if .PitNotes}}
