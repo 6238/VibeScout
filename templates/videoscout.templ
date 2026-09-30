@@ -153,14 +153,17 @@ templ VideoScoutReviewPage(data VideoScoutReviewData) {
 				}
 			</div>
 			<div class="ps-card p-5">
-				<h2 class="text-sm font-bold text-[var(--ps-muted)] mb-3">Review notes</h2>
+				<h2 class="text-sm font-bold text-[var(--ps-muted)] mb-1">Review notes</h2>
+				if len(data.Matches) > 0 {
+					<p class="text-xs text-[var(--ps-muted)] mb-3">Write one continuous account per category below. To tie a specific line to a match, select it and tap that match's pill — no need to repeat yourself in a separate box per match.</p>
+				}
 				<form id="video-notes-form" class="space-y-4">
 					<input type="hidden" name="event_key" value={ data.EventKey }/>
 					<input type="hidden" name="team_number" value={ data.TeamNumber }/>
-					@videoNoteField("shooting", "Shooting", "Accuracy, cycle speed, volume over the whole match...", data.Notes.Shooting)
-					@videoNoteField("driving", "Driving", "Field awareness, defense played or taken, positioning...", data.Notes.Driving)
-					@videoNoteField("auto", "Auto", "What they actually do during the autonomous period...", data.Notes.Auto)
-					@videoNoteField("failures", "Failures", "Breakdowns, technical issues, how often and when...", data.Notes.Failures)
+					@videoNoteField("shooting", "Shooting", "Accuracy, cycle speed, volume over the whole match...", data.Notes.Shooting, data.Matches)
+					@videoNoteField("driving", "Driving", "Field awareness, defense played or taken, positioning...", data.Notes.Driving, data.Matches)
+					@videoNoteField("auto", "Auto", "What they actually do during the autonomous period...", data.Notes.Auto, data.Matches)
+					@videoNoteField("failures", "Failures", "Breakdowns, technical issues, how often and when...", data.Notes.Failures, data.Matches)
 					<button type="submit" id="video-save-btn" class="btn btn-primary btn-block">
 						@iconVideo("w-4 h-4")
 						<span id="video-save-label">Save review</span>
@@ -209,33 +212,91 @@ templ VideoScoutReviewPage(data VideoScoutReviewData) {
 					});
 				});
 
+				// Reflects a match's note text into its card (the toggle preview
+				// and the manual editor textarea) without a page reload. Shared by
+				// the manual "Save note" button below and the tag pills further
+				// down, since both end up changing the same underlying note.
+				function applyMatchNote(matchNum, note) {
+					var card = document.querySelector('[data-match-card][data-match="' + matchNum + '"]');
+					if (!card) return;
+					card.querySelector('[data-quickbox-editor] textarea').value = note;
+					var toggle = card.querySelector('[data-quickbox-toggle]');
+					if (note.trim() === '') {
+						toggle.textContent = '+ Add a quick note for this match';
+						toggle.classList.remove('bg-[var(--ps-gold-pale)]', 'border-[var(--ps-gold-strong)]', 'text-[var(--ps-ink)]');
+						toggle.classList.add('bg-[var(--ps-input)]', 'border-[var(--ps-border)]', 'text-[var(--ps-muted)]');
+					} else {
+						toggle.textContent = note;
+						toggle.classList.remove('bg-[var(--ps-input)]', 'border-[var(--ps-border)]', 'text-[var(--ps-muted)]');
+						toggle.classList.add('bg-[var(--ps-gold-pale)]', 'border-[var(--ps-gold-strong)]', 'text-[var(--ps-ink)]');
+					}
+				}
+
+				function saveMatchNote(matchNum, note) {
+					var ctx = currentContext();
+					window.offlineSync.queue('video-scout-match', '/api/save-video-scout-match-note', {
+						event_key: ctx.event_key,
+						team_number: ctx.team_number,
+						match_num: matchNum,
+						note: note
+					}, 'form');
+					applyMatchNote(matchNum, note);
+				}
+
 				document.querySelectorAll('[data-quickbox-save]').forEach(function(saveBtn) {
 					saveBtn.addEventListener('click', function() {
 						var card = saveBtn.closest('[data-match-card]');
-						var editor = card.querySelector('[data-quickbox-editor]');
-						var textarea = editor.querySelector('textarea');
-						var toggle = card.querySelector('[data-quickbox-toggle]');
-						var matchNum = card.getAttribute('data-match');
-						var note = textarea.value.trim();
-						var ctx = currentContext();
+						var textarea = card.querySelector('[data-quickbox-editor] textarea');
+						saveMatchNote(card.getAttribute('data-match'), textarea.value.trim());
+						card.querySelector('[data-quickbox-editor]').classList.add('hidden');
+					});
+				});
 
-						window.offlineSync.queue('video-scout-match', '/api/save-video-scout-match-note', {
-							event_key: ctx.event_key,
-							team_number: ctx.team_number,
-							match_num: matchNum,
-							note: note
-						}, 'form');
+				// ── Tag pills ──
+				// A scouter writes one continuous account per category (Shooting,
+				// Driving, ...) while watching match after match, rather than
+				// breaking off to a separate box per match. To still flag a
+				// specific line as being about one match, they select it and tap
+				// that match's pill: the selection is copied (not cut - the
+				// category box stays whole) onto that match's quick note, labeled
+				// by which category it came from, so the AI can tell "[Shooting]
+				// missed 3 from the far side" apart from "[Auto] left the line".
+				var categoryLabels = { shooting: 'Shooting', driving: 'Driving', auto: 'Auto', failures: 'Failures' };
+				Object.keys(categoryLabels).forEach(function(cat) {
+					var textarea = document.getElementById('video-' + cat);
+					var pillRow = document.querySelector('[data-tag-pills="' + cat + '"]');
+					if (!textarea || !pillRow) return;
 
-						if (note === '') {
-							toggle.textContent = '+ Add a quick note for this match';
-							toggle.classList.remove('bg-[var(--ps-gold-pale)]', 'border-[var(--ps-gold-strong)]', 'text-[var(--ps-ink)]');
-							toggle.classList.add('bg-[var(--ps-input)]', 'border-[var(--ps-border)]', 'text-[var(--ps-muted)]');
-						} else {
-							toggle.textContent = note;
-							toggle.classList.remove('bg-[var(--ps-input)]', 'border-[var(--ps-border)]', 'text-[var(--ps-muted)]');
-							toggle.classList.add('bg-[var(--ps-gold-pale)]', 'border-[var(--ps-gold-strong)]', 'text-[var(--ps-ink)]');
-						}
-						editor.classList.add('hidden');
+					pillRow.querySelectorAll('[data-tag-match]').forEach(function(pill) {
+						// A plain click focuses the button first, which collapses
+						// the textarea's selection before the click handler ever
+						// runs. Suppressing that default on mousedown keeps focus
+						// (and the selection) on the textarea instead.
+						pill.addEventListener('mousedown', function(e) { e.preventDefault(); });
+
+						pill.addEventListener('click', function() {
+							var snippet = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd).trim();
+							var original = pill.textContent;
+							pill.classList.remove('ps-chip-pop');
+							void pill.offsetWidth; // restart the animation on back-to-back taps
+
+							if (!snippet) {
+								pill.textContent = 'Select text first';
+								pill.classList.add('ps-chip-pop');
+								setTimeout(function() { pill.textContent = original; pill.classList.remove('ps-chip-pop'); }, 1100);
+								return;
+							}
+
+							var matchNum = pill.getAttribute('data-tag-match');
+							var card = document.querySelector('[data-match-card][data-match="' + matchNum + '"]');
+							var existing = card ? card.querySelector('[data-quickbox-editor] textarea').value.trim() : '';
+							var line = '[' + categoryLabels[cat] + '] ' + snippet;
+							saveMatchNote(matchNum, existing ? existing + '\n' + line : line);
+
+							pill.classList.add('ps-chip-pop', 'ps-chip-gold');
+							pill.textContent = 'Added ✓';
+							setTimeout(function() { pill.textContent = original; pill.classList.remove('ps-chip-pop'); }, 900);
+						});
 					});
 				});
 			})();
@@ -291,9 +352,23 @@ templ videoMatchRow(m VideoScoutMatchRow) {
 	</div>
 }
 
-templ videoNoteField(name, label, placeholder, value string) {
+templ videoNoteField(name, label, placeholder, value string, matches []VideoScoutMatchRow) {
 	<div class="text-left">
 		<label for={ "video-" + name } class="ps-label">{ label }</label>
 		<textarea id={ "video-" + name } name={ name } rows="5" class="ps-field" placeholder={ placeholder }>{ value }</textarea>
+		if len(matches) > 0 {
+			<div class="mt-1.5 flex flex-wrap items-center gap-1.5" data-tag-pills={ name }>
+				<span class="text-xs text-[var(--ps-muted)] mr-0.5">Tag selection to:</span>
+				for _, m := range matches {
+					<button
+						type="button"
+						class={ "ps-chip ps-chip-tag", templ.KV("ps-chip-gold", m.HasNote) }
+						data-tag-match={ strconv.Itoa(m.MatchNum) }
+					>
+						{ m.Label }
+					</button>
+				}
+			</div>
+		}
 	</div>
 }

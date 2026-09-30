@@ -173,6 +173,17 @@ templ Layout(title string) {
             .ps-chip-gold { background-color: var(--ps-gold-pale); border-color: var(--ps-gold-strong); color: var(--ps-ink); }
             .ps-chip-red { background-color: var(--ps-red-light); border-color: var(--ps-red); color: var(--ps-red-strong); }
 
+            /* A chip that acts on a text selection elsewhere on the page
+               (video scouting's "tag this to a match" pills) rather than
+               just labeling something. */
+            .ps-chip-tag {
+                cursor: pointer;
+                transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+            }
+            .ps-chip-tag:hover { border-color: var(--ps-ink-soft); }
+            .ps-chip-tag:active { transform: scale(0.95); }
+            .ps-chip-tag.ps-chip-pop { animation: ps-save-pop 0.35s ease; }
+
             /* A panel that just loaded (View Notes, Pit Notes, a clarification
                list) settles in instead of popping into existence. */
             @keyframes ps-panel-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
