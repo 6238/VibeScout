@@ -1,6 +1,18 @@
 package templates
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
+
+// pillVisibleCount caps how many match pills show by default under a review
+// category box before the rest collapse behind a "+N earlier" toggle. A
+// typical FRC quals schedule (8-12+ matches) would otherwise dump a wall of
+// near-identical pills into one row every time - the opposite of what the
+// pills exist to do. The most recent matches (the tail of an
+// ascending-by-match-number slice) stay visible by default, since those are
+// the ones most likely being reviewed right now.
+const pillVisibleCount = 6
 
 // VideoScoutPage is the team picker: search or tap a team number, then go
 // review it. Mirrors the pit scouting picker's search+grid pattern, minus
@@ -205,17 +217,58 @@ templ VideoScoutReviewPage(data VideoScoutReviewData) {
 					}, 900);
 				});
 
-				// Reflects a match's note text into its card's read-only display
-				// (there's no editable box per match - only the four big
-				// category boxes are actual text inputs) without a page reload.
-				// Shared by the clear button below and the tag pills further down,
-				// since both end up changing the same underlying note.
+				// A scouter writes one continuous account per category (Shooting,
+				// Driving, ...) while watching match after match, rather than
+				// breaking off to a separate box per match. To still flag a
+				// specific line as being about one match, they select it and tap
+				// that match's pill: the selection is copied (not cut - the
+				// category box stays whole) onto that match's quick note, labeled
+				// by which category it came from, so the AI can tell "[Shooting]
+				// missed 3 from the far side" apart from "[Auto] left the line".
+				var categoryLabels = { shooting: 'Shooting', driving: 'Driving', auto: 'Auto', failures: 'Failures' };
+
+				// A pill goes gold only when ITS OWN category's label actually
+				// appears in that match's note - not whenever the match has any
+				// note at all. Without this, tagging Q7's Shooting also lit up
+				// Q7's Driving/Auto/Failures pills, which reads as "already
+				// covered" and silently loses whatever a scout would have tagged
+				// there next.
+				function refreshPillsForMatch(matchNum, note) {
+					Object.keys(categoryLabels).forEach(function(cat) {
+						var row = document.querySelector('[data-tag-pills="' + cat + '"]');
+						if (!row) return;
+						var pill = row.querySelector('[data-tag-match="' + matchNum + '"]');
+						if (!pill) return;
+						pill.classList.toggle('ps-chip-gold', note.indexOf('[' + categoryLabels[cat] + ']') !== -1);
+					});
+				}
+
+				// Rebuilds a match card's read-only note display from scratch
+				// (rather than assuming its children are still the plain
+				// span+clear-button pair) so it can also be the target of the
+				// clear button's own undo state below without two code paths
+				// fighting over the same markup.
 				function applyMatchNote(matchNum, note) {
 					var card = document.querySelector('[data-match-card][data-match="' + matchNum + '"]');
 					if (!card) return;
+					note = note || '';
 					var display = card.querySelector('[data-note-display]');
-					display.querySelector('[data-note-text]').textContent = note;
 					display.classList.toggle('hidden', note.trim() === '');
+					display.innerHTML = '';
+					var textEl = document.createElement('span');
+					textEl.setAttribute('data-note-text', '');
+					textEl.className = 'whitespace-pre-line flex-1';
+					textEl.textContent = note;
+					var clearBtn = document.createElement('button');
+					clearBtn.type = 'button';
+					clearBtn.className = 'text-[var(--ps-muted)] hover:text-[var(--ps-red-deep)] font-bold leading-none shrink-0';
+					clearBtn.setAttribute('aria-label', 'Remove this note');
+					clearBtn.title = 'Remove this note';
+					clearBtn.textContent = '✕';
+					bindClearButton(clearBtn, matchNum);
+					display.appendChild(textEl);
+					display.appendChild(clearBtn);
+					refreshPillsForMatch(matchNum, note);
 				}
 
 				function saveMatchNote(matchNum, note) {
@@ -229,23 +282,60 @@ templ VideoScoutReviewPage(data VideoScoutReviewData) {
 					applyMatchNote(matchNum, note);
 				}
 
-				document.querySelectorAll('[data-note-clear]').forEach(function(clearBtn) {
-					clearBtn.addEventListener('click', function() {
-						var card = clearBtn.closest('[data-match-card]');
-						saveMatchNote(card.getAttribute('data-match'), '');
+				// Clearing used to delete on the spot with no way back. Now the
+				// delete still fires right away (offline-sync doesn't have a
+				// "maybe" state to hold it in), but the display swaps to a
+				// "Note removed" message with its own Undo for a few seconds
+				// before disappearing for good - the same reassurance the
+				// tagging path already gets, reusing plain text instead of a
+				// whole new confirm-dialog pattern.
+				function bindClearButton(btn, matchNum) {
+					btn.addEventListener('click', function() {
+						var card = btn.closest('[data-match-card]');
+						var display = card.querySelector('[data-note-display]');
+						var previous = display.querySelector('[data-note-text]').textContent;
+						saveMatchNote(matchNum, '');
+
+						display.classList.remove('hidden');
+						display.innerHTML = '';
+						var msg = document.createElement('span');
+						msg.className = 'flex-1 italic text-[var(--ps-muted)]';
+						msg.textContent = 'Note removed.';
+						var undo = document.createElement('button');
+						undo.type = 'button';
+						undo.className = 'font-semibold text-[var(--ps-ink)] underline shrink-0';
+						undo.textContent = 'Undo';
+						display.appendChild(msg);
+						display.appendChild(undo);
+
+						var timer = setTimeout(function() { applyMatchNote(matchNum, ''); }, 5000);
+						undo.addEventListener('click', function() {
+							clearTimeout(timer);
+							saveMatchNote(matchNum, previous);
+						});
+					});
+				}
+				document.querySelectorAll('[data-note-clear]').forEach(function(btn) {
+					bindClearButton(btn, btn.closest('[data-match-card]').getAttribute('data-match'));
+				});
+
+				// "+N earlier" / "Show fewer" toggle for a category's overflow
+				// pills (see pillVisibleCount).
+				document.querySelectorAll('[data-tag-toggle-more]').forEach(function(toggle) {
+					toggle.addEventListener('click', function() {
+						var overflow = toggle.closest('[data-tag-pills]').querySelector('[data-tag-overflow]');
+						var opening = overflow.classList.contains('hidden');
+						overflow.classList.toggle('hidden');
+						if (opening) {
+							if (!toggle.dataset.originalLabel) toggle.dataset.originalLabel = toggle.textContent;
+							toggle.textContent = 'Show fewer';
+						} else {
+							toggle.textContent = toggle.dataset.originalLabel;
+						}
 					});
 				});
 
 				// ── Tag pills ──
-				// A scouter writes one continuous account per category (Shooting,
-				// Driving, ...) while watching match after match, rather than
-				// breaking off to a separate box per match. To still flag a
-				// specific line as being about one match, they select it and tap
-				// that match's pill: the selection is copied (not cut - the
-				// category box stays whole) onto that match's quick note, labeled
-				// by which category it came from, so the AI can tell "[Shooting]
-				// missed 3 from the far side" apart from "[Auto] left the line".
-				var categoryLabels = { shooting: 'Shooting', driving: 'Driving', auto: 'Auto', failures: 'Failures' };
 				Object.keys(categoryLabels).forEach(function(cat) {
 					var textarea = document.getElementById('video-' + cat);
 					var pillRow = document.querySelector('[data-tag-pills="' + cat + '"]');
@@ -258,18 +348,53 @@ templ VideoScoutReviewPage(data VideoScoutReviewData) {
 						// (and the selection) on the textarea instead.
 						pill.addEventListener('mousedown', function(e) { e.preventDefault(); });
 
+						// The pill's permanent label lives in a data attribute, not
+						// in textContent - textContent gets overwritten for both
+						// the error message and the "Added" flash below, and
+						// reading it back later to "restore" it would eventually
+						// restore the wrong thing if two of those overlap.
+						var baseLabel = pill.getAttribute('data-label');
+
+						function clearSelectHint() {
+							if (!pill._revertSelectHint) return;
+							textarea.removeEventListener('mouseup', pill._revertSelectHint);
+							textarea.removeEventListener('keyup', pill._revertSelectHint);
+							textarea.removeEventListener('select', pill._revertSelectHint);
+							pill._revertSelectHint = null;
+						}
+
 						pill.addEventListener('click', function() {
 							var snippet = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd).trim();
-							var original = pill.textContent;
-							pill.classList.remove('ps-chip-pop');
-							void pill.offsetWidth; // restart the animation on back-to-back taps
 
 							if (!snippet) {
+								// Was easy to miss: same neutral color as a normal
+								// pill, and it reverted on a timer whether or not
+								// anyone saw it. Now it's a distinct warning color
+								// that only clears on the scout's next selection,
+								// not on a clock - and a repeat click while it's
+								// still showing replaces the old revert instead of
+								// stacking another one on top of it.
+								clearSelectHint();
+								var wasGold = pill.classList.contains('ps-chip-gold');
 								pill.textContent = 'Select text first';
-								pill.classList.add('ps-chip-pop');
-								setTimeout(function() { pill.textContent = original; pill.classList.remove('ps-chip-pop'); }, 1100);
+								pill.classList.remove('ps-chip-gold');
+								pill.classList.add('ps-chip-red');
+								var revert = function() {
+									pill.textContent = baseLabel;
+									pill.classList.remove('ps-chip-red');
+									if (wasGold) pill.classList.add('ps-chip-gold');
+									clearSelectHint();
+								};
+								pill._revertSelectHint = revert;
+								textarea.addEventListener('mouseup', revert);
+								textarea.addEventListener('keyup', revert);
+								textarea.addEventListener('select', revert);
 								return;
 							}
+
+							// A real tag right after an error message supersedes it.
+							clearSelectHint();
+							pill.classList.remove('ps-chip-red');
 
 							var matchNum = pill.getAttribute('data-tag-match');
 							var card = document.querySelector('[data-match-card][data-match="' + matchNum + '"]');
@@ -277,9 +402,11 @@ templ VideoScoutReviewPage(data VideoScoutReviewData) {
 							var line = '[' + categoryLabels[cat] + '] ' + snippet;
 							saveMatchNote(matchNum, existing ? existing + '\n' + line : line);
 
-							pill.classList.add('ps-chip-pop', 'ps-chip-gold');
+							pill.classList.remove('ps-chip-pop');
+							void pill.offsetWidth; // restart the animation on back-to-back taps
+							pill.classList.add('ps-chip-pop');
 							pill.textContent = 'Added ✓';
-							setTimeout(function() { pill.textContent = original; pill.classList.remove('ps-chip-pop'); }, 900);
+							setTimeout(function() { pill.textContent = baseLabel; pill.classList.remove('ps-chip-pop'); }, 900);
 						});
 					});
 				});
@@ -333,16 +460,39 @@ templ videoNoteField(name, label, placeholder, value string, matches []VideoScou
 		if len(matches) > 0 {
 			<div class="mt-1.5 flex flex-wrap items-center gap-1.5" data-tag-pills={ name }>
 				<span class="text-xs text-[var(--ps-muted)] mr-0.5">Tag selection to:</span>
-				for _, m := range matches {
-					<button
-						type="button"
-						class={ "ps-chip ps-chip-tag", templ.KV("ps-chip-gold", m.HasNote) }
-						data-tag-match={ strconv.Itoa(m.MatchNum) }
-					>
-						{ m.Label }
+				if len(matches) > pillVisibleCount {
+					for _, m := range matches[len(matches)-pillVisibleCount:] {
+						@tagPill(m, label)
+					}
+					<button type="button" class="ps-chip ps-chip-tag" data-tag-toggle-more>
+						{ "+" + strconv.Itoa(len(matches)-pillVisibleCount) + " earlier" }
 					</button>
+					<div class="hidden basis-full flex flex-wrap gap-1.5" data-tag-overflow>
+						for _, m := range matches[:len(matches)-pillVisibleCount] {
+							@tagPill(m, label)
+						}
+					</div>
+				} else {
+					for _, m := range matches {
+						@tagPill(m, label)
+					}
 				}
 			</div>
 		}
 	</div>
+}
+
+// tagPill goes gold only when THIS category's label already appears in the
+// match's note - not whenever the match has a note from any category - so
+// the highlight tells a scout what's actually covered instead of just
+// whether the match has been touched at all.
+templ tagPill(m VideoScoutMatchRow, categoryLabel string) {
+	<button
+		type="button"
+		class={ "ps-chip ps-chip-tag", templ.KV("ps-chip-gold", strings.Contains(m.Note, "["+categoryLabel+"]")) }
+		data-tag-match={ strconv.Itoa(m.MatchNum) }
+		data-label={ m.Label }
+	>
+		{ m.Label }
+	</button>
 }

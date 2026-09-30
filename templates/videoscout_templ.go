@@ -8,7 +8,19 @@ package templates
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
+
+// pillVisibleCount caps how many match pills show by default under a review
+// category box before the rest collapse behind a "+N earlier" toggle. A
+// typical FRC quals schedule (8-12+ matches) would otherwise dump a wall of
+// near-identical pills into one row every time - the opposite of what the
+// pills exist to do. The most recent matches (the tail of an
+// ascending-by-match-number slice) stay visible by default, since those are
+// the ones most likely being reviewed right now.
+const pillVisibleCount = 6
 
 // VideoScoutPage is the team picker: search or tap a team number, then go
 // review it. Mirrors the pit scouting picker's search+grid pattern, minus
@@ -53,7 +65,7 @@ func VideoScoutPage(eventKey, eventName string) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(eventName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 13, Col: 74}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 25, Col: 74}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -66,7 +78,7 @@ func VideoScoutPage(eventKey, eventName string) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs("/api/video-scout-teams?event_key=" + eventKey)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 31, Col: 60}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 43, Col: 60}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -79,7 +91,7 @@ func VideoScoutPage(eventKey, eventName string) templ.Component {
 			var templ_7745c5c3_Var5 templ.SafeURL
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/?event_key=" + eventKey))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 39, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 51, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -139,7 +151,7 @@ func VideoScoutTeamList(eventKey string, teams []PitTeam, errMsg string) templ.C
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 101, Col: 42}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 113, Col: 42}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -209,7 +221,7 @@ func videoTeamButton(eventKey string, t PitTeam) templ.Component {
 		var templ_7745c5c3_Var10 templ.SafeURL
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/video-scout/review?event_key=" + eventKey + "&team_number=" + t.Number))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 115, Col: 96}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 127, Col: 96}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -222,7 +234,7 @@ func videoTeamButton(eventKey string, t PitTeam) templ.Component {
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 116, Col: 26}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 128, Col: 26}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 		if templ_7745c5c3_Err != nil {
@@ -248,7 +260,7 @@ func videoTeamButton(eventKey string, t PitTeam) templ.Component {
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 121, Col: 12}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 133, Col: 12}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {
@@ -308,7 +320,7 @@ func VideoScoutReviewPage(data VideoScoutReviewData) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(data.TeamNumber)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 137, Col: 84}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 149, Col: 84}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -321,7 +333,7 @@ func VideoScoutReviewPage(data VideoScoutReviewData) templ.Component {
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(data.EventName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 138, Col: 76}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 150, Col: 76}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -334,7 +346,7 @@ func VideoScoutReviewPage(data VideoScoutReviewData) templ.Component {
 			var templ_7745c5c3_Var18 templ.SafeURL
 			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/video-scout?event_key=" + data.EventKey))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 140, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 152, Col: 71}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 			if templ_7745c5c3_Err != nil {
@@ -390,7 +402,7 @@ func VideoScoutReviewPage(data VideoScoutReviewData) templ.Component {
 			var templ_7745c5c3_Var19 string
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(data.EventKey)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 164, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 176, Col: 64}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
@@ -403,7 +415,7 @@ func VideoScoutReviewPage(data VideoScoutReviewData) templ.Component {
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(data.TeamNumber)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 165, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 177, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {
@@ -437,7 +449,7 @@ func VideoScoutReviewPage(data VideoScoutReviewData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<span id=\"video-save-label\">Save review</span></button></form></div></main><script>\n\t\t\t(function() {\n\t\t\t\tvar form = document.getElementById('video-notes-form');\n\t\t\t\tvar btn = document.getElementById('video-save-btn');\n\t\t\t\tvar label = document.getElementById('video-save-label');\n\n\t\t\t\tfunction currentContext() {\n\t\t\t\t\treturn { event_key: form.event_key.value, team_number: form.team_number.value };\n\t\t\t\t}\n\n\t\t\t\tform.addEventListener('submit', function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\tvar ctx = currentContext();\n\t\t\t\t\twindow.offlineSync.queue('video-scout', '/api/save-video-scout', {\n\t\t\t\t\t\tevent_key: ctx.event_key,\n\t\t\t\t\t\tteam_number: ctx.team_number,\n\t\t\t\t\t\tshooting: form.shooting.value,\n\t\t\t\t\t\tdriving: form.driving.value,\n\t\t\t\t\t\tauto: form.auto.value,\n\t\t\t\t\t\tfailures: form.failures.value\n\t\t\t\t\t}, 'form');\n\t\t\t\t\tbtn.classList.remove('btn-saved');\n\t\t\t\t\tvoid btn.offsetWidth;\n\t\t\t\t\tbtn.classList.add('btn-saved');\n\t\t\t\t\tlabel.textContent = 'Saved';\n\t\t\t\t\tsetTimeout(function() {\n\t\t\t\t\t\tbtn.classList.remove('btn-saved');\n\t\t\t\t\t\tlabel.textContent = 'Save review';\n\t\t\t\t\t}, 900);\n\t\t\t\t});\n\n\t\t\t\t// Reflects a match's note text into its card's read-only display\n\t\t\t\t// (there's no editable box per match - only the four big\n\t\t\t\t// category boxes are actual text inputs) without a page reload.\n\t\t\t\t// Shared by the clear button below and the tag pills further down,\n\t\t\t\t// since both end up changing the same underlying note.\n\t\t\t\tfunction applyMatchNote(matchNum, note) {\n\t\t\t\t\tvar card = document.querySelector('[data-match-card][data-match=\"' + matchNum + '\"]');\n\t\t\t\t\tif (!card) return;\n\t\t\t\t\tvar display = card.querySelector('[data-note-display]');\n\t\t\t\t\tdisplay.querySelector('[data-note-text]').textContent = note;\n\t\t\t\t\tdisplay.classList.toggle('hidden', note.trim() === '');\n\t\t\t\t}\n\n\t\t\t\tfunction saveMatchNote(matchNum, note) {\n\t\t\t\t\tvar ctx = currentContext();\n\t\t\t\t\twindow.offlineSync.queue('video-scout-match', '/api/save-video-scout-match-note', {\n\t\t\t\t\t\tevent_key: ctx.event_key,\n\t\t\t\t\t\tteam_number: ctx.team_number,\n\t\t\t\t\t\tmatch_num: matchNum,\n\t\t\t\t\t\tnote: note\n\t\t\t\t\t}, 'form');\n\t\t\t\t\tapplyMatchNote(matchNum, note);\n\t\t\t\t}\n\n\t\t\t\tdocument.querySelectorAll('[data-note-clear]').forEach(function(clearBtn) {\n\t\t\t\t\tclearBtn.addEventListener('click', function() {\n\t\t\t\t\t\tvar card = clearBtn.closest('[data-match-card]');\n\t\t\t\t\t\tsaveMatchNote(card.getAttribute('data-match'), '');\n\t\t\t\t\t});\n\t\t\t\t});\n\n\t\t\t\t// ── Tag pills ──\n\t\t\t\t// A scouter writes one continuous account per category (Shooting,\n\t\t\t\t// Driving, ...) while watching match after match, rather than\n\t\t\t\t// breaking off to a separate box per match. To still flag a\n\t\t\t\t// specific line as being about one match, they select it and tap\n\t\t\t\t// that match's pill: the selection is copied (not cut - the\n\t\t\t\t// category box stays whole) onto that match's quick note, labeled\n\t\t\t\t// by which category it came from, so the AI can tell \"[Shooting]\n\t\t\t\t// missed 3 from the far side\" apart from \"[Auto] left the line\".\n\t\t\t\tvar categoryLabels = { shooting: 'Shooting', driving: 'Driving', auto: 'Auto', failures: 'Failures' };\n\t\t\t\tObject.keys(categoryLabels).forEach(function(cat) {\n\t\t\t\t\tvar textarea = document.getElementById('video-' + cat);\n\t\t\t\t\tvar pillRow = document.querySelector('[data-tag-pills=\"' + cat + '\"]');\n\t\t\t\t\tif (!textarea || !pillRow) return;\n\n\t\t\t\t\tpillRow.querySelectorAll('[data-tag-match]').forEach(function(pill) {\n\t\t\t\t\t\t// A plain click focuses the button first, which collapses\n\t\t\t\t\t\t// the textarea's selection before the click handler ever\n\t\t\t\t\t\t// runs. Suppressing that default on mousedown keeps focus\n\t\t\t\t\t\t// (and the selection) on the textarea instead.\n\t\t\t\t\t\tpill.addEventListener('mousedown', function(e) { e.preventDefault(); });\n\n\t\t\t\t\t\tpill.addEventListener('click', function() {\n\t\t\t\t\t\t\tvar snippet = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd).trim();\n\t\t\t\t\t\t\tvar original = pill.textContent;\n\t\t\t\t\t\t\tpill.classList.remove('ps-chip-pop');\n\t\t\t\t\t\t\tvoid pill.offsetWidth; // restart the animation on back-to-back taps\n\n\t\t\t\t\t\t\tif (!snippet) {\n\t\t\t\t\t\t\t\tpill.textContent = 'Select text first';\n\t\t\t\t\t\t\t\tpill.classList.add('ps-chip-pop');\n\t\t\t\t\t\t\t\tsetTimeout(function() { pill.textContent = original; pill.classList.remove('ps-chip-pop'); }, 1100);\n\t\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t\t}\n\n\t\t\t\t\t\t\tvar matchNum = pill.getAttribute('data-tag-match');\n\t\t\t\t\t\t\tvar card = document.querySelector('[data-match-card][data-match=\"' + matchNum + '\"]');\n\t\t\t\t\t\t\tvar existing = card ? card.querySelector('[data-note-text]').textContent.trim() : '';\n\t\t\t\t\t\t\tvar line = '[' + categoryLabels[cat] + '] ' + snippet;\n\t\t\t\t\t\t\tsaveMatchNote(matchNum, existing ? existing + '\\n' + line : line);\n\n\t\t\t\t\t\t\tpill.classList.add('ps-chip-pop', 'ps-chip-gold');\n\t\t\t\t\t\t\tpill.textContent = 'Added ✓';\n\t\t\t\t\t\t\tsetTimeout(function() { pill.textContent = original; pill.classList.remove('ps-chip-pop'); }, 900);\n\t\t\t\t\t\t});\n\t\t\t\t\t});\n\t\t\t\t});\n\t\t\t})();\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<span id=\"video-save-label\">Save review</span></button></form></div></main><script>\n\t\t\t(function() {\n\t\t\t\tvar form = document.getElementById('video-notes-form');\n\t\t\t\tvar btn = document.getElementById('video-save-btn');\n\t\t\t\tvar label = document.getElementById('video-save-label');\n\n\t\t\t\tfunction currentContext() {\n\t\t\t\t\treturn { event_key: form.event_key.value, team_number: form.team_number.value };\n\t\t\t\t}\n\n\t\t\t\tform.addEventListener('submit', function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\tvar ctx = currentContext();\n\t\t\t\t\twindow.offlineSync.queue('video-scout', '/api/save-video-scout', {\n\t\t\t\t\t\tevent_key: ctx.event_key,\n\t\t\t\t\t\tteam_number: ctx.team_number,\n\t\t\t\t\t\tshooting: form.shooting.value,\n\t\t\t\t\t\tdriving: form.driving.value,\n\t\t\t\t\t\tauto: form.auto.value,\n\t\t\t\t\t\tfailures: form.failures.value\n\t\t\t\t\t}, 'form');\n\t\t\t\t\tbtn.classList.remove('btn-saved');\n\t\t\t\t\tvoid btn.offsetWidth;\n\t\t\t\t\tbtn.classList.add('btn-saved');\n\t\t\t\t\tlabel.textContent = 'Saved';\n\t\t\t\t\tsetTimeout(function() {\n\t\t\t\t\t\tbtn.classList.remove('btn-saved');\n\t\t\t\t\t\tlabel.textContent = 'Save review';\n\t\t\t\t\t}, 900);\n\t\t\t\t});\n\n\t\t\t\t// A scouter writes one continuous account per category (Shooting,\n\t\t\t\t// Driving, ...) while watching match after match, rather than\n\t\t\t\t// breaking off to a separate box per match. To still flag a\n\t\t\t\t// specific line as being about one match, they select it and tap\n\t\t\t\t// that match's pill: the selection is copied (not cut - the\n\t\t\t\t// category box stays whole) onto that match's quick note, labeled\n\t\t\t\t// by which category it came from, so the AI can tell \"[Shooting]\n\t\t\t\t// missed 3 from the far side\" apart from \"[Auto] left the line\".\n\t\t\t\tvar categoryLabels = { shooting: 'Shooting', driving: 'Driving', auto: 'Auto', failures: 'Failures' };\n\n\t\t\t\t// A pill goes gold only when ITS OWN category's label actually\n\t\t\t\t// appears in that match's note - not whenever the match has any\n\t\t\t\t// note at all. Without this, tagging Q7's Shooting also lit up\n\t\t\t\t// Q7's Driving/Auto/Failures pills, which reads as \"already\n\t\t\t\t// covered\" and silently loses whatever a scout would have tagged\n\t\t\t\t// there next.\n\t\t\t\tfunction refreshPillsForMatch(matchNum, note) {\n\t\t\t\t\tObject.keys(categoryLabels).forEach(function(cat) {\n\t\t\t\t\t\tvar row = document.querySelector('[data-tag-pills=\"' + cat + '\"]');\n\t\t\t\t\t\tif (!row) return;\n\t\t\t\t\t\tvar pill = row.querySelector('[data-tag-match=\"' + matchNum + '\"]');\n\t\t\t\t\t\tif (!pill) return;\n\t\t\t\t\t\tpill.classList.toggle('ps-chip-gold', note.indexOf('[' + categoryLabels[cat] + ']') !== -1);\n\t\t\t\t\t});\n\t\t\t\t}\n\n\t\t\t\t// Rebuilds a match card's read-only note display from scratch\n\t\t\t\t// (rather than assuming its children are still the plain\n\t\t\t\t// span+clear-button pair) so it can also be the target of the\n\t\t\t\t// clear button's own undo state below without two code paths\n\t\t\t\t// fighting over the same markup.\n\t\t\t\tfunction applyMatchNote(matchNum, note) {\n\t\t\t\t\tvar card = document.querySelector('[data-match-card][data-match=\"' + matchNum + '\"]');\n\t\t\t\t\tif (!card) return;\n\t\t\t\t\tnote = note || '';\n\t\t\t\t\tvar display = card.querySelector('[data-note-display]');\n\t\t\t\t\tdisplay.classList.toggle('hidden', note.trim() === '');\n\t\t\t\t\tdisplay.innerHTML = '';\n\t\t\t\t\tvar textEl = document.createElement('span');\n\t\t\t\t\ttextEl.setAttribute('data-note-text', '');\n\t\t\t\t\ttextEl.className = 'whitespace-pre-line flex-1';\n\t\t\t\t\ttextEl.textContent = note;\n\t\t\t\t\tvar clearBtn = document.createElement('button');\n\t\t\t\t\tclearBtn.type = 'button';\n\t\t\t\t\tclearBtn.className = 'text-[var(--ps-muted)] hover:text-[var(--ps-red-deep)] font-bold leading-none shrink-0';\n\t\t\t\t\tclearBtn.setAttribute('aria-label', 'Remove this note');\n\t\t\t\t\tclearBtn.title = 'Remove this note';\n\t\t\t\t\tclearBtn.textContent = '✕';\n\t\t\t\t\tbindClearButton(clearBtn, matchNum);\n\t\t\t\t\tdisplay.appendChild(textEl);\n\t\t\t\t\tdisplay.appendChild(clearBtn);\n\t\t\t\t\trefreshPillsForMatch(matchNum, note);\n\t\t\t\t}\n\n\t\t\t\tfunction saveMatchNote(matchNum, note) {\n\t\t\t\t\tvar ctx = currentContext();\n\t\t\t\t\twindow.offlineSync.queue('video-scout-match', '/api/save-video-scout-match-note', {\n\t\t\t\t\t\tevent_key: ctx.event_key,\n\t\t\t\t\t\tteam_number: ctx.team_number,\n\t\t\t\t\t\tmatch_num: matchNum,\n\t\t\t\t\t\tnote: note\n\t\t\t\t\t}, 'form');\n\t\t\t\t\tapplyMatchNote(matchNum, note);\n\t\t\t\t}\n\n\t\t\t\t// Clearing used to delete on the spot with no way back. Now the\n\t\t\t\t// delete still fires right away (offline-sync doesn't have a\n\t\t\t\t// \"maybe\" state to hold it in), but the display swaps to a\n\t\t\t\t// \"Note removed\" message with its own Undo for a few seconds\n\t\t\t\t// before disappearing for good - the same reassurance the\n\t\t\t\t// tagging path already gets, reusing plain text instead of a\n\t\t\t\t// whole new confirm-dialog pattern.\n\t\t\t\tfunction bindClearButton(btn, matchNum) {\n\t\t\t\t\tbtn.addEventListener('click', function() {\n\t\t\t\t\t\tvar card = btn.closest('[data-match-card]');\n\t\t\t\t\t\tvar display = card.querySelector('[data-note-display]');\n\t\t\t\t\t\tvar previous = display.querySelector('[data-note-text]').textContent;\n\t\t\t\t\t\tsaveMatchNote(matchNum, '');\n\n\t\t\t\t\t\tdisplay.classList.remove('hidden');\n\t\t\t\t\t\tdisplay.innerHTML = '';\n\t\t\t\t\t\tvar msg = document.createElement('span');\n\t\t\t\t\t\tmsg.className = 'flex-1 italic text-[var(--ps-muted)]';\n\t\t\t\t\t\tmsg.textContent = 'Note removed.';\n\t\t\t\t\t\tvar undo = document.createElement('button');\n\t\t\t\t\t\tundo.type = 'button';\n\t\t\t\t\t\tundo.className = 'font-semibold text-[var(--ps-ink)] underline shrink-0';\n\t\t\t\t\t\tundo.textContent = 'Undo';\n\t\t\t\t\t\tdisplay.appendChild(msg);\n\t\t\t\t\t\tdisplay.appendChild(undo);\n\n\t\t\t\t\t\tvar timer = setTimeout(function() { applyMatchNote(matchNum, ''); }, 5000);\n\t\t\t\t\t\tundo.addEventListener('click', function() {\n\t\t\t\t\t\t\tclearTimeout(timer);\n\t\t\t\t\t\t\tsaveMatchNote(matchNum, previous);\n\t\t\t\t\t\t});\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t\tdocument.querySelectorAll('[data-note-clear]').forEach(function(btn) {\n\t\t\t\t\tbindClearButton(btn, btn.closest('[data-match-card]').getAttribute('data-match'));\n\t\t\t\t});\n\n\t\t\t\t// \"+N earlier\" / \"Show fewer\" toggle for a category's overflow\n\t\t\t\t// pills (see pillVisibleCount).\n\t\t\t\tdocument.querySelectorAll('[data-tag-toggle-more]').forEach(function(toggle) {\n\t\t\t\t\ttoggle.addEventListener('click', function() {\n\t\t\t\t\t\tvar overflow = toggle.closest('[data-tag-pills]').querySelector('[data-tag-overflow]');\n\t\t\t\t\t\tvar opening = overflow.classList.contains('hidden');\n\t\t\t\t\t\toverflow.classList.toggle('hidden');\n\t\t\t\t\t\tif (opening) {\n\t\t\t\t\t\t\tif (!toggle.dataset.originalLabel) toggle.dataset.originalLabel = toggle.textContent;\n\t\t\t\t\t\t\ttoggle.textContent = 'Show fewer';\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\ttoggle.textContent = toggle.dataset.originalLabel;\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t});\n\n\t\t\t\t// ── Tag pills ──\n\t\t\t\tObject.keys(categoryLabels).forEach(function(cat) {\n\t\t\t\t\tvar textarea = document.getElementById('video-' + cat);\n\t\t\t\t\tvar pillRow = document.querySelector('[data-tag-pills=\"' + cat + '\"]');\n\t\t\t\t\tif (!textarea || !pillRow) return;\n\n\t\t\t\t\tpillRow.querySelectorAll('[data-tag-match]').forEach(function(pill) {\n\t\t\t\t\t\t// A plain click focuses the button first, which collapses\n\t\t\t\t\t\t// the textarea's selection before the click handler ever\n\t\t\t\t\t\t// runs. Suppressing that default on mousedown keeps focus\n\t\t\t\t\t\t// (and the selection) on the textarea instead.\n\t\t\t\t\t\tpill.addEventListener('mousedown', function(e) { e.preventDefault(); });\n\n\t\t\t\t\t\t// The pill's permanent label lives in a data attribute, not\n\t\t\t\t\t\t// in textContent - textContent gets overwritten for both\n\t\t\t\t\t\t// the error message and the \"Added\" flash below, and\n\t\t\t\t\t\t// reading it back later to \"restore\" it would eventually\n\t\t\t\t\t\t// restore the wrong thing if two of those overlap.\n\t\t\t\t\t\tvar baseLabel = pill.getAttribute('data-label');\n\n\t\t\t\t\t\tfunction clearSelectHint() {\n\t\t\t\t\t\t\tif (!pill._revertSelectHint) return;\n\t\t\t\t\t\t\ttextarea.removeEventListener('mouseup', pill._revertSelectHint);\n\t\t\t\t\t\t\ttextarea.removeEventListener('keyup', pill._revertSelectHint);\n\t\t\t\t\t\t\ttextarea.removeEventListener('select', pill._revertSelectHint);\n\t\t\t\t\t\t\tpill._revertSelectHint = null;\n\t\t\t\t\t\t}\n\n\t\t\t\t\t\tpill.addEventListener('click', function() {\n\t\t\t\t\t\t\tvar snippet = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd).trim();\n\n\t\t\t\t\t\t\tif (!snippet) {\n\t\t\t\t\t\t\t\t// Was easy to miss: same neutral color as a normal\n\t\t\t\t\t\t\t\t// pill, and it reverted on a timer whether or not\n\t\t\t\t\t\t\t\t// anyone saw it. Now it's a distinct warning color\n\t\t\t\t\t\t\t\t// that only clears on the scout's next selection,\n\t\t\t\t\t\t\t\t// not on a clock - and a repeat click while it's\n\t\t\t\t\t\t\t\t// still showing replaces the old revert instead of\n\t\t\t\t\t\t\t\t// stacking another one on top of it.\n\t\t\t\t\t\t\t\tclearSelectHint();\n\t\t\t\t\t\t\t\tvar wasGold = pill.classList.contains('ps-chip-gold');\n\t\t\t\t\t\t\t\tpill.textContent = 'Select text first';\n\t\t\t\t\t\t\t\tpill.classList.remove('ps-chip-gold');\n\t\t\t\t\t\t\t\tpill.classList.add('ps-chip-red');\n\t\t\t\t\t\t\t\tvar revert = function() {\n\t\t\t\t\t\t\t\t\tpill.textContent = baseLabel;\n\t\t\t\t\t\t\t\t\tpill.classList.remove('ps-chip-red');\n\t\t\t\t\t\t\t\t\tif (wasGold) pill.classList.add('ps-chip-gold');\n\t\t\t\t\t\t\t\t\tclearSelectHint();\n\t\t\t\t\t\t\t\t};\n\t\t\t\t\t\t\t\tpill._revertSelectHint = revert;\n\t\t\t\t\t\t\t\ttextarea.addEventListener('mouseup', revert);\n\t\t\t\t\t\t\t\ttextarea.addEventListener('keyup', revert);\n\t\t\t\t\t\t\t\ttextarea.addEventListener('select', revert);\n\t\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t\t}\n\n\t\t\t\t\t\t\t// A real tag right after an error message supersedes it.\n\t\t\t\t\t\t\tclearSelectHint();\n\t\t\t\t\t\t\tpill.classList.remove('ps-chip-red');\n\n\t\t\t\t\t\t\tvar matchNum = pill.getAttribute('data-tag-match');\n\t\t\t\t\t\t\tvar card = document.querySelector('[data-match-card][data-match=\"' + matchNum + '\"]');\n\t\t\t\t\t\t\tvar existing = card ? card.querySelector('[data-note-text]').textContent.trim() : '';\n\t\t\t\t\t\t\tvar line = '[' + categoryLabels[cat] + '] ' + snippet;\n\t\t\t\t\t\t\tsaveMatchNote(matchNum, existing ? existing + '\\n' + line : line);\n\n\t\t\t\t\t\t\tpill.classList.remove('ps-chip-pop');\n\t\t\t\t\t\t\tvoid pill.offsetWidth; // restart the animation on back-to-back taps\n\t\t\t\t\t\t\tpill.classList.add('ps-chip-pop');\n\t\t\t\t\t\t\tpill.textContent = 'Added ✓';\n\t\t\t\t\t\t\tsetTimeout(function() { pill.textContent = baseLabel; pill.classList.remove('ps-chip-pop'); }, 900);\n\t\t\t\t\t\t});\n\t\t\t\t\t});\n\t\t\t\t});\n\t\t\t})();\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -479,7 +491,7 @@ func videoMatchRow(m VideoScoutMatchRow) templ.Component {
 		var templ_7745c5c3_Var22 string
 		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(m.MatchNum))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 292, Col: 86}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 419, Col: 86}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 		if templ_7745c5c3_Err != nil {
@@ -492,7 +504,7 @@ func videoMatchRow(m VideoScoutMatchRow) templ.Component {
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(m.Label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 294, Col: 71}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 421, Col: 71}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
@@ -510,7 +522,7 @@ func videoMatchRow(m VideoScoutMatchRow) templ.Component {
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(m.ScoreText)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 297, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 424, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 			if templ_7745c5c3_Err != nil {
@@ -529,7 +541,7 @@ func videoMatchRow(m VideoScoutMatchRow) templ.Component {
 			var templ_7745c5c3_Var25 string
 			templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(m.Partners)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 300, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 427, Col: 59}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 			if templ_7745c5c3_Err != nil {
@@ -548,7 +560,7 @@ func videoMatchRow(m VideoScoutMatchRow) templ.Component {
 			var templ_7745c5c3_Var26 string
 			templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(m.Opponents)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 303, Col: 58}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 430, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 			if templ_7745c5c3_Err != nil {
@@ -567,7 +579,7 @@ func videoMatchRow(m VideoScoutMatchRow) templ.Component {
 			var templ_7745c5c3_Var27 templ.SafeURL
 			templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(m.WatchURL))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 307, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 434, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 			if templ_7745c5c3_Err != nil {
@@ -609,7 +621,7 @@ func videoMatchRow(m VideoScoutMatchRow) templ.Component {
 		var templ_7745c5c3_Var30 string
 		templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(m.Note)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 323, Col: 67}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 450, Col: 67}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 		if templ_7745c5c3_Err != nil {
@@ -651,7 +663,7 @@ func videoNoteField(name, label, placeholder, value string, matches []VideoScout
 		var templ_7745c5c3_Var32 string
 		templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs("video-" + name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 331, Col: 30}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 458, Col: 30}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 		if templ_7745c5c3_Err != nil {
@@ -664,7 +676,7 @@ func videoNoteField(name, label, placeholder, value string, matches []VideoScout
 		var templ_7745c5c3_Var33 string
 		templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 331, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 458, Col: 57}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 		if templ_7745c5c3_Err != nil {
@@ -677,7 +689,7 @@ func videoNoteField(name, label, placeholder, value string, matches []VideoScout
 		var templ_7745c5c3_Var34 string
 		templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs("video-" + name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 332, Col: 32}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 459, Col: 32}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 		if templ_7745c5c3_Err != nil {
@@ -690,7 +702,7 @@ func videoNoteField(name, label, placeholder, value string, matches []VideoScout
 		var templ_7745c5c3_Var35 string
 		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 332, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 459, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 		if templ_7745c5c3_Err != nil {
@@ -703,7 +715,7 @@ func videoNoteField(name, label, placeholder, value string, matches []VideoScout
 		var templ_7745c5c3_Var36 string
 		templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(placeholder)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 332, Col: 100}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 459, Col: 100}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 		if templ_7745c5c3_Err != nil {
@@ -716,7 +728,7 @@ func videoNoteField(name, label, placeholder, value string, matches []VideoScout
 		var templ_7745c5c3_Var37 string
 		templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(value)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 332, Col: 110}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 459, Col: 110}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 		if templ_7745c5c3_Err != nil {
@@ -734,7 +746,7 @@ func videoNoteField(name, label, placeholder, value string, matches []VideoScout
 			var templ_7745c5c3_Var38 string
 			templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 334, Col: 80}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 461, Col: 80}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 			if templ_7745c5c3_Err != nil {
@@ -744,62 +756,144 @@ func videoNoteField(name, label, placeholder, value string, matches []VideoScout
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			for _, m := range matches {
-				var templ_7745c5c3_Var39 = []any{"ps-chip ps-chip-tag", templ.KV("ps-chip-gold", m.HasNote)}
-				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var39...)
+			if len(matches) > pillVisibleCount {
+				for _, m := range matches[len(matches)-pillVisibleCount:] {
+					templ_7745c5c3_Err = tagPill(m, label).Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, " <button type=\"button\" class=\"ps-chip ps-chip-tag\" data-tag-toggle-more>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "<button type=\"button\" class=\"")
+				var templ_7745c5c3_Var39 string
+				templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs("+" + strconv.Itoa(len(matches)-pillVisibleCount) + " earlier")
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 468, Col: 70}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var40 string
-				templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var39).String())
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 1, Col: 0}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "</button><div class=\"hidden basis-full flex flex-wrap gap-1.5\" data-tag-overflow>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "\" data-tag-match=\"")
+				for _, m := range matches[:len(matches)-pillVisibleCount] {
+					templ_7745c5c3_Err = tagPill(m, label).Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var41 string
-				templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(m.MatchNum))
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 340, Col: 47}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "\">")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var42 string
-				templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(m.Label)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 342, Col: 15}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "</button>")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
+			} else {
+				for _, m := range matches {
+					templ_7745c5c3_Err = tagPill(m, label).Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "</div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+// tagPill goes gold only when THIS category's label already appears in the
+// match's note - not whenever the match has a note from any category - so
+// the highlight tells a scout what's actually covered instead of just
+// whether the match has been touched at all.
+func tagPill(m VideoScoutMatchRow, categoryLabel string) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var40 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var40 == nil {
+			templ_7745c5c3_Var40 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		var templ_7745c5c3_Var41 = []any{"ps-chip ps-chip-tag", templ.KV("ps-chip-gold", strings.Contains(m.Note, "["+categoryLabel+"]"))}
+		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var41...)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "<button type=\"button\" class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var42 string
+		templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var41).String())
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 1, Col: 0}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, "\" data-tag-match=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var43 string
+		templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(m.MatchNum))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 493, Col: 43}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "\" data-label=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var44 string
+		templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(m.Label)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 494, Col: 22}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, "\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var45 string
+		templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(m.Label)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/videoscout.templ`, Line: 496, Col: 11}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, "</button>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
