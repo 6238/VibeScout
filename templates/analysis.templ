@@ -290,7 +290,7 @@ templ NextMatchSection(d NextMatchData) {
 		<div class="ps-card p-6 text-center">
 			<h2 class="text-lg font-extrabold text-[var(--ps-ink)]">Next match</h2>
 			if d.PlanError != "" {
-				<p class="text-sm text-red-600 mt-2">{ d.PlanError }</p>
+				<p class="text-sm text-red-700 mt-2">{ d.PlanError }</p>
 			} else {
 				<p class="text-sm text-[var(--ps-muted)] mt-2">{ "Team " + OurTeam + " has no unplayed qualification matches on the schedule." }</p>
 			}
@@ -323,7 +323,9 @@ templ NextMatchSection(d NextMatchData) {
 			<div class="ps-panel p-4">
 				<p class="text-xs font-bold text-[var(--ps-muted)] mb-2">Strategy</p>
 				if d.PlanError != "" {
-					<p class="text-sm text-red-600">{ d.PlanError }</p>
+					<p class="text-sm font-semibold text-[var(--ps-muted)] bg-[var(--ps-surface)] border border-[var(--ps-border)] rounded-lg px-3 py-2">
+						{ d.PlanError }
+					</p>
 				} else {
 					@StrategyText(rest)
 				}
@@ -531,7 +533,7 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 				if card.FromCache {
 					<span class="ps-chip">Cached</span>
 				} else {
-					<span class="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-300">Fresh</span>
+					<span class="ps-chip ps-chip-gold">Fresh</span>
 				}
 				if card.HasNotes {
 					<button
@@ -571,17 +573,27 @@ templ SingleTeamAnalysisCard(card TeamAnalysisCard) {
 			@pitProfileRow(card.Pit)
 		}
 
-		<!-- Score bars -->
-		<div class={ "grid grid-cols-3 gap-3 mb-4", templ.KV("opacity-50", card.LowData) }
-			title={ lowDataTitle(card.LowData) }>
-			@scoreBar("Scoring", card.Scoring, "var(--ps-gold)", "var(--ps-gold-strong)")
-			@scoreBar("Reliability", card.Reliability, "#A8D5A2", "#4CAF50")
-			@defenseBar(card.Defense)
-		</div>
+		<!-- Score bars: not shown at all when analysis failed outright - a
+		     dimmed-but-still-numeric 0/10 would read as a real, if weak,
+		     score. LowData is different: there IS a real (if sparse)
+		     verdict there, just dimmed to say so plainly. -->
+		if card.Error == "" {
+			<div class={ "grid grid-cols-3 gap-3 mb-4", templ.KV("opacity-50", card.LowData) }
+				title={ lowDataTitle(card.LowData) }>
+				@scoreBar("Scoring", card.Scoring, "var(--ps-gold)", "var(--ps-gold-strong)")
+				@scoreBar("Reliability", card.Reliability, "#A8D5A2", "#4CAF50")
+				@defenseBar(card.Defense)
+			</div>
+		}
 
 		<!-- Verdict breakdown -->
 		if card.Error != "" {
-			<p class="text-sm text-red-600 leading-relaxed">{ card.Error }</p>
+			<p
+				class="text-sm font-semibold text-[var(--ps-muted)] bg-[var(--ps-panel)] border border-[var(--ps-border)] rounded-lg px-3 py-2"
+				title={ card.Error }
+			>
+				Analysis isn't available right now. Use EPA and the scouting notes below instead.
+			</p>
 		} else {
 			<div class="space-y-3">
 				<div class="grid sm:grid-cols-2 gap-3">

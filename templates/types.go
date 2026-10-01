@@ -208,6 +208,7 @@ type MatchPlanCard struct {
 	BlueTeams   []string
 	Strategy    string
 	FromCache   bool
+	Error       string // set instead of Strategy when plan generation failed
 }
 
 type AiFillSlot struct {

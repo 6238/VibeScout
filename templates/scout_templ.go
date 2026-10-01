@@ -10,7 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "strconv"
 
-func ScoutPage(event, match, scouterName string, singleTeam bool, teams []ScoutTeam) templ.Component {
+func ScoutPage(eventName, match, scouterName string, singleTeam bool, teams []ScoutTeam) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -48,9 +48,9 @@ func ScoutPage(event, match, scouterName string, singleTeam bool, teams []ScoutT
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(event)
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(eventName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 25, Col: 77}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 25, Col: 81}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {

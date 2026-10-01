@@ -500,7 +500,7 @@ func scoutHandler(w http.ResponseWriter, r *http.Request) {
 			eventKey, teams[i].Number).Scan(&teams[i].DataCount)
 	}
 
-	templates.ScoutPage(eventKey, strconv.Itoa(matchNum), scouterName, pickedTeam != "", teams).Render(r.Context(), w)
+	templates.ScoutPage(eventNameFor(eventKey), strconv.Itoa(matchNum), scouterName, pickedTeam != "", teams).Render(r.Context(), w)
 }
 
 // scoutingCoverage returns how many different matches a team has been scouted in
@@ -1112,9 +1112,19 @@ func apiNextMatchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	data.Opponents = theirs
 
+	// The alliance label ("We're on Red/Blue") comes from the schedule, not
+	// from the AI call below - set it unconditionally so it still renders
+	// correctly even when strategy generation fails.
+	ourAlliance := "Blue"
+	if weAreRed {
+		ourAlliance = "Red"
+	}
+	data.Plan.OurAlliance = ourAlliance
+
 	plan, err := getOrGenerateMatchPlan(eventKey, ourTeam, m)
 	if err != nil {
-		data.PlanError = "Error generating strategy: " + err.Error()
+		log.Printf("next match plan for %s at %s: %v", ourTeam, eventKey, err)
+		data.PlanError = "Strategy isn't available right now. Use the partner/opponent cards below instead."
 	} else {
 		data.Plan = plan
 	}
@@ -1614,6 +1624,7 @@ func apiMatchPlanHandler(w http.ResponseWriter, r *http.Request) {
 
 	card, err := getOrGenerateMatchPlan(eventKey, teamNumber, targetMatch)
 	if err != nil {
+		log.Printf("match plan for %s match %d at %s: %v", teamNumber, matchNum, eventKey, err)
 		redTeams := stripFRC(targetMatch.Alliances.Red.TeamKeys)
 		blueTeams := stripFRC(targetMatch.Alliances.Blue.TeamKeys)
 		ourAlliance := "Red"
@@ -1628,7 +1639,7 @@ func apiMatchPlanHandler(w http.ResponseWriter, r *http.Request) {
 			OurAlliance: ourAlliance,
 			RedTeams:    redTeams,
 			BlueTeams:   blueTeams,
-			Strategy:    "Error generating strategy: " + err.Error(),
+			Error:       err.Error(),
 		}
 	}
 

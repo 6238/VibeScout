@@ -122,7 +122,13 @@ templ MatchPlannerResults(cards []MatchPlanCard, ourTeam string) {
 					<!-- Strategy -->
 					<div class="ps-panel p-4">
 						<p class="text-xs font-bold text-[var(--ps-muted)] mb-2">Strategy</p>
-						@StrategyBody(card.Strategy)
+						if card.Error != "" {
+							<p class="text-sm font-semibold text-[var(--ps-muted)] bg-[var(--ps-surface)] border border-[var(--ps-border)] rounded-lg px-3 py-2">
+								Strategy isn't available right now. Use the alliance breakdown above instead.
+							</p>
+						} else {
+							@StrategyBody(card.Strategy)
+						}
 					</div>
 				</div>
 			}

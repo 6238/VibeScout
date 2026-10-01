@@ -2,7 +2,7 @@ package templates
 
 import "strconv"
 
-templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []ScoutTeam) {
+templ ScoutPage(eventName, match, scouterName string, singleTeam bool, teams []ScoutTeam) {
 	@Layout("Vibe Scout | Match " + match) {
 		<style>
 			.page-transition { animation: slideIn 0.3s ease-out; }
@@ -22,7 +22,7 @@ templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []Scout
 			<!-- Header -->
 			<div class="max-w-4xl mx-auto mb-4 flex justify-between items-center ps-card p-4">
 				<div>
-					<h1 class="text-lg font-extrabold text-[var(--ps-ink)] truncate">{ event }</h1>
+					<h1 class="text-lg font-extrabold text-[var(--ps-ink)] truncate">{ eventName }</h1>
 					<p class="text-sm font-medium text-[var(--ps-muted)]">{ "Match " + match + ", scouted by " + scouterName }</p>
 				</div>
 				<div class={ "px-3 py-1 rounded-full font-bold text-sm border",

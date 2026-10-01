@@ -477,10 +477,14 @@ templ pitMapHotspot(t pitMapTeam) {
 	}
 }
 
+// A scouted team is highlighted (gold), not grayed out - the same "already
+// has data" convention Video Scouting's team picker uses, so the two
+// nearly-identical pickers agree on what "done" looks like instead of
+// disagreeing (one receding, one standing out) for the same idea.
 templ pitTeamButton(t PitTeam) {
 	if t.Scouted {
 		<button type="button" data-pit-team={ t.Number } data-scouted
-			class="px-4 py-3 rounded-[var(--ps-radius-sm)] text-base font-semibold line-through text-stone-400 bg-stone-100 border border-stone-200">
+			class="px-4 py-3 rounded-[var(--ps-radius-sm)] text-base font-semibold border transition bg-[var(--ps-gold-pale)] border-[var(--ps-gold-strong)] text-[var(--ps-ink)]">
 			{ t.Number }
 		</button>
 	} else {
