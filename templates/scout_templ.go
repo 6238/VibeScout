@@ -118,49 +118,16 @@ func ScoutPage(eventName, match, scouterName string, singleTeam bool, teams []Sc
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div></div><!-- Voice notes --><div id=\"voice-bar\" class=\"max-w-4xl mx-auto mb-4 section-card p-4\"><div class=\"flex flex-wrap items-center gap-3\"><button id=\"voice-toggle\" type=\"button\" aria-pressed=\"false\" class=\"btn btn-primary\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div></div><!-- Voice notes: sticky in 3-robot mode, where the stacked team\n\t\t\t     cards below run long on a phone and would otherwise scroll\n\t\t\t     the only hands-free control out of view right as a scout\n\t\t\t     needs it mid-match. -->")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = iconMic("w-4 h-4").Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span id=\"voice-toggle-label\">Start listening</span></button><div class=\"flex-1 min-w-[12rem]\"><p id=\"voice-status\" class=\"text-sm font-semibold text-[var(--ps-ink)]\">Mic off — tap to dictate notes.</p>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			if !singleTeam {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<p id=\"voice-talking\" class=\"invisible mt-1 text-xs font-semibold text-[var(--ps-muted)]\">Talking about <span id=\"voice-talking-team\" class=\"text-base font-bold text-[var(--ps-ink)]\">—</span></p>")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div><div class=\"flex items-center gap-2 text-[var(--ps-muted)]\"><span id=\"voice-dot\" class=\"inline-block w-2.5 h-2.5 rounded-full bg-red-500\"></span> <span class=\"text-xs font-bold\">Live</span></div></div><p id=\"voice-caption\" class=\"mt-3 min-h-[3rem] p-3 text-sm bg-[var(--ps-input)] border border-[var(--ps-border-soft)] rounded-[var(--ps-radius-md)] text-[var(--ps-ink)]\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			if singleTeam {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "Talk, or type in the notes box.")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "Tap a notes box, then talk. Saying “team 1234” also switches.")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</p></div><!-- Notes Section --><div class=\"max-w-4xl mx-auto mb-5 section-card p-4\"><h2 class=\"text-base font-extrabold text-[var(--ps-ink)] mb-4 text-center\">Notes</h2>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var9 = []any{"grid", templ.KV("grid-cols-1 sm:grid-cols-3 gap-4", !singleTeam), templ.KV("gap-6 max-w-3xl mx-auto", singleTeam)}
+			var templ_7745c5c3_Var9 = []any{"max-w-4xl mx-auto mb-4 section-card p-4", templ.KV("sticky top-2 z-40", !singleTeam)}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var9...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div id=\"voice-bar\" class=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -173,72 +140,103 @@ func ScoutPage(eventName, match, scouterName string, singleTeam bool, teams []Sc
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\"><div class=\"flex flex-wrap items-center gap-3\"><button id=\"voice-toggle\" type=\"button\" aria-pressed=\"false\" class=\"btn btn-primary\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = iconMic("w-4 h-4").Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<span id=\"voice-toggle-label\">Start listening</span></button><div class=\"flex-1 min-w-[12rem]\"><p id=\"voice-status\" class=\"text-sm font-semibold text-[var(--ps-ink)]\">Mic off — tap to dictate notes.</p>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if !singleTeam {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<p id=\"voice-talking\" class=\"invisible mt-1 text-xs font-semibold text-[var(--ps-muted)]\">Talking about <span id=\"voice-talking-team\" class=\"text-base font-bold text-[var(--ps-ink)]\">—</span></p>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div><div class=\"flex items-center gap-2 text-[var(--ps-muted)]\"><span id=\"voice-dot\" class=\"inline-block w-2.5 h-2.5 rounded-full bg-red-500\"></span> <span class=\"text-xs font-bold\">Live</span></div></div><p id=\"voice-caption\" class=\"mt-3 min-h-[3rem] p-3 text-sm bg-[var(--ps-input)] border border-[var(--ps-border-soft)] rounded-[var(--ps-radius-md)] text-[var(--ps-ink)]\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if singleTeam {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "Talk, or type in the notes box.")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			} else {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "Tap a notes box, then talk. Saying “team 1234” also switches.")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</p></div><!-- Notes Section --><div class=\"max-w-4xl mx-auto mb-5 section-card p-4\"><h2 class=\"text-base font-extrabold text-[var(--ps-ink)] mb-4 text-center\">Notes</h2>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var11 = []any{"grid", templ.KV("grid-cols-1 sm:grid-cols-3 gap-4", !singleTeam), templ.KV("gap-6 max-w-3xl mx-auto", singleTeam)}
+			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var11...)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var12 string
+			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var11).String())
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 1, Col: 0}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, team := range teams {
-				var templ_7745c5c3_Var11 = []any{"p-2", templ.KV("cursor-pointer", !singleTeam)}
-				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var11...)
+				var templ_7745c5c3_Var13 = []any{"p-2", templ.KV("cursor-pointer", !singleTeam)}
+				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var13...)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div data-team-card=\"")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var12 string
-				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(team.Number)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 74, Col: 39}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" data-alliance=\"")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var13 string
-				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(team.Alliance)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 74, Col: 71}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" class=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<div data-team-card=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var14 string
-				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var11).String())
+				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(team.Number)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 1, Col: 0}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 77, Col: 39}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" data-alliance=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var15 = []any{"block text-sm font-bold mb-2 text-center",
-					templ.KV("text-[var(--ps-red-strong)]", team.Alliance == "Red"),
-					templ.KV("text-[var(--ps-blue-strong)]", team.Alliance == "Blue")}
-				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var15...)
+				var templ_7745c5c3_Var15 string
+				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(team.Alliance)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 77, Col: 71}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<label class=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" class=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var16 string
-				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var15).String())
+				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var13).String())
 				if templ_7745c5c3_Err != nil {
 					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 1, Col: 0}
 				}
@@ -246,33 +244,57 @@ func ScoutPage(eventName, match, scouterName string, singleTeam bool, teams []Sc
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\">Team ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var17 string
-				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(team.Number)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 79, Col: 26}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
+				var templ_7745c5c3_Var17 = []any{"block text-sm font-bold mb-2 text-center",
+					templ.KV("text-[var(--ps-red-strong)]", team.Alliance == "Red"),
+					templ.KV("text-[var(--ps-blue-strong)]", team.Alliance == "Blue")}
+				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var17...)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, " <span class=\"ml-1 text-xs font-semibold text-[var(--ps-ink-soft)]\">(")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<label class=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var18 string
-				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(team.DataCount))
+				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var17).String())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 80, Col: 106}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 1, Col: 0}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, " pts)</span></label><div class=\"flex flex-wrap gap-1.5 mb-2\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "\">Team ")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var19 string
+				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(team.Number)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 82, Col: 26}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, " <span class=\"ml-1 text-xs font-semibold text-[var(--ps-ink-soft)]\">(")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var20 string
+				templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(team.DataCount))
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 83, Col: 106}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, " pts)</span></label><div class=\"flex flex-wrap gap-1.5 mb-2\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -288,99 +310,99 @@ func ScoutPage(eventName, match, scouterName string, singleTeam bool, teams []Sc
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</div><div data-team-cats class=\"mb-2 space-y-1 text-xs\"></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</div><div data-team-cats class=\"mb-2 space-y-1 text-xs\"></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if singleTeam {
-					var templ_7745c5c3_Var19 = []any{"w-full p-3 text-sm bg-white border-2 rounded-[var(--ps-radius-md)] resize-none focus:outline-none focus:border-[var(--ps-gold-strong)]",
+					var templ_7745c5c3_Var21 = []any{"w-full p-3 text-sm bg-white border-2 rounded-[var(--ps-radius-md)] resize-none focus:outline-none focus:border-[var(--ps-gold-strong)]",
 						templ.KV("border-[var(--ps-red)]", team.Alliance == "Red"),
 						templ.KV("border-[var(--ps-blue)]", team.Alliance == "Blue")}
-					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var19...)
+					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var21...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<textarea name=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<textarea name=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var20 string
-					templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs("notes_" + team.Number)
+					var templ_7745c5c3_Var22 string
+					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs("notes_" + team.Number)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 90, Col: 38}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 93, Col: 38}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "\" rows=\"14\" class=\"")
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var21 string
-					templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var19).String())
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 1, Col: 0}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\" placeholder=\"Observations...\"></textarea> ")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-				} else {
-					var templ_7745c5c3_Var22 = []any{"w-full p-3 text-sm bg-white border-2 rounded-[var(--ps-radius-md)] resize-none focus:outline-none focus:border-[var(--ps-gold-strong)]",
-						templ.KV("border-[var(--ps-red)]", team.Alliance == "Red"),
-						templ.KV("border-[var(--ps-blue)]", team.Alliance == "Blue")}
-					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var22...)
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<textarea name=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\" rows=\"14\" class=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var23 string
-					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs("notes_" + team.Number)
+					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var21).String())
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 98, Col: 38}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 1, Col: 0}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\" rows=\"12\" class=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\" placeholder=\"Observations...\"></textarea> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var24 string
-					templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var22).String())
+				} else {
+					var templ_7745c5c3_Var24 = []any{"w-full p-3 text-sm bg-white border-2 rounded-[var(--ps-radius-md)] resize-none focus:outline-none focus:border-[var(--ps-gold-strong)]",
+						templ.KV("border-[var(--ps-red)]", team.Alliance == "Red"),
+						templ.KV("border-[var(--ps-blue)]", team.Alliance == "Blue")}
+					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var24...)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<textarea name=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var25 string
+					templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs("notes_" + team.Number)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 101, Col: 38}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\" rows=\"12\" class=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var26 string
+					templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var24).String())
 					if templ_7745c5c3_Err != nil {
 						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 1, Col: 0}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\" placeholder=\"Observations...\"></textarea> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "\" placeholder=\"Observations...\"></textarea> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
 				if !singleTeam {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<p class=\"mt-1 text-xs text-center text-[var(--ps-muted)]\">Tap this box to talk about this team</p>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<p class=\"mt-1 text-xs text-center text-[var(--ps-muted)]\">Tap this box to talk about this team</p>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "</div><p class=\"mt-3 text-xs text-center text-[var(--ps-muted)]\">Notes are saved when you press Next Match</p></div><!-- Submit --><div class=\"fixed bottom-0 left-0 right-0 p-4 bg-[var(--ps-surface)]/95 backdrop-blur-md flex justify-center z-50\"><button id=\"next-match-btn\" onclick=\"nextMatch()\" class=\"btn btn-primary btn-lg px-12\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</div><p class=\"mt-3 text-xs text-center text-[var(--ps-muted)]\">Notes are saved when you press Next Match</p></div><!-- Submit --><div class=\"fixed bottom-0 left-0 right-0 p-4 bg-[var(--ps-surface)]/95 backdrop-blur-md flex justify-center z-50\"><button id=\"next-match-btn\" onclick=\"nextMatch()\" class=\"btn btn-primary btn-lg px-12\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -388,7 +410,7 @@ func ScoutPage(eventName, match, scouterName string, singleTeam bool, teams []Sc
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<span id=\"next-match-label\">Next match</span></button></div><!-- Post-match review --><div id=\"review-overlay\" class=\"hidden fixed inset-0 z-[60] bg-[var(--ps-ink)]/70 overflow-y-auto\"><div class=\"max-w-5xl mx-auto my-6 p-4\"><div class=\"section-card p-5\"><h2 class=\"text-lg font-extrabold text-[var(--ps-ink)] text-center\">Review notes</h2><p class=\"text-sm text-[var(--ps-ink-soft)] text-center mb-4\">Check that this matches what you said, then save.</p><p class=\"text-xs font-bold text-[var(--ps-muted)] mb-1\">Transcript</p><pre id=\"review-transcript\" class=\"whitespace-pre-wrap text-sm bg-[var(--ps-input)] border border-[var(--ps-border-soft)] rounded-[var(--ps-radius-md)] p-3 mb-4 max-h-40 overflow-y-auto text-[var(--ps-ink)]\"></pre><p id=\"review-error\" class=\"text-sm text-red-700 mb-3\"></p><div id=\"review-teams\"></div><div class=\"mt-5 flex flex-wrap justify-center gap-3\"><button id=\"review-back\" type=\"button\" class=\"btn btn-secondary\">Keep editing</button> <button id=\"review-confirm\" type=\"button\" class=\"btn btn-primary\">Save and continue</button></div></div></div></div></main>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<span id=\"next-match-label\">Next match</span></button></div><!-- Post-match review --><div id=\"review-overlay\" class=\"hidden fixed inset-0 z-[60] bg-[var(--ps-ink)]/70 overflow-y-auto\"><div class=\"max-w-5xl mx-auto my-6 p-4\"><div class=\"section-card p-5\"><h2 class=\"text-lg font-extrabold text-[var(--ps-ink)] text-center\">Review notes</h2><p class=\"text-sm text-[var(--ps-ink-soft)] text-center mb-4\">Check that this matches what you said, then save.</p><p class=\"text-xs font-bold text-[var(--ps-muted)] mb-1\">Transcript</p><pre id=\"review-transcript\" class=\"whitespace-pre-wrap text-sm bg-[var(--ps-input)] border border-[var(--ps-border-soft)] rounded-[var(--ps-radius-md)] p-3 mb-4 max-h-40 overflow-y-auto text-[var(--ps-ink)]\"></pre><p id=\"review-error\" class=\"text-sm text-red-700 mb-3\"></p><div id=\"review-teams\"></div><div class=\"mt-5 flex flex-wrap justify-center gap-3\"><button id=\"review-back\" type=\"button\" class=\"btn btn-secondary\">Keep editing</button> <button id=\"review-confirm\" type=\"button\" class=\"btn btn-primary\">Save and continue</button></div></div></div></div></main>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -396,7 +418,7 @@ func ScoutPage(eventName, match, scouterName string, singleTeam bool, teams []Sc
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, " <script>\n\t\t\t// Quick-tag buttons just toggle selected state; saveAndAdvance reads\n\t\t\t// which ones are active straight off the DOM and sends them as\n\t\t\t// structured fields (broke/played_defense/was_defended), not merged\n\t\t\t// into the notes text — see formatChecklistNote on the server for how\n\t\t\t// they're turned back into a sentence Gemini reads.\n\t\t\tdocument.addEventListener('click', function(e) {\n\t\t\t\tconst btn = e.target.closest('[data-tag-btn]');\n\t\t\t\tif (!btn) return;\n\t\t\t\tbtn.classList.toggle('active');\n\t\t\t});\n\n\t\t\tasync function nextMatch() {\n\t\t\t\tif (window.voiceScout && window.voiceScout.used()) {\n\t\t\t\t\tawait window.voiceScout.openReview();\n\t\t\t\t\treturn;\n\t\t\t\t}\n\t\t\t\tawait saveAndAdvance();\n\t\t\t}\n\n\t\t\tasync function saveAndAdvance() {\n\t\t\t\tif (window.voiceScout) window.voiceScout.stopListening();\n\t\t\t\tconst params = new URLSearchParams(window.location.search);\n\t\t\t\tconst eventKey = params.get('event_key') || '';\n\t\t\t\tconst matchNum = parseInt(params.get('match_num') || '1');\n\t\t\t\tconst scouter = params.get('scouter') || '';\n\t\t\t\tconst pickedTeam = params.get('team');\n\n\t\t\t\t// A one-robot scout is watching just this robot, not splitting\n\t\t\t\t// attention across a whole alliance — sent along so notes from the\n\t\t\t\t// two modes can be told apart later (see combineTeamNotes on the\n\t\t\t\t// server, and the ScoutPageConfig JSON this page already embeds).\n\t\t\t\tconst scoutConfig = JSON.parse(document.getElementById('scout-config')?.textContent || '{}');\n\t\t\t\tconst singleTeam = !!scoutConfig.one_robot;\n\n\t\t\t\tconst teamCards = document.querySelectorAll('[data-team-card]');\n\t\t\t\tconst teams = Array.from(teamCards).map(card => {\n\t\t\t\t\tconst isActive = tag => !!card.querySelector('[data-tag-btn][data-tag=\"' + tag + '\"].active');\n\t\t\t\t\tconst notes = card.querySelector('textarea')?.value || '';\n\t\t\t\t\treturn {\n\t\t\t\t\t\tteam_number: card.getAttribute('data-team-card'),\n\t\t\t\t\t\tnotes: notes,\n\t\t\t\t\t\thas_checklist: true,\n\t\t\t\t\t\tbroke: isActive('Broke'),\n\t\t\t\t\t\tplayed_defense: isActive('Played Defense'),\n\t\t\t\t\t\twas_defended: isActive('Was Defended'),\n\t\t\t\t\t\tsingle_team: singleTeam\n\t\t\t\t\t};\n\t\t\t\t});\n\n\t\t\t\tconst submission = {\n\t\t\t\t\tevent_key: eventKey,\n\t\t\t\t\tmatch_num: matchNum,\n\t\t\t\t\tscouter_name: scouter,\n\t\t\t\t\tteams: teams\n\t\t\t\t};\n\n\t\t\t\t// Save on this device first — that can't fail — then let it sync in\n\t\t\t\t// the background instead of making the scout wait on (or lose data\n\t\t\t\t// to) a bad connection. The queue keeps retrying until the server\n\t\t\t\t// confirms it, including after this page has moved on.\n\t\t\t\twindow.offlineSync.queue('scout', '/api/save-scout', submission);\n\n\t\t\t\t// A quick, satisfying confirmation before the page moves on —\n\t\t\t\t// a scout does this exact tap 10-12 times a match, every match.\n\t\t\t\tconst nextBtn = document.getElementById('next-match-btn');\n\t\t\t\tconst nextLabel = document.getElementById('next-match-label');\n\t\t\t\tif (nextBtn && nextLabel) {\n\t\t\t\t\tnextBtn.classList.add('btn-saved');\n\t\t\t\t\tnextLabel.textContent = 'Saved';\n\t\t\t\t}\n\n\t\t\t\t// Both modes pick a team/alliance each match, so always return to\n\t\t\t\t// Field Scouting to pick again for the next one.\n\t\t\t\tconst next = new URLSearchParams({ event_key: eventKey, match_num: matchNum + 1, scouter: scouter });\n\t\t\t\tnext.set('mode', pickedTeam ? 'one' : 'three');\n\t\t\t\tsetTimeout(function () {\n\t\t\t\t\twindow.location.href = '/field-scout?' + next;\n\t\t\t\t}, 380);\n\t\t\t}\n\t\t\twindow.saveAndAdvance = saveAndAdvance;\n\t\t</script> <script src=\"/static/voice-scout.js\"></script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, " <script>\n\t\t\t// Quick-tag buttons just toggle selected state; saveAndAdvance reads\n\t\t\t// which ones are active straight off the DOM and sends them as\n\t\t\t// structured fields (broke/played_defense/was_defended), not merged\n\t\t\t// into the notes text — see formatChecklistNote on the server for how\n\t\t\t// they're turned back into a sentence Gemini reads.\n\t\t\tdocument.addEventListener('click', function(e) {\n\t\t\t\tconst btn = e.target.closest('[data-tag-btn]');\n\t\t\t\tif (!btn) return;\n\t\t\t\tbtn.classList.toggle('active');\n\t\t\t});\n\n\t\t\tasync function nextMatch() {\n\t\t\t\tif (window.voiceScout && window.voiceScout.used()) {\n\t\t\t\t\tawait window.voiceScout.openReview();\n\t\t\t\t\treturn;\n\t\t\t\t}\n\t\t\t\tawait saveAndAdvance();\n\t\t\t}\n\n\t\t\tasync function saveAndAdvance() {\n\t\t\t\tif (window.voiceScout) window.voiceScout.stopListening();\n\t\t\t\tconst params = new URLSearchParams(window.location.search);\n\t\t\t\tconst eventKey = params.get('event_key') || '';\n\t\t\t\tconst matchNum = parseInt(params.get('match_num') || '1');\n\t\t\t\tconst scouter = params.get('scouter') || '';\n\t\t\t\tconst pickedTeam = params.get('team');\n\n\t\t\t\t// A one-robot scout is watching just this robot, not splitting\n\t\t\t\t// attention across a whole alliance — sent along so notes from the\n\t\t\t\t// two modes can be told apart later (see combineTeamNotes on the\n\t\t\t\t// server, and the ScoutPageConfig JSON this page already embeds).\n\t\t\t\tconst scoutConfig = JSON.parse(document.getElementById('scout-config')?.textContent || '{}');\n\t\t\t\tconst singleTeam = !!scoutConfig.one_robot;\n\n\t\t\t\tconst teamCards = document.querySelectorAll('[data-team-card]');\n\t\t\t\tconst teams = Array.from(teamCards).map(card => {\n\t\t\t\t\tconst isActive = tag => !!card.querySelector('[data-tag-btn][data-tag=\"' + tag + '\"].active');\n\t\t\t\t\tconst notes = card.querySelector('textarea')?.value || '';\n\t\t\t\t\treturn {\n\t\t\t\t\t\tteam_number: card.getAttribute('data-team-card'),\n\t\t\t\t\t\tnotes: notes,\n\t\t\t\t\t\thas_checklist: true,\n\t\t\t\t\t\tbroke: isActive('Broke'),\n\t\t\t\t\t\tplayed_defense: isActive('Played Defense'),\n\t\t\t\t\t\twas_defended: isActive('Was Defended'),\n\t\t\t\t\t\tsingle_team: singleTeam\n\t\t\t\t\t};\n\t\t\t\t});\n\n\t\t\t\tconst submission = {\n\t\t\t\t\tevent_key: eventKey,\n\t\t\t\t\tmatch_num: matchNum,\n\t\t\t\t\tscouter_name: scouter,\n\t\t\t\t\tteams: teams\n\t\t\t\t};\n\n\t\t\t\t// Save on this device first — that can't fail — then let it sync in\n\t\t\t\t// the background instead of making the scout wait on (or lose data\n\t\t\t\t// to) a bad connection. The queue keeps retrying until the server\n\t\t\t\t// confirms it, including after this page has moved on.\n\t\t\t\twindow.offlineSync.queue('scout', '/api/save-scout', submission);\n\n\t\t\t\t// A quick, satisfying confirmation before the page moves on —\n\t\t\t\t// a scout does this exact tap 10-12 times a match, every match.\n\t\t\t\tconst nextBtn = document.getElementById('next-match-btn');\n\t\t\t\tconst nextLabel = document.getElementById('next-match-label');\n\t\t\t\tif (nextBtn && nextLabel) {\n\t\t\t\t\tnextBtn.classList.add('btn-saved');\n\t\t\t\t\tnextLabel.textContent = 'Saved';\n\t\t\t\t}\n\n\t\t\t\t// Both modes pick a team/alliance each match, so always return to\n\t\t\t\t// Field Scouting to pick again for the next one.\n\t\t\t\tconst next = new URLSearchParams({ event_key: eventKey, match_num: matchNum + 1, scouter: scouter });\n\t\t\t\tnext.set('mode', pickedTeam ? 'one' : 'three');\n\t\t\t\tsetTimeout(function () {\n\t\t\t\t\twindow.location.href = '/field-scout?' + next;\n\t\t\t\t}, 380);\n\t\t\t}\n\t\t\twindow.saveAndAdvance = saveAndAdvance;\n\t\t</script> <script src=\"/static/voice-scout.js\"></script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -429,38 +451,38 @@ func fieldTagButton(tag string) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var25 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var25 == nil {
-			templ_7745c5c3_Var25 = templ.NopComponent
+		templ_7745c5c3_Var27 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var27 == nil {
+			templ_7745c5c3_Var27 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<button type=\"button\" data-tag-btn data-tag=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<button type=\"button\" data-tag-btn data-tag=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var26 string
-		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(tag)
+		var templ_7745c5c3_Var28 string
+		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(tag)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 232, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 235, Col: 50}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "\" class=\"field-tag text-sm font-semibold px-3.5 py-2 rounded-full border border-[var(--ps-border)] bg-white text-[var(--ps-ink-soft)] hover:bg-[var(--ps-surface)] transition\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var27 string
-		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(tag)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 234, Col: 7}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "\" class=\"field-tag text-sm font-semibold px-3.5 py-2 rounded-full border border-[var(--ps-border)] bg-white text-[var(--ps-ink-soft)] hover:bg-[var(--ps-surface)] transition\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "</button>")
+		var templ_7745c5c3_Var29 string
+		templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(tag)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/scout.templ`, Line: 237, Col: 7}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</button>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

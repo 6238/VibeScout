@@ -6,6 +6,32 @@ import (
 	"strings"
 )
 
+// cardAnalysisLegend explains the chips every team-analysis card uses (EPA,
+// scouted count, verdict, rank) as a tap-to-open disclosure, not just the
+// title= tooltips those chips also carry — a tooltip never fires on a
+// touchscreen, and this app is used mostly on phones. The chips keep their
+// title attributes too, as a bonus for anyone on a mouse; this is the real,
+// touch-reachable copy of the same explanations, written once and shared
+// instead of repeated per card.
+templ cardAnalysisLegend(includeForecast bool) {
+	<details class="group mb-4">
+		<summary class="text-xs font-semibold text-[var(--ps-muted)] cursor-pointer select-none list-none flex items-center gap-1.5 w-fit">
+			@iconChevronRight("w-3.5 h-3.5 transition-transform group-open:rotate-90")
+			What do these mean?
+		</summary>
+		<dl class="text-xs text-[var(--ps-ink-soft)] bg-[var(--ps-input)] border border-[var(--ps-border-soft)] rounded-[var(--ps-radius-md)] px-3 py-2 mt-2 space-y-1.5">
+			<div><dt class="inline font-bold text-[var(--ps-ink)]">EPA —</dt> <dd class="inline">Statbotics' overall points rating from every match a team has played this season. The most reliable single number here.</dd></div>
+			<div><dt class="inline font-bold text-[var(--ps-ink)]">EPA top N% —</dt> <dd class="inline">Where that EPA ranks among this event's teams. Lower is better.</dd></div>
+			<div><dt class="inline font-bold text-[var(--ps-ink)]">N scouted —</dt> <dd class="inline">Matches our scouts recorded for this team. Green is enough to trust the notes read below; amber ("Low data") isn't — use EPA instead.</dd></div>
+			<div><dt class="inline font-bold text-[var(--ps-ink)]">Notes: verdict —</dt> <dd class="inline">The AI's read of our scouting notes only, not a rating of the team. It can disagree with EPA; a big disagreement is flagged.</dd></div>
+			<div><dt class="inline font-bold text-[var(--ps-ink)]">Rank —</dt> <dd class="inline">Current qualification rank at this event.</dd></div>
+			if includeForecast {
+				<div><dt class="inline font-bold text-[var(--ps-ink)]">% to win —</dt> <dd class="inline">Statbotics' predicted chance for this specific match, from our side.</dd></div>
+			}
+		</dl>
+	</details>
+}
+
 // verdictClasses returns the Tailwind classes for a verdict badge, color-coded
 // from good (green) to bad (red) — a meaningful scale, not decoration, so it
 // keeps its own semantic colors rather than the brand palette.
@@ -118,6 +144,9 @@ templ NextMatchPage(data EventPageData) {
 		<main class="container mx-auto px-4 py-8">
 			<div class="max-w-4xl mx-auto">
 				<p class="text-sm font-medium text-[var(--ps-muted)] mb-3 text-center">{ data.EventName }</p>
+				<div class="ps-card p-4 mb-4">
+					@cardAnalysisLegend(true)
+				</div>
 				<div
 					id="next-match"
 					hx-get={ "/api/next-match?event_key=" + data.EventKey }
@@ -189,6 +218,8 @@ templ PickListPage(data EventPageData) {
 							<p class="text-xs text-[var(--ps-muted)] mt-1">EPA over every match; scouted ratings are only as good as matches scouted.</p>
 						</div>
 					</div>
+
+					@cardAnalysisLegend(false)
 				</div>
 
 				<div id="analysis-results"></div>

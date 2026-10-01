@@ -36,8 +36,11 @@ templ ScoutPage(eventName, match, scouterName string, singleTeam bool, teams []S
 				</div>
 			</div>
 
-			<!-- Voice notes -->
-			<div id="voice-bar" class="max-w-4xl mx-auto mb-4 section-card p-4">
+			<!-- Voice notes: sticky in 3-robot mode, where the stacked team
+			     cards below run long on a phone and would otherwise scroll
+			     the only hands-free control out of view right as a scout
+			     needs it mid-match. -->
+			<div id="voice-bar" class={ "max-w-4xl mx-auto mb-4 section-card p-4", templ.KV("sticky top-2 z-40", !singleTeam) }>
 				<div class="flex flex-wrap items-center gap-3">
 					<button id="voice-toggle" type="button" aria-pressed="false" class="btn btn-primary">
 						@iconMic("w-4 h-4")
