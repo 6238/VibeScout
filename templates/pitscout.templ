@@ -37,7 +37,7 @@ templ PitScoutPage(eventKey string, eventName string) {
 		<main class="flex flex-col items-center justify-center min-h-screen px-3 py-6">
 			<div class="ps-card w-full max-w-md md:max-w-4xl p-4 md:p-6">
 				<h1 class="text-xl font-extrabold text-[var(--ps-ink)] mb-1 text-center tracking-tight">Pit scouting</h1>
-				<p class="text-sm font-medium text-[var(--ps-muted)] mb-3 text-center">{ eventName }</p>
+				<p class="text-sm font-medium text-[var(--ps-muted)] mb-4 text-center">{ eventName }</p>
 				<input type="hidden" id="pit-event" name="event_key" value={ eventKey }/>
 
 				<!-- Form first, then the team map(s) full-width below it -->

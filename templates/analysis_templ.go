@@ -528,14 +528,14 @@ func PickListPage(data EventPageData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<main class=\"container mx-auto px-4 py-8\"><div class=\"max-w-4xl mx-auto\"><div class=\"ps-card p-6 mb-6\"><h1 class=\"text-2xl font-extrabold text-[var(--ps-ink)] mb-1 text-center tracking-tight\">Pick list</h1><p class=\"text-sm font-medium text-[var(--ps-muted)] mb-4 text-center\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<main class=\"container mx-auto px-4 py-8\"><div class=\"max-w-4xl mx-auto\"><div class=\"ps-card p-6 mb-6\"><h1 class=\"text-2xl font-extrabold text-[var(--ps-ink)] mb-1 tracking-tight\">Pick list</h1><p class=\"text-sm font-medium text-[var(--ps-muted)] mb-4\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(data.EventName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/analysis.templ`, Line: 188, Col: 92}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/analysis.templ`, Line: 188, Col: 80}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {

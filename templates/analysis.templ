@@ -184,8 +184,8 @@ templ PickListPage(data EventPageData) {
 		<main class="container mx-auto px-4 py-8">
 			<div class="max-w-4xl mx-auto">
 				<div class="ps-card p-6 mb-6">
-					<h1 class="text-2xl font-extrabold text-[var(--ps-ink)] mb-1 text-center tracking-tight">Pick list</h1>
-					<p class="text-sm font-medium text-[var(--ps-muted)] mb-4 text-center">{ data.EventName }</p>
+					<h1 class="text-2xl font-extrabold text-[var(--ps-ink)] mb-1 tracking-tight">Pick list</h1>
+					<p class="text-sm font-medium text-[var(--ps-muted)] mb-4">{ data.EventName }</p>
 
 					<form
 						hx-post="/api/run-analysis"
