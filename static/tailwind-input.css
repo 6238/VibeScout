@@ -1,0 +1,23 @@
+/* Source file for static/tailwind.css, the precompiled Tailwind stylesheet
+   layout.templ links to. Rebuild it after adding or changing any Tailwind
+   utility class anywhere in templates/ (new classes won't appear until you
+   do - unlike the old cdn.tailwindcss.com script, this isn't live/JIT).
+
+   To rebuild:
+     1. Download the standalone CLI (no Node needed) for your platform from
+        https://github.com/tailwindlabs/tailwindcss/releases/latest
+        - Windows: tailwindcss-windows-x64.exe
+     2. From the project root:
+        <tailwindcss-binary> -i static/tailwind-input.css -o static/tailwind.css --minify
+     3. Commit the updated static/tailwind.css alongside your template changes.
+
+   Known Windows + OneDrive gotcha: running the CLI directly inside a
+   OneDrive-synced project folder can fail with an EEXIST error from its
+   bundled Bun runtime's mkdir call (OneDrive's placeholder-file layer
+   confuses it). If that happens, run the CLI from a plain local folder
+   outside OneDrive instead (copy tailwind-input.css and templates/ there,
+   or point -i/-o/@source at absolute paths outside OneDrive), then copy
+   the resulting tailwind.css back in - that's how this file was built. */
+
+@import "tailwindcss";
+@source "../templates/**/*.templ";
