@@ -99,12 +99,16 @@ type scoutRow struct {
 // match two different scouts covered reads as one clear account instead of
 // two disconnected, possibly-contradictory blobs — followed by any
 // clarifications the strategy team has added (see clarificationsBlock).
+// Filtered by hasScoutDataSQL, same as scoutStatsFor's count and
+// buildTeamNoteGroups below — a blank submission (a scout who opened a slot
+// and never filled it in) shouldn't read as a real match to the AI, the
+// "N scouted" badge, or the notes panel the badge's count has to agree with.
 func combineTeamNotes(eventKey, teamNum string) (string, error) {
 	rows, err := db.Query(`
 		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(single_team, 0),
 			COALESCE(has_checklist, 0), COALESCE(broke, 0), COALESCE(played_defense, 0), COALESCE(was_defended, 0), COALESCE(auto_type, '')
 		FROM scout_submissions
-		WHERE event_key = ? AND team_number = ?
+		WHERE event_key = ? AND team_number = ? AND `+hasScoutDataSQL+`
 		ORDER BY match_num ASC`, eventKey, teamNum)
 	if err != nil {
 		return "", err
@@ -1154,13 +1158,16 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 // buildTeamNoteGroups reads every match-scouting submission for a team at an
 // event and groups it into one card per match. Shared by apiTeamNotesHandler
 // and apiAddClarificationHandler, which needs the panel rebuilt right after a
-// clarification is added.
+// clarification is added. Filtered by hasScoutDataSQL so this panel's match
+// count can't disagree with the "N scouted" badge that opens it (see
+// scoutStatsFor) — without this, a blank submission showed up here as its
+// own empty "Match N" card even though the badge never counted it.
 func buildTeamNoteGroups(eventKey, teamNum string) ([]templates.TeamNoteGroup, error) {
 	rows, err := db.Query(`
 		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(ai_generated, 0), COALESCE(single_team, 0),
 			COALESCE(has_checklist, 0), COALESCE(broke, 0), COALESCE(played_defense, 0), COALESCE(was_defended, 0), COALESCE(auto_type, '')
 		FROM scout_submissions
-		WHERE event_key = ? AND team_number = ?
+		WHERE event_key = ? AND team_number = ? AND `+hasScoutDataSQL+`
 		ORDER BY match_num ASC`, eventKey, teamNum)
 	if err != nil {
 		return nil, err
