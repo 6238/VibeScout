@@ -64,7 +64,7 @@ func PitScoutPage(eventKey string, eventName string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<style>\n\t\t\t#pit-teams.hide-scouted [data-scouted] { display: none; }\n\t\t\t#pit-teams .pit-highlight {\n\t\t\t\tbackground-color: rgba(250, 204, 21, 0.55) !important;\n\t\t\t\tborder-color: #CA8A04 !important;\n\t\t\t\toutline: 3px solid #FACC15;\n\t\t\t\tz-index: 5;\n\t\t\t}\n\t\t</style> <main class=\"flex flex-col items-center justify-center min-h-screen px-3 py-6\"><div class=\"ps-card w-full max-w-md md:max-w-4xl p-4 md:p-6\"><h1 class=\"text-xl font-extrabold text-[var(--ps-ink)] mb-1 text-center tracking-tight\">Pit scouting</h1><p class=\"text-sm font-medium text-[var(--ps-muted)] mb-3 text-center\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<style>\n\t\t\t#pit-teams.hide-scouted [data-scouted] { display: none; }\n\t\t\t#pit-teams .pit-highlight {\n\t\t\t\tbackground-color: rgba(250, 204, 21, 0.55) !important;\n\t\t\t\tborder-color: #CA8A04 !important;\n\t\t\t\toutline: 3px solid #FACC15;\n\t\t\t\tz-index: 5;\n\t\t\t}\n\t\t</style> <main class=\"flex flex-col items-center justify-center min-h-screen px-3 py-6\"><div class=\"ps-card w-full max-w-md md:max-w-4xl p-4 md:p-6\"><h1 class=\"text-xl font-extrabold text-[var(--ps-ink)] mb-1 text-center tracking-tight\">Pit scouting</h1><p class=\"text-sm font-medium text-[var(--ps-muted)] mb-4 text-center\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -438,6 +438,10 @@ func pitMapHotspot(t pitMapTeam) templ.Component {
 	})
 }
 
+// A scouted team is highlighted (gold), not grayed out - the same "already
+// has data" convention Video Scouting's team picker uses, so the two
+// nearly-identical pickers agree on what "done" looks like instead of
+// disagreeing (one receding, one standing out) for the same idea.
 func pitTeamButton(t PitTeam) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -467,20 +471,20 @@ func pitTeamButton(t PitTeam) templ.Component {
 			var templ_7745c5c3_Var21 string
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 482, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 486, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "\" data-scouted class=\"px-4 py-3 rounded-[var(--ps-radius-sm)] text-base font-semibold line-through text-stone-400 bg-stone-100 border border-stone-200\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "\" data-scouted class=\"px-4 py-3 rounded-[var(--ps-radius-sm)] text-base font-semibold border transition bg-[var(--ps-gold-pale)] border-[var(--ps-gold-strong)] text-[var(--ps-ink)]\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var22 string
 			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 484, Col: 13}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 488, Col: 13}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 			if templ_7745c5c3_Err != nil {
@@ -498,7 +502,7 @@ func pitTeamButton(t PitTeam) templ.Component {
 			var templ_7745c5c3_Var23 string
 			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 487, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 491, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 			if templ_7745c5c3_Err != nil {
@@ -511,7 +515,7 @@ func pitTeamButton(t PitTeam) templ.Component {
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(t.Number)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 489, Col: 13}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pitscout.templ`, Line: 493, Col: 13}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 			if templ_7745c5c3_Err != nil {

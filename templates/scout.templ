@@ -2,7 +2,7 @@ package templates
 
 import "strconv"
 
-templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []ScoutTeam) {
+templ ScoutPage(eventName, match, scouterName string, singleTeam bool, teams []ScoutTeam) {
 	@Layout("Vibe Scout | Match " + match) {
 		<style>
 			.page-transition { animation: slideIn 0.3s ease-out; }
@@ -22,7 +22,7 @@ templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []Scout
 			<!-- Header -->
 			<div class="max-w-4xl mx-auto mb-4 flex justify-between items-center ps-card p-4">
 				<div>
-					<h1 class="text-lg font-extrabold text-[var(--ps-ink)] truncate">{ event }</h1>
+					<h1 class="text-lg font-extrabold text-[var(--ps-ink)] truncate">{ eventName }</h1>
 					<p class="text-sm font-medium text-[var(--ps-muted)]">{ "Match " + match + ", scouted by " + scouterName }</p>
 				</div>
 				<div class={ "px-3 py-1 rounded-full font-bold text-sm border",
@@ -36,8 +36,11 @@ templ ScoutPage(event, match, scouterName string, singleTeam bool, teams []Scout
 				</div>
 			</div>
 
-			<!-- Voice notes -->
-			<div id="voice-bar" class="max-w-4xl mx-auto mb-4 section-card p-4">
+			<!-- Voice notes: sticky in 3-robot mode, where the stacked team
+			     cards below run long on a phone and would otherwise scroll
+			     the only hands-free control out of view right as a scout
+			     needs it mid-match. -->
+			<div id="voice-bar" class={ "max-w-4xl mx-auto mb-4 section-card p-4", templ.KV("sticky top-2 z-40", !singleTeam) }>
 				<div class="flex flex-wrap items-center gap-3">
 					<button id="voice-toggle" type="button" aria-pressed="false" class="btn btn-primary">
 						@iconMic("w-4 h-4")

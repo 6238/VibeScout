@@ -7,7 +7,13 @@ templ Layout(title string) {
         <meta charset="UTF-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- Precompiled from static/tailwind-input.css - see that file's
+             header comment for how to rebuild after adding new classes.
+             Was cdn.tailwindcss.com (a runtime JIT compiler, not meant for
+             production - and a hard external dependency for ALL styling,
+             which is the one thing offline-first shouldn't have to mean
+             unstyled on bad venue wifi). -->
+        <link rel="stylesheet" href="/static/tailwind.css"/>
         <link rel="preconnect" href="https://fonts.googleapis.com"/>
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet"/>
@@ -26,7 +32,7 @@ templ Layout(title string) {
             :root {
                 --ps-ink: #0c0836;
                 --ps-ink-soft: #5d5390;
-                --ps-muted: #746b86;
+                --ps-muted: #655c78;
                 --ps-red: #cf4c52;
                 --ps-red-strong: #7e373a;
                 --ps-red-deep: #582225;
@@ -172,6 +178,17 @@ templ Layout(title string) {
             }
             .ps-chip-gold { background-color: var(--ps-gold-pale); border-color: var(--ps-gold-strong); color: var(--ps-ink); }
             .ps-chip-red { background-color: var(--ps-red-light); border-color: var(--ps-red); color: var(--ps-red-strong); }
+
+            /* A chip that acts on a text selection elsewhere on the page
+               (video scouting's "tag this to a match" pills) rather than
+               just labeling something. */
+            .ps-chip-tag {
+                cursor: pointer;
+                transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+            }
+            .ps-chip-tag:hover { border-color: var(--ps-ink-soft); }
+            .ps-chip-tag:active { transform: scale(0.95); }
+            .ps-chip-tag.ps-chip-pop { animation: ps-save-pop 0.35s ease; }
 
             /* A panel that just loaded (View Notes, Pit Notes, a clarification
                list) settles in instead of popping into existence. */

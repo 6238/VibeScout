@@ -138,4 +138,39 @@ func initDB() {
       author TEXT NOT NULL DEFAULT '',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`)
+
+	// Video scouting: a deliberate, after-the-fact review of every one of a
+	// team's matches (official TBA video once posted, the event livestream
+	// otherwise), organized into the same four categories the AI analysis
+	// itself reports on - so a human who watched calmly and completely can
+	// speak directly to those fields instead of the AI having to infer them
+	// from rushed live notes. One row per team per event, like pit scouting's
+	// one row per team, but event-scoped since it's about this event's matches.
+	db.Exec(`
+    CREATE TABLE IF NOT EXISTS video_scouting (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_key TEXT NOT NULL,
+      team_number TEXT NOT NULL,
+      shooting TEXT NOT NULL DEFAULT '',
+      driving TEXT NOT NULL DEFAULT '',
+      auto TEXT NOT NULL DEFAULT '',
+      failures TEXT NOT NULL DEFAULT '',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(event_key, team_number)
+    );`)
+
+	// A short, match-specific tag from that same video review - "in match 12,
+	// ..." - kept separate from the four categories above so the AI can tie
+	// a specific observation to a specific match and cross-reference it
+	// against what field scouts reported for that same match number.
+	db.Exec(`
+    CREATE TABLE IF NOT EXISTS video_scouting_match_notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_key TEXT NOT NULL,
+      team_number TEXT NOT NULL,
+      match_num INTEGER NOT NULL,
+      note TEXT NOT NULL DEFAULT '',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(event_key, team_number, match_num)
+    );`)
 }

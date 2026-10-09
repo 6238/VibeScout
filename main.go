@@ -99,12 +99,16 @@ type scoutRow struct {
 // match two different scouts covered reads as one clear account instead of
 // two disconnected, possibly-contradictory blobs — followed by any
 // clarifications the strategy team has added (see clarificationsBlock).
+// Filtered by hasScoutDataSQL, same as scoutStatsFor's count and
+// buildTeamNoteGroups below — a blank submission (a scout who opened a slot
+// and never filled it in) shouldn't read as a real match to the AI, the
+// "N scouted" badge, or the notes panel the badge's count has to agree with.
 func combineTeamNotes(eventKey, teamNum string) (string, error) {
 	rows, err := db.Query(`
 		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(single_team, 0),
 			COALESCE(has_checklist, 0), COALESCE(broke, 0), COALESCE(played_defense, 0), COALESCE(was_defended, 0), COALESCE(auto_type, '')
 		FROM scout_submissions
-		WHERE event_key = ? AND team_number = ?
+		WHERE event_key = ? AND team_number = ? AND `+hasScoutDataSQL+`
 		ORDER BY match_num ASC`, eventKey, teamNum)
 	if err != nil {
 		return "", err
@@ -304,6 +308,11 @@ func main() {
 	http.HandleFunc("/api/search-teams", apiSearchTeamsHandler)
 	http.HandleFunc("/match-planner", matchPlannerPageHandler)
 	http.HandleFunc("/api/match-plan", apiMatchPlanHandler)
+	http.HandleFunc("/video-scout", videoScoutPageHandler)
+	http.HandleFunc("/video-scout/review", videoScoutReviewPageHandler)
+	http.HandleFunc("/api/video-scout-teams", apiVideoScoutTeamsHandler)
+	http.HandleFunc("/api/save-video-scout", apiSaveVideoScoutHandler)
+	http.HandleFunc("/api/save-video-scout-match-note", apiSaveVideoScoutMatchNoteHandler)
 	http.HandleFunc("/510c53c3", adminHandler)
 	http.HandleFunc("/api/admin/clear-event", clearEventHandler)
 	http.HandleFunc("/api/admin/clear-all", clearAllHandler)
@@ -495,7 +504,7 @@ func scoutHandler(w http.ResponseWriter, r *http.Request) {
 			eventKey, teams[i].Number).Scan(&teams[i].DataCount)
 	}
 
-	templates.ScoutPage(eventKey, strconv.Itoa(matchNum), scouterName, pickedTeam != "", teams).Render(r.Context(), w)
+	templates.ScoutPage(eventNameFor(eventKey), strconv.Itoa(matchNum), scouterName, pickedTeam != "", teams).Render(r.Context(), w)
 }
 
 // scoutingCoverage returns how many different matches a team has been scouted in
@@ -1107,9 +1116,19 @@ func apiNextMatchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	data.Opponents = theirs
 
+	// The alliance label ("We're on Red/Blue") comes from the schedule, not
+	// from the AI call below - set it unconditionally so it still renders
+	// correctly even when strategy generation fails.
+	ourAlliance := "Blue"
+	if weAreRed {
+		ourAlliance = "Red"
+	}
+	data.Plan.OurAlliance = ourAlliance
+
 	plan, err := getOrGenerateMatchPlan(eventKey, ourTeam, m)
 	if err != nil {
-		data.PlanError = "Error generating strategy: " + err.Error()
+		log.Printf("next match plan for %s at %s: %v", ourTeam, eventKey, err)
+		data.PlanError = "Strategy isn't available right now. Use the partner/opponent cards below instead."
 	} else {
 		data.Plan = plan
 	}
@@ -1139,13 +1158,16 @@ func apiTeamNotesHandler(w http.ResponseWriter, r *http.Request) {
 // buildTeamNoteGroups reads every match-scouting submission for a team at an
 // event and groups it into one card per match. Shared by apiTeamNotesHandler
 // and apiAddClarificationHandler, which needs the panel rebuilt right after a
-// clarification is added.
+// clarification is added. Filtered by hasScoutDataSQL so this panel's match
+// count can't disagree with the "N scouted" badge that opens it (see
+// scoutStatsFor) — without this, a blank submission showed up here as its
+// own empty "Match N" card even though the badge never counted it.
 func buildTeamNoteGroups(eventKey, teamNum string) ([]templates.TeamNoteGroup, error) {
 	rows, err := db.Query(`
 		SELECT match_num, notes, COALESCE(scouter_name, ''), COALESCE(ai_generated, 0), COALESCE(single_team, 0),
 			COALESCE(has_checklist, 0), COALESCE(broke, 0), COALESCE(played_defense, 0), COALESCE(was_defended, 0), COALESCE(auto_type, '')
 		FROM scout_submissions
-		WHERE event_key = ? AND team_number = ?
+		WHERE event_key = ? AND team_number = ? AND `+hasScoutDataSQL+`
 		ORDER BY match_num ASC`, eventKey, teamNum)
 	if err != nil {
 		return nil, err
@@ -1468,7 +1490,7 @@ type teamAnalysisJSON struct {
 
 // analysisPromptVersion is mixed into the cache key so edits to the prompt's
 // output shape invalidate previously cached analyses.
-const analysisPromptVersion = "v7"
+const analysisPromptVersion = "v9"
 
 func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard, error) {
 	combined, err := combineTeamNotes(eventKey, teamNum)
@@ -1476,7 +1498,11 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 		return templates.TeamAnalysisCard{}, err
 	}
 	pitNotes := pitNotesFor(teamNum)
+	videoNotes := videoScoutBlock(eventKey, teamNum)
 	hashInput := analysisPromptVersion + "\n" + combined
+	if videoNotes != "" {
+		hashInput += "\n[video]\n" + videoNotes
+	}
 	if pitNotes != "" {
 		hashInput += "\n[pit]\n" + pitNotes
 	}
@@ -1510,7 +1536,7 @@ func getOrGenerateAnalysis(eventKey, teamNum string) (templates.TeamAnalysisCard
 		// If JSON parse fails, fall through to regenerate
 	}
 
-	result, err := callGeminiTeamAnalysis(teamNum, eventKey, combined, pitNotes, scoutStatsFor(eventKey, teamNum))
+	result, err := callGeminiTeamAnalysis(teamNum, eventKey, combined, videoNotes, pitNotes, scoutStatsFor(eventKey, teamNum))
 	if err != nil {
 		return templates.TeamAnalysisCard{}, err
 	}
@@ -1605,6 +1631,7 @@ func apiMatchPlanHandler(w http.ResponseWriter, r *http.Request) {
 
 	card, err := getOrGenerateMatchPlan(eventKey, teamNumber, targetMatch)
 	if err != nil {
+		log.Printf("match plan for %s match %d at %s: %v", teamNumber, matchNum, eventKey, err)
 		redTeams := stripFRC(targetMatch.Alliances.Red.TeamKeys)
 		blueTeams := stripFRC(targetMatch.Alliances.Blue.TeamKeys)
 		ourAlliance := "Red"
@@ -1619,7 +1646,7 @@ func apiMatchPlanHandler(w http.ResponseWriter, r *http.Request) {
 			OurAlliance: ourAlliance,
 			RedTeams:    redTeams,
 			BlueTeams:   blueTeams,
-			Strategy:    "Error generating strategy: " + err.Error(),
+			Error:       err.Error(),
 		}
 	}
 
@@ -1869,12 +1896,13 @@ type teamAnalysisPromptData struct {
 	TeamNum      string
 	EventKey     string
 	Notes        string
+	VideoNotes   string
 	PitNotes     string
 	EPABreakdown string
 	Stats        string
 }
 
-func callGeminiTeamAnalysis(teamNum, eventKey, notes, pitNotes string, stats scoutStats) (teamAnalysisJSON, error) {
+func callGeminiTeamAnalysis(teamNum, eventKey, notes, videoNotes, pitNotes string, stats scoutStats) (teamAnalysisJSON, error) {
 	tmpl, err := template.New("team_analysis").Parse(teamAnalysisPromptTmpl)
 	if err != nil {
 		return teamAnalysisJSON{}, fmt.Errorf("failed to parse team analysis prompt: %w", err)
@@ -1884,6 +1912,7 @@ func callGeminiTeamAnalysis(teamNum, eventKey, notes, pitNotes string, stats sco
 		TeamNum:      teamNum,
 		EventKey:     eventKey,
 		Notes:        notes,
+		VideoNotes:   videoNotes,
 		PitNotes:     pitNotes,
 		EPABreakdown: fetchStatboticsEPA(eventKey, teamNum),
 		Stats:        stats.promptText(),

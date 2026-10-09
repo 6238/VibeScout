@@ -29,7 +29,7 @@ templ Home(events map[string]string, selectedEvent string) {
                         Field Scouting
                     </button>
 
-                    <div class="grid grid-cols-3 gap-3">
+                    <div class="grid grid-cols-2 gap-3">
                         @homeTile("/next-match", "Next Match")  {
                             @iconFlag("w-6 h-6")
                         }
@@ -38,6 +38,9 @@ templ Home(events map[string]string, selectedEvent string) {
                         }
                         @homeTile("/pit-scout", "Pit Scouting") {
                             @iconNut("w-6 h-6")
+                        }
+                        @homeTile("/video-scout", "Video Scouting") {
+                            @iconVideo("w-6 h-6")
                         }
                     </div>
                 </form>
